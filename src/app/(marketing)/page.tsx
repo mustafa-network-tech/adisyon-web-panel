@@ -57,20 +57,20 @@ export default function MarketingPage() {
             <Sparkles size={14} aria-hidden="true" /> Yeni nesil restoran yönetimi
           </div>
           <h1 className="mt-7 text-[clamp(3rem,7vw,6.5rem)] font-black leading-[0.91] tracking-[-0.065em] text-[#17211d]">
-            Servisin ritmi <span className="text-[#e8623a]">sizde.</span>
+            Servisin ritmi <span className="text-[#c94927]">sizde.</span>
           </h1>
           <p className="mt-7 max-w-lg text-lg leading-8 text-[#68736e]">
             Masadan mutfağa, mutfaktan kasaya tüm operasyonu hızlandıran; her işletmeye uyum sağlayan modern adisyon platformu.
           </p>
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-            <Link href="/app/demo-restoran/merkez/masalar" className="inline-flex min-h-14 items-center justify-center gap-3 rounded-2xl bg-[#e8623a] px-6 text-sm font-black text-white shadow-[0_16px_34px_rgb(232_98_58/0.28)] transition hover:-translate-y-0.5 hover:bg-[#d9552e]">
+            <Link href="/app/demo-restoran/merkez/masalar" className="inline-flex min-h-14 items-center justify-center gap-3 rounded-2xl bg-[#b54221] px-6 text-sm font-black text-white shadow-[0_16px_34px_rgb(181_66_33/0.24)] transition hover:-translate-y-0.5 hover:bg-[#943619]">
               Demo çalışma alanı <ArrowRight size={18} aria-hidden="true" />
             </Link>
             <a href="#platform" className="inline-flex min-h-14 items-center justify-center rounded-2xl border border-[#d6ddd9] bg-white px-6 text-sm font-black text-[#17211d] transition hover:border-[#aeb9b3]">
               Platformu keşfet
             </a>
           </div>
-          <div className="mt-10 flex flex-wrap gap-x-6 gap-y-3 text-xs font-bold text-[#68736e]">
+          <div className="mt-10 flex flex-wrap gap-x-6 gap-y-3 text-xs font-bold text-[#4f5a55]">
             {trustItems.map((item) => (
               <span key={item} className="inline-flex items-center gap-2">
                 <Check size={15} className="text-[#23866b]" aria-hidden="true" /> {item}
@@ -85,7 +85,7 @@ export default function MarketingPage() {
           <div className="relative overflow-hidden rounded-[32px] border border-white/80 bg-[#17211d] p-3 shadow-[0_40px_90px_rgb(23_33_29/0.24)] sm:p-5 lg:rotate-[1.5deg]">
             <div className="flex items-center justify-between px-2 pb-4 text-white">
               <div>
-                <p className="text-xs font-bold text-white/50">MERKEZ ŞUBE</p>
+                <p className="text-xs font-bold text-white/70">MERKEZ ŞUBE</p>
                 <p className="mt-1 text-lg font-black">Akşam servisi</p>
               </div>
               <div className="flex -space-x-2">
@@ -97,18 +97,18 @@ export default function MarketingPage() {
             <div className="rounded-[24px] bg-[#f3f5f4] p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-[#e8623a]">Salon görünümü</p>
+                  <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-[#b54221]">Salon görünümü</p>
                   <h2 className="mt-1 text-2xl font-black tracking-tight text-[#17211d]">12 masa · 8 aktif</h2>
                 </div>
                 <span className="rounded-xl bg-white px-3 py-2 text-xs font-bold text-[#68736e] shadow-sm">19:42</span>
               </div>
               <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {[
-                  ["M01", "Boş", "bg-white", "text-[#23866b]"],
-                  ["M02", "₺1.240", "bg-[#fff0ea]", "text-[#c94927]"],
-                  ["M03", "₺860", "bg-[#fff7de]", "text-[#9b6b14]"],
-                  ["M04", "Boş", "bg-white", "text-[#23866b]"],
-                  ["M05", "₺2.180", "bg-[#fff0ea]", "text-[#c94927]"],
+                  ["M01", "Boş", "bg-white", "text-[#176e56]"],
+                  ["M02", "₺1.240", "bg-[#fff0ea]", "text-[#a73d21]"],
+                  ["M03", "₺860", "bg-[#fff7de]", "text-[#7d5208]"],
+                  ["M04", "Boş", "bg-white", "text-[#176e56]"],
+                  ["M05", "₺2.180", "bg-[#fff0ea]", "text-[#a73d21]"],
                   ["M06", "Hazır", "bg-[#dff3eb]", "text-[#176e56]"],
                 ].map(([table, status, bg, color]) => (
                   <div key={table} className={`min-h-28 rounded-2xl p-4 shadow-[0_8px_24px_rgb(23_33_29/0.06)] ${bg}`}>
@@ -117,7 +117,7 @@ export default function MarketingPage() {
                       <span className="size-2 rounded-full bg-current text-[#e8623a]" />
                     </div>
                     <p className={`mt-7 text-sm font-extrabold ${color}`}>{status}</p>
-                    <p className="mt-1 text-[10px] font-semibold text-[#8a948f]">4 kişilik</p>
+                    <p className="mt-1 text-[10px] font-semibold text-[#5f6964]">4 kişilik</p>
                   </div>
                 ))}
               </div>
@@ -133,7 +133,7 @@ export default function MarketingPage() {
       <section id="platform" className="bg-white py-24 sm:py-28">
         <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
           <div className="max-w-2xl">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#e8623a]">Tek platform, tam operasyon</p>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#b54221]">Tek platform, tam operasyon</p>
             <h2 className="mt-4 text-4xl font-black tracking-[-0.045em] text-[#17211d] sm:text-5xl">Yoğun serviste sakin kontrol.</h2>
             <p className="mt-5 text-lg leading-8 text-[#68736e]">Ekiplerin ihtiyaç duyduğu bilgi, tam ihtiyaç duydukları anda karşılarında.</p>
           </div>
@@ -142,7 +142,7 @@ export default function MarketingPage() {
               <article key={title} className="group rounded-[28px] border border-[#e1e6e3] bg-[#f8f9f8] p-7 transition hover:-translate-y-1 hover:border-[#f0b29e] hover:bg-[#fffaf8]">
                 <div className="flex items-start justify-between">
                   <span className="grid size-13 place-items-center rounded-2xl bg-[#17211d] text-white"><Icon size={23} aria-hidden="true" /></span>
-                  <span className="font-mono text-xs font-bold text-[#a1aaa5]">0{index + 1}</span>
+                  <span className="font-mono text-xs font-bold text-[#68736e]">0{index + 1}</span>
                 </div>
                 <h3 className="mt-8 text-2xl font-black tracking-tight text-[#17211d]">{title}</h3>
                 <p className="mt-3 leading-7 text-[#68736e]">{description}</p>
@@ -176,7 +176,7 @@ export default function MarketingPage() {
       <footer id="iletisim" className="bg-[#0f1713] py-12 text-white">
         <div className="mx-auto flex max-w-7xl flex-col gap-8 px-5 sm:px-8 md:flex-row md:items-center md:justify-between lg:px-10">
           <Brand inverse />
-          <p className="text-sm text-white/45">MK Digital Systems · Restoran operasyonları için tasarlandı.</p>
+          <p className="text-sm text-white/65">MK Digital Systems · Restoran operasyonları için tasarlandı.</p>
           <Link href="/giris" className="inline-flex min-h-11 items-center gap-2 self-start rounded-xl border border-white/15 px-4 text-sm font-bold hover:bg-white/5 md:self-auto">İşletme girişi <ArrowRight size={15} /></Link>
         </div>
       </footer>

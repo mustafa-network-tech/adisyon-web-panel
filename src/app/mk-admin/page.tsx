@@ -4,7 +4,6 @@ import {
   CalendarClock,
   CircleDollarSign,
   LogOut,
-  Plus,
   Search,
   ShieldCheck,
   Users,
@@ -12,6 +11,7 @@ import {
 import { requirePlatformAdmin } from "@/lib/auth/access";
 import { signOutAction } from "@/modules/auth/actions";
 import { getPlatformOverview } from "@/modules/platform-admin/data";
+import { PlatformActionsPanel } from "@/modules/platform-admin/components/platform-actions-panel";
 import type { SubscriptionStatus } from "@/modules/platform-admin/types";
 
 export const metadata: Metadata = { title: "MK Yönetim Paneli" };
@@ -76,7 +76,7 @@ export default async function PlatformAdminPage({
       <section className="mx-auto max-w-7xl px-5 py-8 sm:px-8 sm:py-10">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div><p className="text-xs font-black uppercase tracking-[0.16em] text-[#e8623a]">Merkezî yönetim</p><h1 className="mt-2 text-3xl font-black tracking-[-0.04em] sm:text-4xl">İşletmeler</h1><p className="mt-2 text-sm font-semibold text-[#7a8580]">Tenant yaşam döngüsü ve manuel abonelik yönetimi.</p></div>
-          <button type="button" disabled title="Güvenli tenant provisioning Modül 8'de açılacak" className="inline-flex min-h-12 cursor-not-allowed items-center justify-center gap-2 rounded-xl bg-[#e8623a] px-5 text-sm font-black text-white opacity-55"><Plus size={17} /> Yeni işletme</button>
+          <PlatformActionsPanel tenants={(overview?.tenants || []).map((tenant) => ({ id: tenant.id, name: tenant.name, planCode: tenant.planCode, subscriptionStatus: tenant.subscriptionStatus }))} />
         </div>
 
         {loadError && <div role="alert" className="mt-6 rounded-2xl border border-[#f3d2c6] bg-[#fff7f3] p-4 text-sm font-semibold text-[#9e4328]">Platform verileri okunamadı. Auth/RLS migration dosyasının uygulandığını ve hesabın platform yöneticisi olduğunu kontrol edin.</div>}
@@ -101,7 +101,7 @@ export default async function PlatformAdminPage({
           </div>
         </div>
 
-        <div className="mt-5 flex items-start gap-3 rounded-2xl border border-[#cbded6] bg-[#edf8f3] p-4"><ShieldCheck size={20} className="mt-0.5 shrink-0 text-[#23866b]" /><div><p className="text-sm font-black text-[#176e56]">Sunucu tarafı yetkilendirme etkin</p><p className="mt-1 text-xs leading-5 text-[#397a67]">Bu rota doğrulanmış Supabase oturumu ve platform_admins kaydı olmadan açılmaz. Tenant oluşturma ve abonelik güncelleme işlemleri audit log ile birlikte Modül 8’de etkinleştirilecektir.</p></div></div>
+        <div className="mt-5 flex items-start gap-3 rounded-2xl border border-[#cbded6] bg-[#edf8f3] p-4"><ShieldCheck size={20} className="mt-0.5 shrink-0 text-[#23866b]" /><div><p className="text-sm font-black text-[#176e56]">Sunucu tarafı yetkilendirme ve audit etkin</p><p className="mt-1 text-xs leading-5 text-[#397a67]">Tenant oluşturma ve abonelik değişiklikleri yalnızca doğrulanmış platform yöneticisi RPC’leriyle yapılır. Önceki ve sonraki abonelik değerleri değiştirilemez audit geçmişine yazılır.</p></div></div>
       </section>
     </main>
   );

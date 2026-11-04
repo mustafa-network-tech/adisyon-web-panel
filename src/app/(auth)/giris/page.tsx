@@ -51,14 +51,14 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             })}
           </div>
         </div>
-        <p className="relative text-xs font-semibold text-white/35">MK Digital Systems · Faz 1 geliştirme ortamı</p>
+        <p className="relative text-xs font-semibold text-white/65">MK Digital Systems · Faz 1 geliştirme ortamı</p>
       </section>
 
       <section className="flex items-center justify-center p-5 sm:p-10">
         <div className="w-full max-w-md rounded-[28px] border border-[#dfe5e1] bg-white p-6 shadow-[0_28px_80px_rgb(23_33_29/0.08)] sm:p-9">
           <div className="lg:hidden"><Brand /></div>
           <div className="mt-9 lg:mt-0">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-[#e8623a]">Hoş geldiniz</p>
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-[#b54221]">Hoş geldiniz</p>
             <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-[#17211d]">İşletmenize giriş yapın</h2>
             <p className="mt-3 text-sm leading-6 text-[#68736e]">Size tanımlanan e-posta ve şifreyle devam edin.</p>
           </div>
@@ -68,7 +68,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </p>
           )}
           <LoginForm configured={configured} nextPath={nextPath} />
-          <p className="mt-7 text-center text-xs leading-5 text-[#8a948f]">Giriş yaparak güvenlik ve kullanım koşullarını kabul etmiş olursunuz.</p>
+          <p className="mt-7 text-center text-xs leading-5 text-[#68736e]">Giriş yaparak güvenlik ve kullanım koşullarını kabul etmiş olursunuz.</p>
         </div>
       </section>
     </main>

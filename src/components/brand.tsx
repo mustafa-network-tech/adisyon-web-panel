@@ -11,7 +11,6 @@ export function Brand({ compact = false, href = "/", inverse = false }: BrandPro
     <Link
       href={href}
       className="inline-flex min-h-11 items-center gap-3 rounded-xl focus-visible:outline-offset-4"
-      aria-label="MK Adisyon ana sayfa"
     >
       <span
         className={`grid size-10 shrink-0 place-items-center rounded-xl text-sm font-black tracking-tight shadow-sm ${

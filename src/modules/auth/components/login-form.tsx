@@ -29,17 +29,17 @@ export function LoginForm({ configured, nextPath }: LoginFormProps) {
         </span>
         <span className="flex min-h-13 items-center gap-3 rounded-xl border border-[#dce3df] bg-[#f9faf9] px-4 transition focus-within:border-[#e8623a] focus-within:bg-white focus-within:ring-4 focus-within:ring-[#fff0ea]">
           <Mail size={18} className="text-[#8a948f]" aria-hidden="true" />
-          <input type="email" name="email" autoComplete="email" required placeholder="ornek@isletme.com" className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#a6afaa]" />
+          <input type="email" name="email" autoComplete="email" required placeholder="ornek@isletme.com" className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#68736e]" />
         </span>
       </label>
       <label className="block">
         <span className="mb-2 flex items-center justify-between text-sm font-bold text-[#33413b]">
           Şifre
-          <Link href="/sifremi-unuttum" className="text-xs font-bold text-[#d8542f] hover:underline">Şifremi unuttum</Link>
+          <Link href="/sifremi-unuttum" className="text-xs font-bold text-[#a73d21] hover:underline">Şifremi unuttum</Link>
         </span>
         <span className="flex min-h-13 items-center gap-3 rounded-xl border border-[#dce3df] bg-[#f9faf9] px-4 transition focus-within:border-[#e8623a] focus-within:bg-white focus-within:ring-4 focus-within:ring-[#fff0ea]">
           <LockKeyhole size={18} className="text-[#8a948f]" aria-hidden="true" />
-          <input type={showPassword ? "text" : "password"} name="password" autoComplete="current-password" required minLength={8} placeholder="••••••••" className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#a6afaa]" />
+          <input type={showPassword ? "text" : "password"} name="password" autoComplete="current-password" required minLength={8} placeholder="••••••••" className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#68736e]" />
           <button type="button" className="grid size-9 place-items-center rounded-lg text-[#68736e] hover:bg-[#eef1ef]" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"}>
             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
