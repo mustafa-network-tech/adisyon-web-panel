@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { permissions, systemRoles } from "./permissions";
+import {
+  getWorkspaceHomeSegment,
+  hasAnyPermission,
+  permissions,
+  systemRoles,
+  workspaceSections,
+} from "./permissions";
 
 describe("authorization catalog", () => {
   it("keeps permission codes unique", () => {
@@ -20,6 +26,23 @@ describe("authorization catalog", () => {
   it("contains the default restaurant roles", () => {
     expect(systemRoles).toEqual(
       expect.arrayContaining(["owner", "manager", "waiter", "kitchen", "cashier"]),
+    );
+  });
+
+  it("routes users to the first section allowed by their permissions", () => {
+    expect(getWorkspaceHomeSegment(["kitchen.read", "kitchen.update"])).toBe(
+      "mutfak",
+    );
+    expect(getWorkspaceHomeSegment(["cash.open"])).toBe("kasa");
+    expect(getWorkspaceHomeSegment([])).toBeNull();
+  });
+
+  it("checks navigation sections with any-of semantics", () => {
+    expect(hasAnyPermission(["users.manage"], workspaceSections.settings)).toBe(
+      true,
+    );
+    expect(hasAnyPermission(["tables.read"], workspaceSections.checkout)).toBe(
+      false,
     );
   });
 });

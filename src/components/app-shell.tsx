@@ -3,6 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  hasAnyPermission,
+  type Permission,
+  workspaceSections,
+} from "@/lib/permissions";
+import {
   ChefHat,
   ChevronDown,
   CreditCard,
@@ -22,10 +27,12 @@ type AppShellProps = {
   branchName: string;
   userName: string;
   userRole: string;
+  permissions: Permission[];
+  supportMode: boolean;
   children: React.ReactNode;
 };
 
-export function AppShell({ tenant, branch, tenantName, branchName, userName, userRole, children }: AppShellProps) {
+export function AppShell({ tenant, branch, tenantName, branchName, userName, userRole, permissions, supportMode, children }: AppShellProps) {
   const pathname = usePathname();
   const base = `/app/${tenant}/${branch}`;
   const initials = userName
@@ -34,11 +41,11 @@ export function AppShell({ tenant, branch, tenantName, branchName, userName, use
     .map((part) => part[0]?.toLocaleUpperCase("tr-TR"))
     .join("");
   const navItems = [
-    { href: `${base}/masalar`, label: "Masalar", icon: LayoutGrid },
-    { href: `${base}/mutfak`, label: "Mutfak", icon: ChefHat },
-    { href: `${base}/kasa`, label: "Kasa", icon: CreditCard },
-    { href: `${base}/ayarlar`, label: "Ayarlar", icon: Settings },
-  ];
+    { href: `${base}/masalar`, label: "Masalar", icon: LayoutGrid, required: workspaceSections.tables },
+    { href: `${base}/mutfak`, label: "Mutfak", icon: ChefHat, required: workspaceSections.kitchen },
+    { href: `${base}/kasa`, label: "Kasa", icon: CreditCard, required: workspaceSections.checkout },
+    { href: `${base}/ayarlar`, label: "Ayarlar", icon: Settings, required: workspaceSections.settings },
+  ].filter((item) => hasAnyPermission(permissions, item.required));
 
   return (
     <div className="min-h-dvh bg-[#f4f6f8] lg:grid lg:grid-cols-[248px_1fr]">
@@ -64,8 +71,8 @@ export function AppShell({ tenant, branch, tenantName, branchName, userName, use
         </nav>
         <div className="mt-auto">
           <div className="mb-3 rounded-xl border border-[#31866e]/30 bg-[#23866b]/15 p-3">
-            <p className="flex items-center gap-2 text-xs font-bold text-[#7ed8ba]"><ShieldCheck size={15} /> Güvenli demo alanı</p>
-            <p className="mt-2 text-[10px] leading-4 text-white/40">Gerçek müşteri veya ödeme verisi içermez.</p>
+            <p className="flex items-center gap-2 text-xs font-bold text-[#7ed8ba]"><ShieldCheck size={15} /> {supportMode ? "Süreli destek erişimi" : "RLS korumalı oturum"}</p>
+            <p className="mt-2 text-[10px] leading-4 text-white/40">{supportMode ? "Bu erişim gerekçeli ve audit log ile izlenir." : "Yetkiler aktif rol ve şube atamanızdan alınır."}</p>
           </div>
           <form action={signOutAction}><button type="submit" className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-sm font-bold text-white/45 hover:bg-white/5 hover:text-white"><LogOut size={18} /> Oturumu kapat</button></form>
         </div>

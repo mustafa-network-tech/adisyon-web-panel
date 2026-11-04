@@ -15,6 +15,8 @@ export default async function WorkspaceLayout({ children, params }: { children: 
       branchName={context.branchName}
       userName={context.userName}
       userRole={context.userRole}
+      permissions={context.permissions}
+      supportMode={context.supportMode}
     >
       {children}
     </AppShell>

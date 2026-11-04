@@ -5,6 +5,8 @@ This directory contains the versioned PostgreSQL, RLS and Auth boundary design.
 The first two migrations define the core multi-tenant schema and RLS policies.
 `0003_phase2_auth_boundaries.sql` adds profile provisioning and the minimum
 read boundary required by the protected platform dashboard.
+`0004_phase2_tenant_roles_rls.sql` adds canonical restaurant roles,
+branch-scoped policies and audited, time-limited platform support sessions.
 
 Apply files in numeric order to the dedicated MK Adisyon WEB development
 project. Do not run `seed.sql` against a hosted or production database.

@@ -1,7 +1,12 @@
 import "server-only";
 
 import { redirect } from "next/navigation";
+import {
+  hasAnyPermission,
+  type Permission,
+} from "@/lib/permissions";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { resolveWorkspaceContext } from "@/modules/tenancy/repository";
 
 type VerifiedIdentity = {
   userId: string;
@@ -55,48 +60,27 @@ export async function requireWorkspaceAccess(
   const returnTo = `/app/${tenantSlug}/${branchSlug}`;
   const identity = await requireAuthenticatedUser(returnTo);
   const supabase = await createSupabaseServerClient();
+  const context = await resolveWorkspaceContext(
+    supabase,
+    identity,
+    tenantSlug,
+    branchSlug,
+  );
 
-  const { data: tenant } = await supabase
-    .from("tenants")
-    .select("id, name, slug")
-    .eq("slug", tenantSlug)
-    .eq("is_active", true)
-    .maybeSingle();
+  if (!context) redirect("/giris?error=workspace-access");
+  return context;
+}
 
-  if (!tenant) redirect("/giris?error=workspace-access");
+export async function requireWorkspacePermission(
+  tenantSlug: string,
+  branchSlug: string,
+  required: readonly Permission[],
+) {
+  const context = await requireWorkspaceAccess(tenantSlug, branchSlug);
 
-  const [{ data: branch }, { data: membership }, { data: profile }] =
-    await Promise.all([
-      supabase
-        .from("branches")
-        .select("id, name, slug")
-        .eq("tenant_id", tenant.id)
-        .eq("slug", branchSlug)
-        .eq("is_active", true)
-        .maybeSingle(),
-      supabase
-        .from("tenant_memberships")
-        .select("id, status")
-        .eq("tenant_id", tenant.id)
-        .eq("user_id", identity.userId)
-        .eq("status", "active")
-        .maybeSingle(),
-      supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("id", identity.userId)
-        .maybeSingle(),
-    ]);
+  if (!hasAnyPermission(context.permissions, required)) {
+    redirect(`/app/${tenantSlug}/${branchSlug}`);
+  }
 
-  if (!branch || !membership) redirect("/giris?error=workspace-access");
-
-  return {
-    userId: identity.userId,
-    userName: profile?.full_name || identity.email || "Kullanıcı",
-    userRole: "Ekip üyesi",
-    tenantId: tenant.id,
-    tenantName: tenant.name,
-    branchId: branch.id,
-    branchName: branch.name,
-  };
+  return context;
 }
