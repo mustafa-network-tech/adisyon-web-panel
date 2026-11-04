@@ -1,12 +1,49 @@
-export type KitchenTicketStatus = "new" | "preparing" | "ready";
+export type KitchenTicketStatus =
+  | "new"
+  | "preparing"
+  | "ready"
+  | "served"
+  | "cancelled";
+
+export type ActiveKitchenTicketStatus = Extract<
+  KitchenTicketStatus,
+  "new" | "preparing" | "ready"
+>;
+
+export type KitchenTicketItem = {
+  orderItemId: string;
+  quantity: number;
+  name: string;
+  note: string | null;
+};
 
 export type KitchenTicket = {
   id: string;
-  orderNumber: string;
+  orderId: string;
+  orderNumber: number;
   tableLabel: string;
-  station: "Sıcak" | "Soğuk" | "Bar";
-  status: KitchenTicketStatus;
-  ageMinutes: number;
-  server: string;
-  items: { quantity: number; name: string; note?: string }[];
+  stationId: string;
+  stationName: string;
+  stationColor: string;
+  status: ActiveKitchenTicketStatus;
+  sentAt: string;
+  startedAt: string | null;
+  readyAt: string | null;
+  serverName: string;
+  items: KitchenTicketItem[];
 };
+
+export type KitchenStationFilter = {
+  id: string;
+  name: string;
+  color: string;
+};
+
+export type KitchenSnapshot = {
+  tickets: KitchenTicket[];
+  stations: KitchenStationFilter[];
+};
+
+export type KitchenActionResult =
+  | { ok: true; message: string }
+  | { ok: false; code: string; message: string };
