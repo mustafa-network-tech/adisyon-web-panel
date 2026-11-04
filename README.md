@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MK Adisyon Web
 
-## Getting Started
+Independent, multi-tenant restaurant operations platform by MK Digital
+Systems. The Phase 1 repository contains the application foundation,
+responsive product prototypes, PWA infrastructure and unapplied Supabase SQL
+drafts.
 
-First, run the development server:
+## Current scope
+
+- Next.js 16 App Router, React 19 and TypeScript
+- Tailwind CSS 4 responsive design system
+- Marketing, sign-in, table/POS, kitchen, cash register and settings screens
+- MK Digital Systems platform administration prototype
+- Installable PWA manifest, service worker and offline fallback
+- Supabase browser/server client boundaries without live credentials
+- Shared-schema multi-tenant PostgreSQL design and RLS policy drafts
+
+No Supabase project has been linked, no migration has been run and nothing has
+been deployed.
+
+## Local development
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`. The demo workspace is available at:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```text
+/app/demo-restoran/merkez/masalar
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The UI works with local mock data. Supabase variables are not required for the
+demo. When Phase 2 starts, copy `.env.example` to `.env.local` and use only a
+new development Supabase project.
 
-## Learn More
+## Quality commands
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+pnpm typecheck
+pnpm lint
+pnpm build
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Repository map
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```text
+src/app                 Next.js routes and layouts
+src/components          Shared application shell and brand UI
+src/modules             Domain modules
+src/lib                 Supabase boundaries, permissions and money helpers
+supabase/migrations     Unapplied schema/RLS drafts
+supabase/tests          Local pgTAP test drafts
+docs/architecture       Technical decisions and module boundaries
+docs/security           Tenant isolation and security model
+docs/phase-2-plan.md    Approved-next-phase execution plan
+```
 
-## Deploy on Vercel
+## Safety rules
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Never reuse the Flutter application's database or credentials.
+- Never commit `.env.local` or service-role credentials.
+- Never expose the service-role key to browser code.
+- Do not run remote migrations or deploy without explicit approval.
+- Treat all financial mutations as transaction and idempotency boundaries.
