@@ -1,52 +1,151 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Banknote, CheckCircle2, CreditCard, ReceiptText, Scissors, WalletCards } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Banknote, CheckCircle2, CloudOff, CreditCard, LockKeyhole, PlusCircle, ReceiptText, Scissors, WalletCards } from "lucide-react";
 import { formatMoney } from "@/lib/money";
-import type { PaymentMethod } from "@/modules/cash-register/types";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import type { CheckoutSnapshot, PaymentMethod } from "@/modules/cash-register/types";
+import { closeCashSessionAction, openCashSessionAction, recordCashMovementAction, recordOrderPaymentsAction, refundPaymentAction } from "../actions";
+import { moneyToMinor } from "../validation";
 
-const openChecks = [
-  { id: "m05", table: "M05", totalMinor: 218000, age: "47 dk", server: "Arda" },
-  { id: "t02", table: "T02", totalMinor: 166000, age: "39 dk", server: "Ece" },
-  { id: "m06", table: "M06", totalMinor: 148000, age: "28 dk", server: "Ece" },
-  { id: "m02", table: "M02", totalMinor: 124000, age: "34 dk", server: "Ece" },
-];
+type PaymentMode = "full" | "amount" | "mixed" | "items";
+type CheckoutPanelProps = CheckoutSnapshot & {
+  tenant: string;
+  branch: string;
+  branchId: string;
+  canOpen: boolean;
+  canClose: boolean;
+  canPay: boolean;
+  canRefund: boolean;
+};
 
-export function CheckoutPanel() {
-  const [selectedId, setSelectedId] = useState("m05");
-  const [method, setMethod] = useState<PaymentMethod | "split">("card");
-  const [paid, setPaid] = useState<string[]>([]);
-  const selected = useMemo(() => openChecks.find((check) => check.id === selectedId) ?? openChecks[0], [selectedId]);
-  const isPaid = paid.includes(selected.id);
+const inputClass = "min-h-11 w-full rounded-xl border border-[#dce3df] bg-[#f9faf9] px-3 text-sm outline-none focus:border-[#e8623a]";
 
-  function completePayment() {
-    setPaid((items) => items.includes(selected.id) ? items : [...items, selected.id]);
+export function CheckoutPanel(props: CheckoutPanelProps) {
+  const { tenant, branch, branchId, registers, sessions, orders, recentPayments, cashTotalMinor, cardTotalMinor, refundTotalMinor, canOpen, canClose, canPay, canRefund } = props;
+  const router = useRouter();
+  const [online, setOnline] = useState(() => typeof navigator === "undefined" ? true : navigator.onLine);
+  const [sessionId, setSessionId] = useState(sessions[0]?.id || "");
+  const [selectedOrderId, setSelectedOrderId] = useState(orders[0]?.id || "");
+  const [mode, setMode] = useState<PaymentMode>("full");
+  const [method, setMethod] = useState<PaymentMethod>("card");
+  const [amount, setAmount] = useState("");
+  const [cashAmount, setCashAmount] = useState("");
+  const [cardAmount, setCardAmount] = useState("");
+  const [itemQuantities, setItemQuantities] = useState<Record<string, number>>({});
+  const [openingAmount, setOpeningAmount] = useState("0");
+  const [registerId, setRegisterId] = useState(registers[0]?.id || "");
+  const [movementType, setMovementType] = useState<"income" | "expense">("expense");
+  const [movementAmount, setMovementAmount] = useState("");
+  const [movementReason, setMovementReason] = useState("");
+  const [closingAmount, setClosingAmount] = useState("");
+  const [refundPaymentId, setRefundPaymentId] = useState(recentPayments[0]?.id || "");
+  const [refundAmount, setRefundAmount] = useState("");
+  const [refundReason, setRefundReason] = useState("");
+  const [feedback, setFeedback] = useState<{ type: "error" | "success"; message: string } | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const requestKey = useRef<string | null>(null);
+
+  const session = sessions.find((item) => item.id === sessionId) || sessions[0];
+  const selectedOrder = orders.find((item) => item.id === selectedOrderId) || orders[0];
+  const refundablePayment = recentPayments.find((item) => item.id === refundPaymentId);
+
+  useEffect(() => {
+    const onOnline = () => { setOnline(true); router.refresh(); };
+    const onOffline = () => setOnline(false);
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+    return () => { window.removeEventListener("online", onOnline); window.removeEventListener("offline", onOffline); };
+  }, [router]);
+
+  useEffect(() => {
+    const supabase = createSupabaseBrowserClient();
+    const refresh = () => router.refresh();
+    const channel = supabase.channel(`checkout:${branchId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "payments", filter: `branch_id=eq.${branchId}` }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "cash_sessions", filter: `branch_id=eq.${branchId}` }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "payment_refunds", filter: `branch_id=eq.${branchId}` }, refresh)
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [branchId, router]);
+
+  const itemSplitTotal = useMemo(() => selectedOrder?.items.reduce((sum, item) => sum + (itemQuantities[item.id] || 0) * item.unitPriceMinor, 0) || 0, [itemQuantities, selectedOrder]);
+  function invalidate() { requestKey.current = null; setFeedback(null); }
+  function execute(operation: () => Promise<{ ok: boolean; message: string }>) {
+    if (!online) return;
+    setFeedback(null);
+    startTransition(async () => {
+      const result = await operation();
+      setFeedback({ type: result.ok ? "success" : "error", message: result.message });
+      if (result.ok) { requestKey.current = null; router.refresh(); }
+    });
   }
 
-  return (
-    <section className="p-4 sm:p-6 lg:p-8">
-      <div><p className="text-xs font-black uppercase tracking-[0.16em] text-[#e8623a]">Kasa ekranı</p><h1 className="mt-2 text-3xl font-black tracking-[-0.04em] sm:text-4xl">Ödeme & vardiya</h1><p className="mt-2 text-sm font-semibold text-[#7a8580]">Kasa 01 · 16:00 tarihinde açıldı · Arda Yılmaz</p></div>
-      <div className="mt-7 grid gap-5 xl:grid-cols-[1fr_420px]">
-        <div className="space-y-5">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {[["Açık hesap", "4", ReceiptText, "text-[#c94927] bg-[#fff0ea]"], ["Nakit", "₺12.480", Banknote, "text-[#176e56] bg-[#e7f5ef]"], ["Kart", "₺31.720", CreditCard, "text-[#285e9f] bg-[#eaf2fb]"], ["Toplam", "₺44.200", WalletCards, "text-[#6f4fa0] bg-[#f0eafb]"]].map(([label, value, Icon, style]) => { const ItemIcon = Icon as typeof ReceiptText; return <article key={label as string} className="rounded-2xl border border-[#dfe5e1] bg-white p-4"><span className={`grid size-10 place-items-center rounded-xl ${style}`}><ItemIcon size={19} /></span><p className="mt-5 text-xs font-bold text-[#8a948f]">{label as string}</p><p className="mt-1 text-xl font-black">{value as string}</p></article>; })}
-          </div>
-          <div className="rounded-[24px] border border-[#dfe5e1] bg-white p-4 sm:p-5">
-            <div className="flex items-center justify-between"><div><p className="text-[10px] font-black uppercase tracking-[0.15em] text-[#8a948f]">Tahsilat bekleyen</p><h2 className="mt-1 text-xl font-black">Açık adisyonlar</h2></div><span className="rounded-lg bg-[#f0f2f1] px-3 py-2 text-xs font-bold text-[#68736e]">{openChecks.length} hesap</span></div>
-            <div className="mt-5 space-y-2">{openChecks.map((check) => <button key={check.id} type="button" onClick={() => setSelectedId(check.id)} className={`flex min-h-20 w-full items-center gap-4 rounded-2xl border p-3 text-left transition ${selectedId === check.id ? "border-[#e8623a] bg-[#fff9f6] ring-4 ring-[#fff0ea]" : "border-[#e1e6e3] hover:bg-[#f8f9f8]"}`}><span className="grid size-12 shrink-0 place-items-center rounded-xl bg-[#17211d] text-sm font-black text-white">{check.table}</span><span className="min-w-0 flex-1"><span className="block text-sm font-black">{check.server} · {check.age}</span><span className="mt-1 block text-xs font-bold text-[#8a948f]">Masa adisyonu</span></span><span className="text-base font-black">{formatMoney(check.totalMinor)}</span>{paid.includes(check.id) && <CheckCircle2 size={20} className="text-[#23866b]" />}</button>)}</div>
-          </div>
-        </div>
+  function openSession() {
+    const openingMinor = moneyToMinor(openingAmount);
+    if (!registerId || openingMinor === null) return setFeedback({ type: "error", message: "Açılış tutarını kontrol edin." });
+    requestKey.current ||= crypto.randomUUID();
+    execute(() => openCashSessionAction({ tenant, branch, registerId, openingMinor, idempotencyKey: requestKey.current }));
+  }
 
-        <aside className="rounded-[24px] border border-[#dfe5e1] bg-white p-5 shadow-[0_14px_36px_rgb(23_33_29/0.05)]">
-          <p className="text-[10px] font-black uppercase tracking-[0.15em] text-[#e8623a]">Ödeme al</p><div className="mt-2 flex items-start justify-between"><div><h2 className="text-3xl font-black">{selected.table}</h2><p className="mt-1 text-xs font-bold text-[#8a948f]">Adisyon #{selected.id.toUpperCase()}</p></div><span className="rounded-xl bg-[#f0f2f1] px-3 py-2 text-xs font-bold">{selected.age}</span></div>
-          <div className="my-6 border-y border-dashed border-[#dce3df] py-6"><p className="text-xs font-bold text-[#8a948f]">Ödenecek toplam</p><p className="mt-2 text-4xl font-black tracking-[-0.04em]">{formatMoney(selected.totalMinor)}</p></div>
-          <p className="text-xs font-black uppercase tracking-[0.13em] text-[#8a948f]">Ödeme yöntemi</p>
-          <div className="mt-3 grid grid-cols-3 gap-2">{([{ value: "cash", label: "Nakit", icon: Banknote }, { value: "card", label: "Kart", icon: CreditCard }, { value: "split", label: "Böl", icon: Scissors }] as const).map(({ value, label, icon: Icon }) => <button key={value} type="button" onClick={() => setMethod(value)} className={`flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl border text-xs font-black ${method === value ? "border-[#17211d] bg-[#17211d] text-white" : "border-[#dce3df] bg-white text-[#68736e] hover:bg-[#f7f9f8]"}`}><Icon size={20} />{label}</button>)}</div>
-          {method === "split" && <div className="mt-4 rounded-xl bg-[#fff7e4] p-3 text-xs font-semibold leading-5 text-[#855c16]">Hesap bölme arayüzü hazırlandı. Kalıcı bölme ve ödeme tahsisi Faz 2 veritabanı işlemleriyle etkinleşecek.</div>}
-          <button type="button" onClick={completePayment} disabled={isPaid} className="mt-6 flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-[#e8623a] px-5 text-sm font-black text-white disabled:bg-[#23866b]"><CheckCircle2 size={18} />{isPaid ? "Ödeme kaydedildi" : `${method === "cash" ? "Nakit" : method === "card" ? "Kart" : "Bölünmüş"} ödemeyi tamamla`}</button>
-          <p className="mt-4 text-center text-[10px] font-semibold leading-4 text-[#9aa39f]">Demo işlemidir. Finansal kayıt veya gerçek ödeme oluşturmaz.</p>
-        </aside>
-      </div>
-    </section>
-  );
+  function takePayment() {
+    if (!session || !selectedOrder) return;
+    let payments: { method: PaymentMethod; amountMinor: number; allocations?: { orderItemId: string; quantity: number }[] }[] = [];
+    if (mode === "full") payments = [{ method, amountMinor: selectedOrder.outstandingMinor }];
+    if (mode === "amount") { const minor = moneyToMinor(amount); if (minor) payments = [{ method, amountMinor: minor }]; }
+    if (mode === "mixed") {
+      const cash = moneyToMinor(cashAmount) || 0; const card = moneyToMinor(cardAmount) || 0;
+      if (cash > 0) payments.push({ method: "cash", amountMinor: cash });
+      if (card > 0) payments.push({ method: "card", amountMinor: card });
+    }
+    if (mode === "items") {
+      const allocations = selectedOrder.items.flatMap((item) => (itemQuantities[item.id] || 0) > 0 ? [{ orderItemId: item.id, quantity: itemQuantities[item.id] }] : []);
+      if (itemSplitTotal > 0) payments = [{ method, amountMinor: itemSplitTotal, allocations }];
+    }
+    if (payments.length === 0) return setFeedback({ type: "error", message: "Ödeme tutarını kontrol edin." });
+    requestKey.current ||= crypto.randomUUID();
+    execute(() => recordOrderPaymentsAction({ tenant, branch, orderId: selectedOrder.id, cashSessionId: session.id, payments, idempotencyKey: requestKey.current }));
+  }
+
+  function recordMovement() {
+    if (!session) return;
+    const amountMinor = moneyToMinor(movementAmount);
+    if (!amountMinor) return setFeedback({ type: "error", message: "Hareket tutarını kontrol edin." });
+    requestKey.current ||= crypto.randomUUID();
+    execute(() => recordCashMovementAction({ tenant, branch, cashSessionId: session.id, movementType, amountMinor, reason: movementReason, idempotencyKey: requestKey.current }));
+  }
+
+  function closeSession() {
+    if (!session) return;
+    const closingMinor = moneyToMinor(closingAmount);
+    if (closingMinor === null) return setFeedback({ type: "error", message: "Sayım tutarını kontrol edin." });
+    requestKey.current ||= crypto.randomUUID();
+    execute(() => closeCashSessionAction({ tenant, branch, cashSessionId: session.id, closingMinor, idempotencyKey: requestKey.current }));
+  }
+
+  function refund() {
+    if (!session || !refundablePayment) return;
+    const amountMinor = moneyToMinor(refundAmount);
+    if (!amountMinor) return setFeedback({ type: "error", message: "İade tutarını kontrol edin." });
+    requestKey.current ||= crypto.randomUUID();
+    execute(() => refundPaymentAction({ tenant, branch, paymentId: refundablePayment.id, cashSessionId: session.id, amountMinor, reason: refundReason, idempotencyKey: requestKey.current }));
+  }
+
+  if (!session) return <section className="p-4 sm:p-6 lg:p-8"><Header online={online} subtitle="Tahsilata başlamadan önce bir kasa vardiyası açın." /><div className="mt-7 max-w-xl rounded-[24px] border border-[#dfe5e1] bg-white p-6"><LockKeyhole className="text-[#e8623a]" /><h2 className="mt-4 text-2xl font-black">Kasa vardiyası aç</h2><div className="mt-5 grid gap-4 sm:grid-cols-2"><label><span className="mb-2 block text-xs font-bold">Kasa</span><select value={registerId} onChange={(event) => { setRegisterId(event.target.value); invalidate(); }} className={inputClass}>{registers.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label><span className="mb-2 block text-xs font-bold">Açılış nakdi</span><input value={openingAmount} onChange={(event) => { setOpeningAmount(event.target.value); invalidate(); }} inputMode="decimal" className={inputClass} /></label></div>{feedback && <Feedback {...feedback} />}<button type="button" onClick={openSession} disabled={!canOpen || !online || isPending || registers.length === 0} className="mt-5 min-h-12 w-full rounded-xl bg-[#17211d] text-sm font-black text-white disabled:opacity-45">{isPending ? "Açılıyor…" : "Vardiyayı aç"}</button>{registers.length === 0 && <p className="mt-3 text-xs font-bold text-[#9e4328]">Önce işletme ayarlarından aktif kasa oluşturulmalıdır.</p>}</div></section>;
+
+  return <section className="p-4 sm:p-6 lg:p-8"><Header online={online} subtitle={`${session.cashRegisterName} · ${new Intl.DateTimeFormat("tr-TR", { timeStyle: "short" }).format(new Date(session.openedAt))} tarihinde açıldı · ${session.openedByName}`} />{sessions.length > 1 && <label className="mt-4 block max-w-xs"><span className="mb-2 block text-xs font-bold text-[#68736e]">Aktif kasa vardiyası</span><select value={session.id} onChange={(event) => { setSessionId(event.target.value); invalidate(); }} className={inputClass}>{sessions.map((item) => <option key={item.id} value={item.id}>{item.cashRegisterName} · {item.openedByName}</option>)}</select></label>}
+    <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-4">{[["Açık hesap", String(orders.length), ReceiptText, "text-[#c94927] bg-[#fff0ea]"], ["Nakit", formatMoney(cashTotalMinor), Banknote, "text-[#176e56] bg-[#e7f5ef]"], ["Kart", formatMoney(cardTotalMinor), CreditCard, "text-[#285e9f] bg-[#eaf2fb]"], ["Beklenen nakit", formatMoney(session.expectedMinor), WalletCards, "text-[#6f4fa0] bg-[#f0eafb]"]].map(([label, value, Icon, style]) => { const ItemIcon = Icon as typeof ReceiptText; return <article key={label as string} className="rounded-2xl border border-[#dfe5e1] bg-white p-4"><span className={`grid size-10 place-items-center rounded-xl ${style}`}><ItemIcon size={19} /></span><p className="mt-5 text-xs font-bold text-[#8a948f]">{label as string}</p><p className="mt-1 text-xl font-black">{value as string}</p></article>; })}</div>
+    {feedback && <Feedback {...feedback} />}
+    <div className="mt-5 grid gap-5 xl:grid-cols-[1fr_430px]"><div className="space-y-5"><div className="rounded-[24px] border border-[#dfe5e1] bg-white p-5"><div className="flex items-center justify-between"><h2 className="text-xl font-black">Tahsilat bekleyenler</h2><span className="rounded-lg bg-[#f0f2f1] px-3 py-2 text-xs font-bold">{orders.length} hesap</span></div><div className="mt-4 space-y-2">{orders.map((order) => <button key={order.id} type="button" onClick={() => { setSelectedOrderId(order.id); setItemQuantities({}); invalidate(); }} className={`flex min-h-20 w-full items-center gap-3 rounded-2xl border p-3 text-left ${selectedOrder?.id === order.id ? "border-[#e8623a] bg-[#fff9f6] ring-4 ring-[#fff0ea]" : "border-[#e1e6e3]"}`}><span className="grid size-12 place-items-center rounded-xl bg-[#17211d] text-sm font-black text-white">{order.tableLabel}</span><span className="min-w-0 flex-1"><span className="block text-sm font-black">#{order.orderNumber} · {order.serverName}</span><span className="mt-1 block text-xs font-bold text-[#8a948f]">Ödenen {formatMoney(order.paidMinor)}</span></span><span className="font-black">{formatMoney(order.outstandingMinor)}</span></button>)}{orders.length === 0 && <p className="py-10 text-center text-sm font-semibold text-[#8a948f]">Tahsilat bekleyen servis edilmiş sipariş yok.</p>}</div></div>
+      <div className="grid gap-5 lg:grid-cols-2"><UtilityCard title="Kasa hareketi"><div className="grid grid-cols-2 gap-2"><select value={movementType} onChange={(e) => { setMovementType(e.target.value as "income" | "expense"); invalidate(); }} className={inputClass}><option value="income">Gelir</option><option value="expense">Gider</option></select><input value={movementAmount} onChange={(e) => { setMovementAmount(e.target.value); invalidate(); }} placeholder="Tutar" className={inputClass} /></div><input value={movementReason} onChange={(e) => { setMovementReason(e.target.value); invalidate(); }} placeholder="Açıklama" className={`${inputClass} mt-2`} /><button onClick={recordMovement} disabled={!canPay || !online || isPending} className="mt-3 min-h-11 w-full rounded-xl bg-[#17211d] text-xs font-black text-white disabled:opacity-45">Hareketi kaydet</button></UtilityCard><UtilityCard title="Vardiyayı kapat"><p className="text-xs font-semibold text-[#7a8580]">Beklenen: {formatMoney(session.expectedMinor)} · İadeler: {formatMoney(refundTotalMinor)}</p><input value={closingAmount} onChange={(e) => { setClosingAmount(e.target.value); invalidate(); }} placeholder="Sayılan nakit" className={`${inputClass} mt-3`} /><button onClick={closeSession} disabled={!canClose || !online || isPending} className="mt-3 min-h-11 w-full rounded-xl bg-[#9e4328] text-xs font-black text-white disabled:opacity-45">Vardiyayı kapat</button></UtilityCard></div>
+      <UtilityCard title="Ödeme iadesi"><div className="grid gap-2 sm:grid-cols-3"><select value={refundPaymentId} onChange={(e) => { setRefundPaymentId(e.target.value); invalidate(); }} className={inputClass}>{recentPayments.map((payment) => <option key={payment.id} value={payment.id}>#{payment.orderNumber} · {formatMoney(payment.amountMinor - payment.refundedMinor)}</option>)}</select><input value={refundAmount} onChange={(e) => { setRefundAmount(e.target.value); invalidate(); }} placeholder="İade tutarı" className={inputClass} /><input value={refundReason} onChange={(e) => { setRefundReason(e.target.value); invalidate(); }} placeholder="İade nedeni" className={inputClass} /></div><button onClick={refund} disabled={!canRefund || !online || isPending || !refundablePayment} className="mt-3 min-h-11 rounded-xl border border-[#e4b8a9] px-5 text-xs font-black text-[#9e4328] disabled:opacity-45">İadeyi kaydet</button></UtilityCard></div>
+
+      <aside className="rounded-[24px] border border-[#dfe5e1] bg-white p-5 shadow-[0_14px_36px_rgb(23_33_29/0.05)]">{selectedOrder ? <><p className="text-[10px] font-black uppercase tracking-[0.15em] text-[#e8623a]">Ödeme al</p><h2 className="mt-2 text-3xl font-black">{selectedOrder.tableLabel} · #{selectedOrder.orderNumber}</h2><div className="my-5 border-y border-dashed border-[#dce3df] py-5"><p className="text-xs font-bold text-[#8a948f]">Kalan hesap</p><p className="mt-2 text-4xl font-black">{formatMoney(selectedOrder.outstandingMinor)}</p></div><div className="grid grid-cols-4 gap-2">{(["full", "amount", "mixed", "items"] as PaymentMode[]).map((item) => <button key={item} onClick={() => { setMode(item); invalidate(); }} className={`min-h-14 rounded-xl border text-[10px] font-black ${mode === item ? "border-[#17211d] bg-[#17211d] text-white" : "border-[#dce3df]"}`}>{item === "full" ? "Tam" : item === "amount" ? "Kısmi" : item === "mixed" ? "Karma" : "Ürün"}</button>)}</div>{mode !== "mixed" && <div className="mt-3 grid grid-cols-2 gap-2"><button onClick={() => { setMethod("cash"); invalidate(); }} className={`min-h-12 rounded-xl border text-xs font-black ${method === "cash" ? "bg-[#e7f5ef] text-[#176e56]" : "border-[#dce3df]"}`}><Banknote className="mr-1 inline" size={16} />Nakit</button><button onClick={() => { setMethod("card"); invalidate(); }} className={`min-h-12 rounded-xl border text-xs font-black ${method === "card" ? "bg-[#eaf2fb] text-[#285e9f]" : "border-[#dce3df]"}`}><CreditCard className="mr-1 inline" size={16} />Kart</button></div>}{mode === "amount" && <input value={amount} onChange={(e) => { setAmount(e.target.value); invalidate(); }} placeholder="Tahsil edilecek tutar" className={`${inputClass} mt-3`} />}{mode === "mixed" && <div className="mt-3 grid grid-cols-2 gap-2"><input value={cashAmount} onChange={(e) => { setCashAmount(e.target.value); invalidate(); }} placeholder="Nakit" className={inputClass} /><input value={cardAmount} onChange={(e) => { setCardAmount(e.target.value); invalidate(); }} placeholder="Kart" className={inputClass} /></div>}{mode === "items" && <div className="mt-3 max-h-64 space-y-2 overflow-y-auto">{selectedOrder.items.map((item) => { const available = item.quantity - item.allocatedQuantity; return <label key={item.id} className="flex items-center gap-3 rounded-xl bg-[#f5f7f6] p-3"><span className="min-w-0 flex-1"><span className="block truncate text-xs font-black">{item.name}</span><span className="text-[11px] font-bold text-[#8a948f]">{available} adet · {formatMoney(item.unitPriceMinor)}</span></span><input type="number" min="0" max={available} value={itemQuantities[item.id] || 0} onChange={(e) => { setItemQuantities((current) => ({ ...current, [item.id]: Number(e.target.value) })); invalidate(); }} className="h-10 w-16 rounded-lg border border-[#dce3df] text-center text-sm font-black" /></label>; })}<p className="text-right text-xs font-black">Seçilen: {formatMoney(itemSplitTotal)}</p></div>}<button onClick={takePayment} disabled={!canPay || !online || isPending} className="mt-5 flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-[#e8623a] text-sm font-black text-white disabled:opacity-45"><CheckCircle2 size={18} />{isPending ? "İşleniyor…" : "Ödemeyi kaydet"}</button>{!online && <p className="mt-3 text-center text-xs font-bold text-[#9e4328]"><CloudOff className="mr-1 inline" size={14} />Çevrimdışıyken ödeme alınamaz.</p>}</> : <div className="grid min-h-80 place-items-center text-center"><div><Scissors className="mx-auto text-[#9aa39f]" /><p className="mt-3 text-sm font-bold text-[#7a8580]">Tahsilat için bir sipariş seçin.</p></div></div>}</aside>
+    </div>
+  </section>;
 }
+
+function Header({ online, subtitle }: { online: boolean; subtitle: string }) { return <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-black uppercase tracking-[0.16em] text-[#e8623a]">Kasa ekranı</p><h1 className="mt-2 text-3xl font-black tracking-[-0.04em] sm:text-4xl">Ödeme &amp; vardiya</h1><p className="mt-2 text-sm font-semibold text-[#7a8580]">{subtitle}</p></div><span className={`inline-flex min-h-10 w-fit items-center gap-2 rounded-xl px-3 text-xs font-black ${online ? "bg-[#e7f5ef] text-[#176e56]" : "bg-[#fff2ed] text-[#9e4328]"}`}>{online ? <CheckCircle2 size={15} /> : <CloudOff size={15} />}{online ? "Çevrimiçi" : "Çevrimdışı"}</span></div>; }
+function Feedback({ type, message }: { type: "error" | "success"; message: string }) { return <p role={type === "error" ? "alert" : "status"} className={`mt-4 rounded-xl p-3 text-sm font-bold ${type === "error" ? "bg-[#fff2ed] text-[#9e4328]" : "bg-[#e7f5ef] text-[#176e56]"}`}>{message}</p>; }
+function UtilityCard({ title, children }: { title: string; children: React.ReactNode }) { return <div className="rounded-[24px] border border-[#dfe5e1] bg-white p-5"><div className="mb-4 flex items-center gap-2"><PlusCircle size={18} className="text-[#e8623a]" /><h2 className="text-base font-black">{title}</h2></div>{children}</div>; }

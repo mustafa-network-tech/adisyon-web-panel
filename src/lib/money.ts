@@ -9,7 +9,10 @@ export function formatMoney(minorUnits: number) {
 }
 
 export function parseMoneyInput(value: string) {
-  const normalized = value.trim().replace(/\s/g, "").replace(",", ".");
+  const compact = value.trim().replace(/\s/g, "");
+  const normalized = compact.includes(",")
+    ? compact.replace(/\./g, "").replace(",", ".")
+    : compact;
 
   if (!/^\d+(?:\.\d{1,2})?$/.test(normalized)) return null;
 

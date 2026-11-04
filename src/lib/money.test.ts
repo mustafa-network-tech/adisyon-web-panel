@@ -16,6 +16,7 @@ describe("formatMoney", () => {
   it("parses Turkish and dot decimal price input", () => {
     expect(parseMoneyInput("125,50")).toBe(12550);
     expect(parseMoneyInput("125.5")).toBe(12550);
+    expect(parseMoneyInput("1.250,50")).toBe(125050);
     expect(parseMoneyInput("0")).toBe(0);
   });
 
