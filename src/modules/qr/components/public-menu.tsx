@@ -130,6 +130,11 @@ export function PublicMenuView({ token, menu }: Props) {
                         {formatMoney(product.priceMinor)}
                       </p>
                     </div>
+                    {menu.orderingEnabled && !product.orderable && (
+                      <span className="shrink-0 self-center text-[11px] font-bold text-[#8a948f]">
+                        Garsona sorun
+                      </span>
+                    )}
                     {canOrder &&
                       (quantity === 0 ? (
                         <button
