@@ -12,17 +12,27 @@ import {
   ShieldCheck,
   Wifi,
 } from "lucide-react";
+import { signOutAction } from "@/modules/auth/actions";
 import { Brand } from "./brand";
 
 type AppShellProps = {
   tenant: string;
   branch: string;
+  tenantName: string;
+  branchName: string;
+  userName: string;
+  userRole: string;
   children: React.ReactNode;
 };
 
-export function AppShell({ tenant, branch, children }: AppShellProps) {
+export function AppShell({ tenant, branch, tenantName, branchName, userName, userRole, children }: AppShellProps) {
   const pathname = usePathname();
   const base = `/app/${tenant}/${branch}`;
+  const initials = userName
+    .split(" ")
+    .slice(0, 2)
+    .map((part) => part[0]?.toLocaleUpperCase("tr-TR"))
+    .join("");
   const navItems = [
     { href: `${base}/masalar`, label: "Masalar", icon: LayoutGrid },
     { href: `${base}/mutfak`, label: "Mutfak", icon: ChefHat },
@@ -37,7 +47,7 @@ export function AppShell({ tenant, branch, children }: AppShellProps) {
         <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.055] p-3">
           <button className="flex min-h-12 w-full items-center gap-3 rounded-xl px-2 text-left hover:bg-white/5" type="button">
             <span className="grid size-9 place-items-center rounded-lg bg-[#e8623a] text-xs font-black">MR</span>
-            <span className="min-w-0 flex-1"><span className="block truncate text-sm font-black">Meydan Restoran</span><span className="mt-1 block truncate text-[11px] font-semibold text-white/45">Merkez Şube</span></span>
+            <span className="min-w-0 flex-1"><span className="block truncate text-sm font-black">{tenantName}</span><span className="mt-1 block truncate text-[11px] font-semibold text-white/45">{branchName}</span></span>
             <ChevronDown size={16} className="text-white/45" />
           </button>
         </div>
@@ -57,7 +67,7 @@ export function AppShell({ tenant, branch, children }: AppShellProps) {
             <p className="flex items-center gap-2 text-xs font-bold text-[#7ed8ba]"><ShieldCheck size={15} /> Güvenli demo alanı</p>
             <p className="mt-2 text-[10px] leading-4 text-white/40">Gerçek müşteri veya ödeme verisi içermez.</p>
           </div>
-          <Link href="/giris" className="flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-bold text-white/45 hover:bg-white/5 hover:text-white"><LogOut size={18} /> Oturumu kapat</Link>
+          <form action={signOutAction}><button type="submit" className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-sm font-bold text-white/45 hover:bg-white/5 hover:text-white"><LogOut size={18} /> Oturumu kapat</button></form>
         </div>
       </aside>
 
@@ -65,13 +75,13 @@ export function AppShell({ tenant, branch, children }: AppShellProps) {
         <header className="sticky top-0 z-30 flex min-h-[76px] items-center justify-between border-b border-[#e0e6e2] bg-white/90 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
           <div className="lg:hidden"><Brand compact /></div>
           <div className="hidden lg:block">
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#e8623a]">Meydan Restoran</p>
-            <p className="mt-1 text-sm font-bold text-[#68736e]">Merkez Şube · Akşam servisi</p>
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#e8623a]">{tenantName}</p>
+            <p className="mt-1 text-sm font-bold text-[#68736e]">{branchName}</p>
           </div>
           <div className="flex items-center gap-3">
             <span className="hidden items-center gap-2 rounded-full bg-[#e7f5ef] px-3 py-2 text-xs font-extrabold text-[#176e56] sm:inline-flex"><Wifi size={14} /> Çevrimiçi</span>
-            <span className="grid size-10 place-items-center rounded-xl bg-[#f1b74a] text-xs font-black text-[#17211d]">AY</span>
-            <div className="hidden sm:block"><p className="text-sm font-black">Arda Yılmaz</p><p className="mt-0.5 text-[11px] font-semibold text-[#8a948f]">İşletme yöneticisi</p></div>
+            <span className="grid size-10 place-items-center rounded-xl bg-[#f1b74a] text-xs font-black text-[#17211d]">{initials || "MK"}</span>
+            <div className="hidden sm:block"><p className="text-sm font-black">{userName}</p><p className="mt-0.5 text-[11px] font-semibold text-[#8a948f]">{userRole}</p></div>
           </div>
         </header>
         <main className="min-h-[calc(100dvh-76px)] pb-24 lg:pb-0">{children}</main>

@@ -1,18 +1,24 @@
-# Supabase database drafts
+# Supabase database migrations
 
-This directory contains the versioned Phase 1 PostgreSQL and RLS design.
+This directory contains the versioned PostgreSQL, RLS and Auth boundary design.
 
-Status: **not applied**. No local or remote Supabase project was initialized,
-linked or migrated during Phase 1.
+The first two migrations define the core multi-tenant schema and RLS policies.
+`0003_phase2_auth_boundaries.sql` adds profile provisioning and the minimum
+read boundary required by the protected platform dashboard.
 
-Before first execution in Phase 2:
+Apply files in numeric order to the dedicated MK Adisyon WEB development
+project. Do not run `seed.sql` against a hosted or production database.
 
-1. Install Docker Desktop and the Supabase CLI.
-2. Initialize a local-only Supabase project.
-3. Review enum and foreign-key choices with product requirements.
-4. Run migrations only against the local database.
-5. Expand and pass pgTAP tenant isolation tests.
-6. Generate TypeScript database types from the verified local schema.
+After creating the first Auth user, bootstrap the platform administrator from
+the Supabase SQL Editor by replacing the e-mail placeholder:
 
-Never use production credentials in this repository. The service-role key is
-server-only and must not be exposed to browser code.
+```sql
+insert into public.platform_admins (user_id)
+select id
+from auth.users
+where lower(email) = lower('ADMIN_EMAIL_HERE')
+on conflict (user_id) do nothing;
+```
+
+Never put project credentials in this repository. Secret keys are server-only
+and must never be exposed to browser code or use a `NEXT_PUBLIC_` prefix.

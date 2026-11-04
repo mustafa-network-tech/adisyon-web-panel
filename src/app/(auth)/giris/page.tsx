@@ -2,14 +2,37 @@ import type { Metadata } from "next";
 import { CheckCircle2, ShieldCheck, Wifi } from "lucide-react";
 import { Brand } from "@/components/brand";
 import { LoginForm } from "@/modules/auth/components/login-form";
+import { getSafeReturnPath } from "@/lib/auth/redirects";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
 export const metadata: Metadata = {
   title: "İşletme girişi",
 };
 
-export default function LoginPage() {
+type LoginPageProps = {
+  searchParams: Promise<{
+    next?: string;
+    error?: string;
+    success?: string;
+  }>;
+};
+
+const errorMessages: Record<string, string> = {
+  config: "Supabase bağlantı bilgileri eksik.",
+  "platform-access": "Bu hesap platform yönetimine yetkili değil.",
+  "workspace-access": "Bu çalışma alanına erişim yetkiniz bulunmuyor.",
+  "auth-link": "Giriş bağlantısı geçersiz veya süresi dolmuş.",
+};
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
   const configured = isSupabaseConfigured();
+  const query = await searchParams;
+  const nextPath = getSafeReturnPath(query.next) || undefined;
+  const notice = query.error
+    ? errorMessages[query.error]
+    : query.success === "password-updated"
+      ? "Şifreniz güncellendi. Yeni şifrenizle giriş yapabilirsiniz."
+      : null;
 
   return (
     <main className="grid min-h-dvh bg-[#f4f6f8] lg:grid-cols-[1.05fr_0.95fr]">
@@ -39,7 +62,12 @@ export default function LoginPage() {
             <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-[#17211d]">İşletmenize giriş yapın</h2>
             <p className="mt-3 text-sm leading-6 text-[#68736e]">Size tanımlanan e-posta ve şifreyle devam edin.</p>
           </div>
-          <LoginForm configured={configured} />
+          {notice && (
+            <p role="status" className="mt-6 rounded-xl border border-[#f3d2c6] bg-[#fff7f3] p-3 text-xs font-semibold leading-5 text-[#9e4328]">
+              {notice}
+            </p>
+          )}
+          <LoginForm configured={configured} nextPath={nextPath} />
           <p className="mt-7 text-center text-xs leading-5 text-[#8a948f]">Giriş yaparak güvenlik ve kullanım koşullarını kabul etmiş olursunuz.</p>
         </div>
       </section>
