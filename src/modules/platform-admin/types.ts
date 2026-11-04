@@ -8,3 +8,16 @@ export type TenantSummary = {
   subscriptionStatus: SubscriptionStatus;
   expiresAt: string;
 };
+
+export type PlatformMember = {
+  userId: string;
+  email: string | null;
+  fullName: string | null;
+  createdAt: string;
+  tenants: Array<{
+    tenantId: string;
+    tenantName: string;
+    status: string;
+    roles: string[];
+  }>;
+};

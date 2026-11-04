@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { CheckCircle2, ShieldCheck, Wifi } from "lucide-react";
 import { Brand } from "@/components/brand";
 import { LoginForm } from "@/modules/auth/components/login-form";
@@ -68,7 +69,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </p>
           )}
           <LoginForm configured={configured} nextPath={nextPath} />
-          <p className="mt-7 text-center text-xs leading-5 text-[#68736e]">Giriş yaparak güvenlik ve kullanım koşullarını kabul etmiş olursunuz.</p>
+          <p className="mt-6 text-center text-sm font-semibold text-[#68736e]">Hesabınız yok mu? <Link href="/kayit" className="font-black text-[#a73d21] hover:underline">Üye olun</Link></p>
+          <p className="mt-4 text-center text-xs leading-5 text-[#68736e]">Giriş yaparak güvenlik ve kullanım koşullarını kabul etmiş olursunuz.</p>
         </div>
       </section>
     </main>

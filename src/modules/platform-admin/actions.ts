@@ -1,47 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 import { requirePlatformAdmin } from "@/lib/auth/access";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { SettingsActionState } from "@/modules/settings/management-types";
-import { provisionTenantSchema, subscriptionSchema } from "@/modules/settings/validation";
+import { assignMemberSchema, subscriptionSchema } from "@/modules/settings/validation";
 
 const errorState = (message: string): SettingsActionState => ({ status: "error", message });
-const successState = (message: string, invitationUrl?: string): SettingsActionState => ({ status: "success", message, invitationUrl });
-
-export async function provisionTenantAction(
-  _state: SettingsActionState,
-  formData: FormData,
-): Promise<SettingsActionState> {
-  await requirePlatformAdmin();
-  const values = provisionTenantSchema.safeParse({
-    name: formData.get("name"), legalName: formData.get("legalName") || "",
-    slug: formData.get("slug"), branchName: formData.get("branchName"),
-    branchSlug: formData.get("branchSlug"), ownerEmail: formData.get("ownerEmail"),
-    planCode: formData.get("planCode"),
-    status: formData.get("status"), endsAt: formData.get("endsAt") || "",
-    notes: formData.get("notes") || "",
-  });
-  if (!values.success) return errorState("Yeni işletme alanlarını kontrol edin.");
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.rpc("provision_tenant", {
-    target_name: values.data.name, target_legal_name: values.data.legalName,
-    target_slug: values.data.slug, target_branch_name: values.data.branchName,
-    target_branch_slug: values.data.branchSlug, target_owner_email: values.data.ownerEmail,
-    target_plan_code: values.data.planCode,
-    target_subscription_status: values.data.status,
-    target_ends_at: values.data.endsAt ? new Date(values.data.endsAt).toISOString() : null,
-    target_notes: values.data.notes,
-  });
-  if (error || !data || typeof data !== "object" || !("ownerInvitationToken" in data)) return errorState("İşletme oluşturulamadı. Slug benzersiz olmalı ve tarihler geçerli olmalıdır.");
-  revalidatePath("/mk-admin");
-  const headerStore = await headers();
-  const host = headerStore.get("x-forwarded-host") || headerStore.get("host");
-  const protocol = headerStore.get("x-forwarded-proto") || "https";
-  const path = `/davet/${String(data.ownerInvitationToken)}`;
-  return successState("İşletme oluşturuldu. İlk sahip davetini güvenli biçimde paylaşın.", host ? `${protocol}://${host}${path}` : path);
-}
+const successState = (message: string): SettingsActionState => ({ status: "success", message });
 
 export async function updateSubscriptionAction(
   _state: SettingsActionState,
@@ -52,6 +18,7 @@ export async function updateSubscriptionAction(
     tenantId: formData.get("tenantId"), planCode: formData.get("planCode"),
     status: formData.get("status"), startsAt: formData.get("startsAt"),
     endsAt: formData.get("endsAt") || "", notes: formData.get("notes") || "",
+    userLimit: formData.get("userLimit"), branchLimit: formData.get("branchLimit"),
   });
   if (!values.success) return errorState("Abonelik alanlarını ve tarih sırasını kontrol edin.");
   const supabase = await createSupabaseServerClient();
@@ -60,8 +27,37 @@ export async function updateSubscriptionAction(
     target_status: values.data.status, target_starts_at: new Date(values.data.startsAt).toISOString(),
     target_ends_at: values.data.endsAt ? new Date(values.data.endsAt).toISOString() : null,
     target_notes: values.data.notes,
+    target_user_limit: values.data.userLimit, target_branch_limit: values.data.branchLimit,
   });
   if (error) return errorState("Abonelik güncellenemedi. Platform yetkisini ve tarihleri kontrol edin.");
   revalidatePath("/mk-admin");
   return successState("Yeni abonelik kaydı eklendi ve tenant erişim durumu güncellendi.");
+}
+
+export async function assignMemberAction(
+  _state: SettingsActionState,
+  formData: FormData,
+): Promise<SettingsActionState> {
+  await requirePlatformAdmin();
+  const values = assignMemberSchema.safeParse({
+    userId: formData.get("userId"),
+    tenantId: formData.get("tenantId"),
+    roleCode: formData.get("roleCode"),
+  });
+  if (!values.success) return errorState("İşletme ve rol seçin.");
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("platform_assign_member", {
+    target_user_id: values.data.userId,
+    target_tenant_id: values.data.tenantId,
+    target_role_code: values.data.roleCode,
+  });
+  if (error) {
+    return errorState(
+      error.message.includes("user_limit_reached")
+        ? "Bu işletmenin kullanıcı limiti dolu. Önce limiti artırın."
+        : "Üye atanamadı.",
+    );
+  }
+  revalidatePath("/mk-admin");
+  return successState("Üye işletmeye atandı.");
 }

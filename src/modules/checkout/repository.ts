@@ -39,7 +39,7 @@ export async function getCheckoutSnapshot(
     (orderId) => !orderIds.includes(orderId),
   );
   const tableIds = [...new Set(orders.map((order) => order.table_id).filter(Boolean))] as string[];
-  const userIds = [...new Set([...orders.map((order) => order.created_by), ...sessions.map((session) => session.opened_by)])];
+  const userIds = [...new Set([...orders.map((order) => order.created_by).filter(Boolean), ...sessions.map((session) => session.opened_by)])];
   const sessionIds = sessions.map((session) => session.id);
 
   const [itemsResult, tablesResult, profilesResult, movementsResult, recentOrdersResult] = await Promise.all([
@@ -70,7 +70,7 @@ export async function getCheckoutSnapshot(
       id: order.id,
       orderNumber: Number(order.order_number),
       tableLabel: order.table_id ? tableMap.get(order.table_id) || "Masa" : "Paket",
-      serverName: profileMap.get(order.created_by) || "Ekip üyesi",
+      serverName: (order.created_by ? profileMap.get(order.created_by) : "Müşteri (QR)") || "Ekip üyesi",
       openedAt: order.opened_at,
       totalMinor: Number(order.total_minor),
       paidMinor,

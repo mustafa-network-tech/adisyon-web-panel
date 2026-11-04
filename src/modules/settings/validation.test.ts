@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   invitationSchema,
-  provisionTenantSchema,
   subscriptionSchema,
   tenantConfigurationSchema,
 } from "./validation";
@@ -27,10 +26,7 @@ describe("settings and platform validation", () => {
 
   it("rejects invalid invitation and tenant slugs", () => {
     expect(invitationSchema.safeParse({ email: "wrong", roleId: "x", validHours: 999 }).success).toBe(false);
-    expect(provisionTenantSchema.safeParse({
-      name: "Test", legalName: "", slug: "Bad Slug", branchName: "Merkez",
-      branchSlug: "merkez", ownerEmail: "owner@example.com", planCode: "PRO", status: "trial", endsAt: "", notes: "",
-    }).success).toBe(false);
+    expect(invitationSchema.safeParse({ email: "a@b.co", roleId: "not-a-uuid", validHours: 72 }).success).toBe(false);
   });
 
   it("requires subscription end to follow its start", () => {
@@ -41,6 +37,8 @@ describe("settings and platform validation", () => {
       startsAt: "2026-11-04T10:00",
       endsAt: "2026-11-03T10:00",
       notes: "",
+      userLimit: 5,
+      branchLimit: 1,
     });
     expect(result.success).toBe(false);
   });

@@ -1,13 +1,15 @@
 import "server-only";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { SubscriptionStatus, TenantSummary } from "./types";
+import type { PlatformMember, SubscriptionStatus, TenantSummary } from "./types";
 
 export type PlatformTenantSummary = TenantSummary & {
   code: string;
   slug: string;
   isActive: boolean;
   planCode: string;
+  userLimit: number;
+  branchLimit: number;
 };
 
 export type PlatformOverview = {
@@ -31,6 +33,8 @@ type SubscriptionRow = {
   plan_code: string;
   status: SubscriptionStatus;
   ends_at: string | null;
+  user_limit: number;
+  branch_limit: number;
 };
 
 export async function getPlatformOverview(
@@ -49,7 +53,7 @@ export async function getPlatformOverview(
       supabase.from("tenant_memberships").select("id, tenant_id"),
       supabase
         .from("subscriptions")
-        .select("tenant_id, plan_code, status, ends_at")
+        .select("tenant_id, plan_code, status, ends_at, user_limit, branch_limit")
         .order("created_at", { ascending: false }),
     ]);
 
@@ -100,6 +104,8 @@ export async function getPlatformOverview(
       expiresAt: subscription?.ends_at || "",
       isActive: tenant.is_active,
       planCode: subscription?.plan_code || "Tanımsız",
+      userLimit: subscription?.user_limit ?? 5,
+      branchLimit: subscription?.branch_limit ?? 1,
     } satisfies PlatformTenantSummary;
   });
 
@@ -117,4 +123,11 @@ export async function getPlatformOverview(
       (subscription) => subscription.status === "trial",
     ).length,
   };
+}
+
+export async function getPlatformMembers(): Promise<PlatformMember[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc("platform_list_members");
+  if (error) throw new Error("Üye listesi okunamadı.");
+  return (data || []) as PlatformMember[];
 }

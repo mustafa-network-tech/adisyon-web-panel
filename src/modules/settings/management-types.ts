@@ -10,7 +10,14 @@ export type TenantConfiguration = {
 };
 
 export type TeamBranch = { id: string; name: string };
-export type TeamRole = { id: string; code: string; name: string };
+export type TeamRole = { id: string; code: string; name: string; scope: "tenant" | "branch" };
+export type TeamStation = { id: string; name: string; branchName: string };
+export const grantablePermissions = [
+  { code: "settings.manage", label: "Ayarlar" },
+  { code: "catalog.manage", label: "Menü ve ürünler" },
+  { code: "users.manage", label: "Kullanıcı yönetimi" },
+  { code: "reports.history", label: "Geçmiş raporlar" },
+] as const;
 export type MembershipStatus = "invited" | "active" | "suspended";
 
 export type TeamMember = {
@@ -20,6 +27,8 @@ export type TeamMember = {
   status: MembershipStatus;
   branchIds: string[];
   roleIds: string[];
+  permissionCodes: string[];
+  stationIds: string[];
 };
 
 export type PendingInvitation = {
@@ -35,6 +44,8 @@ export type TeamSnapshot = {
   roles: TeamRole[];
   members: TeamMember[];
   invitations: PendingInvitation[];
+  stations: TeamStation[];
+  canGrantExtras: boolean;
 };
 
 export type SettingsActionState = {

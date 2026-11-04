@@ -25,7 +25,7 @@ describe("authorization catalog", () => {
 
   it("contains the default restaurant roles", () => {
     expect(systemRoles).toEqual(
-      expect.arrayContaining(["owner", "manager", "waiter", "kitchen", "cashier"]),
+      expect.arrayContaining(["owner", "tenant_admin", "manager", "waiter", "kitchen", "cashier"]),
     );
   });
 

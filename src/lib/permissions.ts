@@ -10,6 +10,7 @@ export const permissions = [
   "cash.open",
   "cash.close",
   "reports.read",
+  "reports.history",
   "settings.manage",
   "catalog.manage",
   "users.manage",
@@ -19,12 +20,15 @@ export type Permission = (typeof permissions)[number];
 
 export const systemRoles = [
   "owner",
+  "tenant_admin",
   "manager",
-  "waiter",
-  "kitchen",
   "cashier",
-  "viewer",
+  "kitchen",
+  "waiter",
 ] as const;
+
+/** Tenant-scope roles reach every branch; the rest only assigned branches. */
+export const tenantScopeRoles = ["owner", "tenant_admin"] as const satisfies readonly SystemRole[];
 
 export type SystemRole = (typeof systemRoles)[number];
 

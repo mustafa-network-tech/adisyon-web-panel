@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { requireAuthenticatedUser, requireWorkspacePermission } from "@/lib/auth/access";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { SettingsActionState } from "./management-types";
-import { invitationSchema, memberAccessSchema, tenantConfigurationSchema } from "./validation";
+import { invitationSchema, memberAccessSchema, memberExtrasSchema, tenantConfigurationSchema } from "./validation";
 
 const errorState = (message: string): SettingsActionState => ({ status: "error", message });
 const successState = (message: string, invitationUrl?: string): SettingsActionState => ({ status: "success", message, invitationUrl });
@@ -96,6 +96,29 @@ export async function updateMemberAccessAction(
   if (error) return errorState("Kullanıcı erişimi güncellenemedi. Son sahip ve kapsam kurallarını kontrol edin.");
   revalidatePath(`/app/${route.tenant}/${route.branch}/ayarlar/kullanicilar`);
   return successState("Kullanıcı rolü ve şube erişimi güncellendi.");
+}
+
+export async function setMemberExtrasAction(
+  _state: SettingsActionState,
+  formData: FormData,
+): Promise<SettingsActionState> {
+  const route = readRoute(formData);
+  if (!route) return errorState("Çalışma alanı bilgisi eksik.");
+  const context = await requireWorkspacePermission(route.tenant, route.branch, ["users.manage"]);
+  const values = memberExtrasSchema.safeParse({
+    membershipId: formData.get("membershipId"),
+    permissionCodes: formData.getAll("permissionCodes"),
+    stationIds: formData.getAll("stationIds"),
+  });
+  if (!values.success) return errorState("Ek yetki bilgilerini kontrol edin.");
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("set_member_extras", {
+    target_tenant_id: context.tenantId, target_membership_id: values.data.membershipId,
+    target_permission_codes: values.data.permissionCodes, target_station_ids: values.data.stationIds,
+  });
+  if (error) return errorState("Ek yetkiler kaydedilemedi. Bu işlem yalnızca işletme sahibi veya işletme yöneticisi tarafından yapılabilir.");
+  revalidatePath(`/app/${route.tenant}/${route.branch}/ayarlar/kullanicilar`);
+  return successState("Ek yetkiler ve mutfak istasyonları güncellendi.");
 }
 
 export async function acceptInvitationAction(

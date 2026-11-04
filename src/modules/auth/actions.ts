@@ -3,7 +3,9 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { resolveDefaultDestination } from "@/lib/auth/destination";
 import { getSafeReturnPath } from "@/lib/auth/redirects";
+import { createBusinessSchema } from "@/modules/settings/validation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { AuthActionState } from "@/modules/auth/state";
 
@@ -23,46 +25,6 @@ const passwordSchema = z
 
 function errorState(message: string): AuthActionState {
   return { status: "error", message };
-}
-
-async function getDefaultDestination(userId: string) {
-  const supabase = await createSupabaseServerClient();
-  const { data: platformAdmin } = await supabase
-    .from("platform_admins")
-    .select("user_id")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (platformAdmin) return "/mk-admin";
-
-  const { data: membership } = await supabase
-    .from("tenant_memberships")
-    .select("tenant_id")
-    .eq("user_id", userId)
-    .eq("status", "active")
-    .limit(1)
-    .maybeSingle();
-
-  if (!membership) return null;
-
-  const [{ data: tenant }, { data: branch }] = await Promise.all([
-    supabase
-      .from("tenants")
-      .select("slug")
-      .eq("id", membership.tenant_id)
-      .eq("is_active", true)
-      .maybeSingle(),
-    supabase
-      .from("branches")
-      .select("slug")
-      .eq("tenant_id", membership.tenant_id)
-      .eq("is_active", true)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle(),
-  ]);
-
-  return tenant && branch ? `/app/${tenant.slug}/${branch.slug}/masalar` : null;
 }
 
 export async function signInAction(
@@ -86,12 +48,10 @@ export async function signInAction(
   }
 
   const requestedPath = getSafeReturnPath(formData.get("next"));
-  const destination = requestedPath || (await getDefaultDestination(data.user.id));
-
-  if (!destination) {
-    await supabase.auth.signOut();
-    return errorState("Hesabınıza aktif bir işletme erişimi tanımlanmamış.");
-  }
+  const destination =
+    requestedPath ||
+    (await resolveDefaultDestination(data.user.id)) ||
+    "/baslangic";
 
   redirect(destination);
 }
@@ -166,4 +126,80 @@ export async function updatePasswordAction(
 
   await supabase.auth.signOut();
   redirect("/giris?success=password-updated");
+}
+
+const signUpSchema = z.object({
+  fullName: z.string().trim().min(2).max(120),
+  email: z.email().max(254),
+  password: z.string().min(8).max(128),
+});
+
+export async function signUpAction(
+  _previousState: AuthActionState,
+  formData: FormData,
+): Promise<AuthActionState> {
+  const values = signUpSchema.safeParse({
+    fullName: formData.get("fullName"),
+    email: formData.get("email"),
+    password: formData.get("password"),
+  });
+  if (!values.success) {
+    return errorState("Ad soyad, e-posta ve en az 8 karakterli şifre girin.");
+  }
+
+  const origin = getApplicationOrigin(await headers());
+  if (!origin) return errorState("İstek adresi doğrulanamadı.");
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.auth.signUp({
+    email: values.data.email,
+    password: values.data.password,
+    options: {
+      data: { full_name: values.data.fullName },
+      emailRedirectTo: `${origin}/auth/callback?next=/baslangic`,
+    },
+  });
+  if (error) return errorState("Üyelik oluşturulamadı. Bilgileri kontrol edip tekrar deneyin.");
+
+  // With e-mail confirmation disabled Supabase returns a session right away.
+  if (data.session) redirect("/baslangic");
+
+  // Same response whether or not the address was already registered.
+  return {
+    status: "success",
+    message: "Üyeliğiniz oluşturuldu. E-posta kutunuzdaki doğrulama bağlantısına tıklayın.",
+  };
+}
+
+export async function createBusinessAction(
+  _previousState: AuthActionState,
+  formData: FormData,
+): Promise<AuthActionState> {
+  const values = createBusinessSchema.safeParse({
+    name: formData.get("name"),
+    branchName: formData.get("branchName"),
+  });
+  if (!values.success) return errorState("İşletme ve şube adını girin.");
+
+  const supabase = await createSupabaseServerClient();
+  const { data: claims } = await supabase.auth.getClaims();
+  if (!claims?.claims?.sub) redirect("/giris?next=%2Fbaslangic");
+
+  const { data, error } = await supabase.rpc("create_my_tenant", {
+    target_name: values.data.name,
+    target_branch_name: values.data.branchName,
+  });
+  if (error) {
+    return errorState(
+      error.message.includes("tenant_already_owned")
+        ? "Bu hesapla zaten bir işletme kurdunuz."
+        : "İşletme oluşturulamadı. Bilgileri kontrol edip tekrar deneyin.",
+    );
+  }
+
+  const payload = data as { tenantSlug?: string; branchSlug?: string } | null;
+  if (!payload?.tenantSlug || !payload.branchSlug) {
+    return errorState("İşletme yanıtı doğrulanamadı.");
+  }
+  redirect(`/app/${payload.tenantSlug}/${payload.branchSlug}/masalar`);
 }

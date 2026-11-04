@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   hasAnyPermission,
   type Permission,
@@ -9,7 +9,6 @@ import {
 } from "@/lib/permissions";
 import {
   ChefHat,
-  ChevronDown,
   CreditCard,
   LayoutGrid,
   LogOut,
@@ -29,10 +28,16 @@ type AppShellProps = {
   userRole: string;
   permissions: Permission[];
   supportMode: boolean;
+  branches: Array<{ slug: string; name: string }>;
   children: React.ReactNode;
 };
 
-export function AppShell({ tenant, branch, tenantName, branchName, userName, userRole, permissions, supportMode, children }: AppShellProps) {
+export function AppShell({ tenant, branch, tenantName, branchName, userName, userRole, permissions, supportMode, branches, children }: AppShellProps) {
+  const router = useRouter();
+  function switchBranch(slug: string) {
+    const section = pathname.split("/").slice(4)[0];
+    router.push(`/app/${tenant}/${slug}${section ? `/${section}` : ""}`);
+  }
   const pathname = usePathname();
   const base = `/app/${tenant}/${branch}`;
   const initials = userName
@@ -52,11 +57,18 @@ export function AppShell({ tenant, branch, tenantName, branchName, userName, use
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-[248px] flex-col bg-[#17211d] p-5 text-white lg:flex">
         <Brand inverse />
         <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.055] p-3">
-          <button className="flex min-h-12 w-full items-center gap-3 rounded-xl px-2 text-left hover:bg-white/5" type="button">
+          <div className="flex min-h-12 w-full items-center gap-3 rounded-xl px-2 text-left">
             <span className="grid size-9 place-items-center rounded-lg bg-[#e8623a] text-xs font-black">MR</span>
             <span className="min-w-0 flex-1"><span className="block truncate text-sm font-black">{tenantName}</span><span className="mt-1 block truncate text-[11px] font-semibold text-white/45">{branchName}</span></span>
-            <ChevronDown size={16} className="text-white/45" />
-          </button>
+            </div>
+          {branches.length > 1 && (
+            <label className="mt-2 block">
+              <span className="sr-only">Şube seç</span>
+              <select value={branch} onChange={(event) => switchBranch(event.target.value)} className="min-h-10 w-full rounded-lg border border-white/15 bg-[#17211d] px-2 text-xs font-bold text-white">
+                {branches.map((item) => <option key={item.slug} value={item.slug}>{item.name}</option>)}
+              </select>
+            </label>
+          )}
         </div>
         <nav className="mt-7 space-y-1" aria-label="Çalışma alanı menüsü">
           {navItems.map(({ href, label, icon: Icon }) => {

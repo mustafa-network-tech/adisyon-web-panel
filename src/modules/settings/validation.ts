@@ -1,12 +1,5 @@
 import { z } from "zod";
 
-const slugSchema = z
-  .string()
-  .trim()
-  .min(2)
-  .max(80)
-  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
-
 const optionalDateTime = z
   .string()
   .trim()
@@ -37,19 +30,6 @@ export const memberAccessSchema = z.object({
   branchIds: z.array(z.uuid()).min(1),
 });
 
-export const provisionTenantSchema = z.object({
-  name: z.string().trim().min(2).max(120),
-  legalName: z.string().trim().max(160),
-  slug: slugSchema,
-  branchName: z.string().trim().min(2).max(120),
-  branchSlug: slugSchema,
-  ownerEmail: z.email().max(254).transform((value) => value.toLowerCase()),
-  planCode: z.string().trim().min(2).max(40).transform((value) => value.toUpperCase()),
-  status: z.enum(["trial", "active", "suspended", "cancelled"]),
-  endsAt: optionalDateTime,
-  notes: z.string().trim().max(500),
-});
-
 export const subscriptionSchema = z
   .object({
     tenantId: z.uuid(),
@@ -58,8 +38,29 @@ export const subscriptionSchema = z
     startsAt: z.string().trim().refine((value) => !Number.isNaN(Date.parse(value))),
     endsAt: optionalDateTime,
     notes: z.string().trim().max(500),
+    userLimit: z.coerce.number().int().min(1).max(10000),
+    branchLimit: z.coerce.number().int().min(1).max(1000),
   })
   .refine(
     (value) => value.endsAt === null || Date.parse(value.endsAt) > Date.parse(value.startsAt),
     { path: ["endsAt"] },
   );
+
+export const memberExtrasSchema = z.object({
+  membershipId: z.uuid(),
+  permissionCodes: z.array(
+    z.enum(["settings.manage", "catalog.manage", "users.manage", "reports.history"]),
+  ),
+  stationIds: z.array(z.uuid()),
+});
+
+export const createBusinessSchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  branchName: z.string().trim().min(2).max(120),
+});
+
+export const assignMemberSchema = z.object({
+  userId: z.uuid(),
+  tenantId: z.uuid(),
+  roleCode: z.enum(["owner", "tenant_admin", "manager", "cashier", "kitchen", "waiter"]),
+});

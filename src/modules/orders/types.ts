@@ -32,7 +32,7 @@ export type OrderItemSnapshot = {
 export type OrderStatusHistoryItem = {
   id: number;
   status: OrderStatus;
-  actorUserId: string;
+  actorUserId: string | null;
   createdAt: string;
 };
 

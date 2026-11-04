@@ -15,7 +15,8 @@ describe("auth redirect allowlists", () => {
     expect(getSafeReturnPath("/giris")).toBeNull();
   });
 
-  it("restricts auth callbacks to the password update screen", () => {
+  it("restricts auth callbacks to password update and onboarding", () => {
+    expect(getSafeAuthCallbackPath("/baslangic")).toBe("/baslangic");
     expect(getSafeAuthCallbackPath("/sifre-guncelle")).toBe(
       "/sifre-guncelle",
     );

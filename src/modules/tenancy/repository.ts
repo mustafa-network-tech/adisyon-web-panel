@@ -17,6 +17,8 @@ export type WorkspaceContext = {
   branchName: string;
   permissions: Permission[];
   supportMode: boolean;
+  branches: Array<{ slug: string; name: string }>;
+  tenantScope: boolean;
 };
 
 export async function resolveWorkspaceContext(
@@ -62,55 +64,67 @@ export async function resolveWorkspaceContext(
   let supportMode = false;
   let permissions: Permission[] = [];
   let userRole = "Ekip üyesi";
+  let tenantScope = false;
 
   if (membership) {
-    const { data: branchAssignment } = await supabase
-      .from("membership_branches")
-      .select("branch_id")
-      .eq("tenant_id", tenant.id)
-      .eq("membership_id", membership.id)
-      .eq("branch_id", branch.id)
-      .maybeSingle();
-
-    if (!branchAssignment) return null;
-
-    const { data: roleLinks } = await supabase
-      .from("membership_roles")
-      .select("role_id")
-      .eq("tenant_id", tenant.id)
-      .eq("membership_id", membership.id);
-    const roleIds = [...new Set((roleLinks || []).map((link) => link.role_id))];
-
-    if (roleIds.length > 0) {
-      const [{ data: roles }, { data: permissionLinks }] = await Promise.all([
+    const [{ data: branchAssignment }, { data: roleLinks }, { data: grantLinks }] =
+      await Promise.all([
         supabase
-          .from("roles")
-          .select("id, name")
+          .from("membership_branches")
+          .select("branch_id")
           .eq("tenant_id", tenant.id)
-          .in("id", roleIds),
+          .eq("membership_id", membership.id)
+          .eq("branch_id", branch.id)
+          .maybeSingle(),
         supabase
-          .from("role_permissions")
+          .from("membership_roles")
+          .select("role_id")
+          .eq("tenant_id", tenant.id)
+          .eq("membership_id", membership.id),
+        supabase
+          .from("membership_permission_grants")
           .select("permission_id")
           .eq("tenant_id", tenant.id)
-          .in("role_id", roleIds),
+          .eq("membership_id", membership.id),
       ]);
+    const roleIds = [...new Set((roleLinks || []).map((link) => link.role_id))];
 
-      const permissionIds = [
-        ...new Set(
-          (permissionLinks || []).map((link) => link.permission_id),
-        ),
-      ];
-      userRole = (roles || []).map((role) => role.name).join(" / ") || userRole;
+    const [{ data: roles }, { data: permissionLinks }] = roleIds.length
+      ? await Promise.all([
+          supabase
+            .from("roles")
+            .select("id, name, scope")
+            .eq("tenant_id", tenant.id)
+            .in("id", roleIds),
+          supabase
+            .from("role_permissions")
+            .select("permission_id")
+            .eq("tenant_id", tenant.id)
+            .in("role_id", roleIds),
+        ])
+      : [{ data: [] }, { data: [] }];
 
-      if (permissionIds.length > 0) {
-        const { data: permissionRows } = await supabase
-          .from("permissions")
-          .select("code")
-          .in("id", permissionIds);
-        permissions = (permissionRows || [])
-          .map((row) => row.code)
-          .filter(isPermission);
-      }
+    // Tenant-scope roles (owner / tenant admin) reach every active branch.
+    const hasTenantScope = (roles || []).some((role) => role.scope === "tenant");
+    if (!branchAssignment && !hasTenantScope) return null;
+    tenantScope = hasTenantScope;
+
+    const permissionIds = [
+      ...new Set([
+        ...(permissionLinks || []).map((link) => link.permission_id),
+        ...(grantLinks || []).map((link) => link.permission_id),
+      ]),
+    ];
+    userRole = (roles || []).map((role) => role.name).join(" / ") || userRole;
+
+    if (permissionIds.length > 0) {
+      const { data: permissionRows } = await supabase
+        .from("permissions")
+        .select("code")
+        .in("id", permissionIds);
+      permissions = (permissionRows || [])
+        .map((row) => row.code)
+        .filter(isPermission);
     }
   } else {
     const { data: supportSession } = await supabase
@@ -138,6 +152,13 @@ export async function resolveWorkspaceContext(
 
   if (auditError) return null;
 
+  const { data: branchRows } = await supabase
+    .from("branches")
+    .select("slug, name")
+    .eq("tenant_id", tenant.id)
+    .eq("is_active", true)
+    .order("name");
+
   return {
     userId: identity.userId,
     userName: profile?.full_name || identity.email || "Kullanıcı",
@@ -148,5 +169,7 @@ export async function resolveWorkspaceContext(
     branchName: branch.name,
     permissions,
     supportMode,
+    tenantScope,
+    branches: (branchRows || []).map((item) => ({ slug: item.slug, name: item.name })),
   };
 }

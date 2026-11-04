@@ -37,7 +37,7 @@ type OrderItemRow = {
 type HistoryRow = {
   id: number;
   status: OrderStatus;
-  actor_user_id: string;
+  actor_user_id: string | null;
   created_at: string;
 };
 

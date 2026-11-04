@@ -60,12 +60,12 @@ type InvitationRow = {
   expires_at: string;
 };
 
-export async function getTeamSnapshot(tenantId: string): Promise<TeamSnapshot> {
+export async function getTeamSnapshot(tenantId: string, canGrantExtras = false): Promise<TeamSnapshot> {
   const supabase = await createSupabaseServerClient();
-  const [branchesResult, rolesResult, membershipsResult, branchLinksResult, roleLinksResult, invitationsResult] =
+  const [branchesResult, rolesResult, membershipsResult, branchLinksResult, roleLinksResult, invitationsResult, grantsResult, stationLinksResult, stationsResult, permissionsResult] =
     await Promise.all([
       supabase.from("branches").select("id, name").eq("tenant_id", tenantId).order("name"),
-      supabase.from("roles").select("id, code, name").eq("tenant_id", tenantId).order("name"),
+      supabase.from("roles").select("id, code, name, scope").eq("tenant_id", tenantId).order("name"),
       supabase.from("tenant_memberships").select("id, user_id, status").eq("tenant_id", tenantId).order("created_at"),
       supabase.from("membership_branches").select("membership_id, branch_id").eq("tenant_id", tenantId),
       supabase.from("membership_roles").select("membership_id, role_id").eq("tenant_id", tenantId),
@@ -77,8 +77,12 @@ export async function getTeamSnapshot(tenantId: string): Promise<TeamSnapshot> {
         .is("revoked_at", null)
         .gt("expires_at", new Date().toISOString())
         .order("created_at", { ascending: false }),
+      supabase.from("membership_permission_grants").select("membership_id, permission_id").eq("tenant_id", tenantId),
+      supabase.from("membership_kitchen_stations").select("membership_id, station_id").eq("tenant_id", tenantId),
+      supabase.from("kitchen_stations").select("id, name, branch_id").eq("tenant_id", tenantId).eq("is_active", true).order("name"),
+      supabase.from("permissions").select("id, code"),
     ]);
-  const firstError = [branchesResult.error, rolesResult.error, membershipsResult.error, branchLinksResult.error, roleLinksResult.error, invitationsResult.error].find(Boolean);
+  const firstError = [branchesResult.error, rolesResult.error, membershipsResult.error, branchLinksResult.error, roleLinksResult.error, invitationsResult.error, grantsResult.error, stationLinksResult.error, stationsResult.error, permissionsResult.error].find(Boolean);
   if (firstError) throw new Error("Ekip ve rol bilgileri okunamadı.");
 
   const branches = (branchesResult.data || []) as TeamBranch[];
@@ -93,6 +97,8 @@ export async function getTeamSnapshot(tenantId: string): Promise<TeamSnapshot> {
   const names = new Map((profilesResult.data || []).map((item) => [item.id, item.full_name]));
   const branchNames = new Map(branches.map((item) => [item.id, item.name]));
   const roleNames = new Map(roles.map((item) => [item.id, item.name]));
+  const permissionCodeById = new Map((permissionsResult.data || []).map((item) => [item.id as string, item.code as string]));
+  const stations = (stationsResult.data || []).map((item) => ({ id: item.id as string, name: item.name as string, branchName: branchNames.get(item.branch_id as string) || "Şube" }));
   const members: TeamMember[] = memberships.map((item) => ({
     id: item.id,
     userId: item.user_id,
@@ -100,6 +106,8 @@ export async function getTeamSnapshot(tenantId: string): Promise<TeamSnapshot> {
     status: item.status,
     branchIds: (branchLinksResult.data || []).filter((link) => link.membership_id === item.id).map((link) => link.branch_id),
     roleIds: (roleLinksResult.data || []).filter((link) => link.membership_id === item.id).map((link) => link.role_id),
+    permissionCodes: (grantsResult.data || []).filter((link) => link.membership_id === item.id).map((link) => permissionCodeById.get(link.permission_id)).filter((code): code is string => Boolean(code)),
+    stationIds: (stationLinksResult.data || []).filter((link) => link.membership_id === item.id).map((link) => link.station_id),
   }));
   const invitations: PendingInvitation[] = ((invitationsResult.data || []) as InvitationRow[]).map((item) => ({
     id: item.id,
@@ -108,7 +116,7 @@ export async function getTeamSnapshot(tenantId: string): Promise<TeamSnapshot> {
     roleName: roleNames.get(item.role_id) || "Rol",
     expiresAt: item.expires_at,
   }));
-  return { branches, roles, members, invitations };
+  return { branches, roles, members, invitations, stations, canGrantExtras };
 }
 
 export type InvitationPreview = {

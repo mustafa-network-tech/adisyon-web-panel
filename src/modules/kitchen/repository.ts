@@ -21,7 +21,7 @@ type OrderRow = {
   id: string;
   order_number: number;
   table_id: string | null;
-  created_by: string;
+  created_by: string | null;
 };
 
 type TicketItemRow = {
@@ -100,7 +100,7 @@ export async function getKitchenSnapshot(
   const tableIds = [
     ...new Set(orders.map((order) => order.table_id).filter(Boolean)),
   ] as string[];
-  const userIds = [...new Set(orders.map((order) => order.created_by))];
+  const userIds = [...new Set(orders.map((order) => order.created_by).filter(Boolean))] as string[];
   const orderItemIds = [
     ...new Set(ticketItems.map((item) => item.order_item_id)),
   ];
@@ -168,7 +168,7 @@ export async function getKitchenSnapshot(
         sentAt: ticket.sent_at,
         startedAt: ticket.started_at,
         readyAt: ticket.ready_at,
-        serverName: profileMap.get(order.created_by) || "Ekip üyesi",
+        serverName: (order.created_by ? profileMap.get(order.created_by) : "Müşteri (QR)") || "Ekip üyesi",
         items: (itemsByTicket.get(ticket.id) || []).flatMap((link) => {
           const item = orderItemMap.get(link.order_item_id);
           return item

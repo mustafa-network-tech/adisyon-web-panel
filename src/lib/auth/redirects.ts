@@ -1,4 +1,4 @@
-const allowedApplicationPaths = ["/app/", "/mk-admin"];
+const allowedApplicationPaths = ["/app/", "/mk-admin", "/baslangic"];
 
 export function getSafeReturnPath(
   value: FormDataEntryValue | string | null | undefined,
@@ -18,5 +18,7 @@ export function getSafeAuthCallbackPath(value: string | null) {
     return "/giris";
   }
 
-  return value.startsWith("/sifre-guncelle") ? value : "/giris";
+  return value.startsWith("/sifre-guncelle") || value === "/baslangic"
+    ? value
+    : "/giris";
 }
