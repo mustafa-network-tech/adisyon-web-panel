@@ -119,34 +119,30 @@ select is(
 
 select lives_ok(
   $$
-    insert into public.orders (
-      id, tenant_id, branch_id, table_id, order_number, created_by
-    ) values (
-      'ad000000-0000-0000-0000-000000000001',
+    select public.open_order(
       'a0000000-0000-0000-0000-000000000001',
       'a1000000-0000-0000-0000-000000000001',
       'a5000000-0000-0000-0000-000000000001',
-      99001,
-      '10000000-0000-0000-0000-000000000002'
+      2,
+      '[{"productId":"a8000000-0000-0000-0000-000000000001","quantity":1,"notes":""}]'::jsonb,
+      'ad000000-0000-0000-0000-000000000001'
     )
   $$,
-  'waiter can create an order in the assigned branch'
+  'waiter can open a transactional order in the assigned branch'
 );
 
 select ok(
   pg_temp.operation_denied($statement$
-    insert into public.orders (
-      id, tenant_id, branch_id, table_id, order_number, created_by
-    ) values (
-      'bd000000-0000-0000-0000-000000000001',
+    select public.open_order(
       'b0000000-0000-0000-0000-000000000001',
       'b1000000-0000-0000-0000-000000000001',
       'b5000000-0000-0000-0000-000000000001',
-      99002,
-      '10000000-0000-0000-0000-000000000002'
+      1,
+      '[{"productId":"b8000000-0000-0000-0000-000000000001","quantity":1,"notes":""}]'::jsonb,
+      'bd000000-0000-0000-0000-000000000001'
     )
   $statement$),
-  'waiter cannot insert an order into tenant B'
+  'waiter cannot open an order in tenant B'
 );
 
 reset role;
@@ -196,14 +192,13 @@ select is(
 );
 select ok(
   pg_temp.operation_denied($statement$
-    insert into public.orders (
-      id, tenant_id, branch_id, order_number, created_by
-    ) values (
-      'ad000000-0000-0000-0000-000000000002',
+    select public.open_order(
       'a0000000-0000-0000-0000-000000000001',
       'a1000000-0000-0000-0000-000000000001',
-      99003,
-      '10000000-0000-0000-0000-000000000002'
+      'a5000000-0000-0000-0000-000000000002',
+      1,
+      '[{"productId":"a8000000-0000-0000-0000-000000000001","quantity":1,"notes":""}]'::jsonb,
+      'ad000000-0000-0000-0000-000000000002'
     )
   $statement$),
   'suspended membership cannot create orders'
@@ -292,14 +287,13 @@ select is(
 );
 select ok(
   pg_temp.operation_denied($statement$
-    insert into public.orders (
-      id, tenant_id, branch_id, order_number, created_by
-    ) values (
-      'ad000000-0000-0000-0000-000000000003',
+    select public.open_order(
       'a0000000-0000-0000-0000-000000000001',
       'a1000000-0000-0000-0000-000000000001',
-      99004,
-      '90000000-0000-0000-0000-000000000001'
+      'a5000000-0000-0000-0000-000000000003',
+      1,
+      '[{"productId":"a8000000-0000-0000-0000-000000000001","quantity":1,"notes":""}]'::jsonb,
+      'ad000000-0000-0000-0000-000000000003'
     )
   $statement$),
   'support mode remains read-only for restaurant operations'

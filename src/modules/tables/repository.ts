@@ -24,12 +24,18 @@ type TableRow = {
   sort_order: number;
 };
 
+type ActiveOrderRow = {
+  id: string;
+  table_id: string | null;
+  order_number: number;
+};
+
 export async function getDiningSnapshot(
   tenantId: string,
   branchId: string,
 ): Promise<DiningSnapshot> {
   const supabase = await createSupabaseServerClient();
-  const [areasResult, tablesResult] = await Promise.all([
+  const [areasResult, tablesResult, ordersResult] = await Promise.all([
     supabase
       .from("dining_areas")
       .select("id, name, sort_order, is_active")
@@ -44,13 +50,31 @@ export async function getDiningSnapshot(
       .eq("branch_id", branchId)
       .order("sort_order")
       .order("label"),
+    supabase
+      .from("orders")
+      .select("id, table_id, order_number")
+      .eq("tenant_id", tenantId)
+      .eq("branch_id", branchId)
+      .in("status", [
+        "draft",
+        "open",
+        "submitted",
+        "in_progress",
+        "ready",
+        "served",
+      ]),
   ]);
 
-  const error = areasResult.error || tablesResult.error;
+  const error = areasResult.error || tablesResult.error || ordersResult.error;
   if (error) throw new Error("Salon ve masa verileri Supabase üzerinden okunamadı.");
 
   const areaRows = (areasResult.data || []) as AreaRow[];
   const areaNames = new Map(areaRows.map((item) => [item.id, item.name]));
+  const activeOrders = new Map(
+    ((ordersResult.data || []) as ActiveOrderRow[])
+      .filter((item) => item.table_id)
+      .map((item) => [item.table_id as string, item]),
+  );
   const areas: DiningArea[] = areaRows.map((item) => ({
     id: item.id,
     name: item.name,
@@ -58,7 +82,9 @@ export async function getDiningSnapshot(
     isActive: item.is_active,
   }));
   const tables: RestaurantTable[] = ((tablesResult.data || []) as TableRow[]).map(
-    (item) => ({
+    (item) => {
+      const activeOrder = activeOrders.get(item.id);
+      return {
       id: item.id,
       areaId: item.area_id,
       areaName: areaNames.get(item.area_id) || "Alan yok",
@@ -66,7 +92,10 @@ export async function getDiningSnapshot(
       capacity: item.capacity,
       status: item.operational_status,
       sortOrder: item.sort_order,
-    }),
+      activeOrderId: activeOrder?.id || null,
+      activeOrderNumber: activeOrder ? Number(activeOrder.order_number) : null,
+      };
+    },
   );
 
   return { areas, tables };

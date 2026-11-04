@@ -15,6 +15,8 @@ export type RestaurantTable = {
   capacity: number;
   status: TableStatus;
   sortOrder: number;
+  activeOrderId: string | null;
+  activeOrderNumber: number | null;
 };
 
 export type DiningSnapshot = {

@@ -17,5 +17,5 @@ export default async function TablesPage({ params }: { params: Promise<{ tenant:
   const activeCategoryIds = new Set(catalog.categories.filter((category) => category.isActive).map((category) => category.id));
   const products = catalog.products.filter((product) => activeCategoryIds.has(product.categoryId));
 
-  return <TableBoard areas={dining.areas} tables={dining.tables} products={products} />;
+  return <TableBoard tenant={tenant} branch={branch} branchId={context.branchId} areas={dining.areas} tables={dining.tables} products={products} />;
 }
