@@ -7,3 +7,14 @@ const currencyFormatter = new Intl.NumberFormat("tr-TR", {
 export function formatMoney(minorUnits: number) {
   return currencyFormatter.format(minorUnits / 100);
 }
+
+export function parseMoneyInput(value: string) {
+  const normalized = value.trim().replace(/\s/g, "").replace(",", ".");
+
+  if (!/^\d+(?:\.\d{1,2})?$/.test(normalized)) return null;
+
+  const amount = Number(normalized);
+  if (!Number.isFinite(amount) || amount < 0) return null;
+
+  return Math.round(amount * 100);
+}

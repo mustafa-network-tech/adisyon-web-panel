@@ -1,12 +1,23 @@
-export type TableStatus = "available" | "occupied" | "waiting" | "ready";
+export type TableStatus = "available" | "dirty" | "reserved" | "disabled";
+
+export type DiningArea = {
+  id: string;
+  name: string;
+  sortOrder: number;
+  isActive: boolean;
+};
 
 export type RestaurantTable = {
   id: string;
   label: string;
-  area: "Salon" | "Bahçe" | "Teras";
+  areaId: string;
+  areaName: string;
   capacity: number;
   status: TableStatus;
-  totalMinor: number;
-  elapsedMinutes?: number;
-  server?: string;
+  sortOrder: number;
+};
+
+export type DiningSnapshot = {
+  areas: DiningArea[];
+  tables: RestaurantTable[];
 };
