@@ -252,6 +252,24 @@ for (let i = 0; i < 4; i += 1) {
 await db.query("update public.waiter_calls set acknowledged_at = now() where acknowledged_at is null");
 await expectError("call_waiter", { target_token: t2Token, target_kind: "waiter" }, "call_rate_limited", "call spam is rate limited");
 
+// --- sold out for today ----------------------------------------------------------
+const t5 = await table("Masa 5");
+const t5Token = (await one("select qr_token from public.restaurant_tables where id = $1", [t5])).qr_token;
+await actAs(db, WAITER);
+await expectError("set_product_availability", { target_tenant_id: tenant, target_branch_id: branch, target_product_id: cola, target_sold_out: true }, "availability_denied", "waiter cannot mark sold out");
+await actAs(db, MANAGER);
+await rpc("set_product_availability", { target_tenant_id: tenant, target_branch_id: branch, target_product_id: cola, target_sold_out: true });
+await actAs(db, WAITER);
+await expectError("open_order", { target_tenant_id: tenant, target_branch_id: branch, target_table_id: t5, target_guest_count: 1, target_items: [{ productId: cola, quantity: 1 }], target_idempotency_key: key() }, "product_sold_out", "sold out product cannot be ordered");
+await actAs(db, null);
+const soldOutMenu = await rpc("get_public_menu", { target_token: t5Token });
+const soldOutCola = soldOutMenu.categories.flatMap((c) => c.products).find((p) => p.name === "Kola");
+check("QR menu shows the product as sold out and not orderable", soldOutCola.soldOut === true && soldOutCola.orderable === false, JSON.stringify(soldOutCola));
+await expectError("place_customer_order", { target_token: t5Token, target_items: [{ productId: cola, quantity: 1 }], target_idempotency_key: key() }, "product_sold_out", "customers cannot order a sold out product");
+await db.query("update public.products set sold_out_on = (now() at time zone 'Europe/Istanbul')::date - 1 where id = $1", [cola]);
+const nextDayMenu = await rpc("get_public_menu", { target_token: t5Token });
+check("a sold out mark expires the next day", nextDayMenu.categories.flatMap((c) => c.products).find((p) => p.name === "Kola").orderable === true);
+
 // --- table operations (phase F) ---------------------------------------------
 await actAs(db, WAITER);
 const t4 = await table("Masa 4");

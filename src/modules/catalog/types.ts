@@ -12,6 +12,8 @@ export type MenuProduct = {
   kitchenStationName: string | null;
   /** null = inherits the category setting */
   fulfillment: Fulfillment | null;
+  /** True when the product was marked sold out for today. */
+  soldOut: boolean;
   isActive: boolean;
 };
 

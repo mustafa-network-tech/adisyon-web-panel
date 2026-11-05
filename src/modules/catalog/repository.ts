@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { todayInTurkey } from "@/modules/staff/dates";
 import type {
   CatalogSnapshot,
   Fulfillment,
@@ -26,6 +27,7 @@ type ProductRow = {
   price_minor: number;
   tax_rate: number | string;
   fulfillment: Fulfillment | null;
+  sold_out_on: string | null;
   is_active: boolean;
 };
 
@@ -52,7 +54,7 @@ export async function getCatalogSnapshot(
     supabase
       .from("products")
       .select(
-        "id, category_id, kitchen_station_id, name, description, price_minor, tax_rate, fulfillment, is_active",
+        "id, category_id, kitchen_station_id, name, description, price_minor, tax_rate, fulfillment, sold_out_on, is_active",
       )
       .eq("tenant_id", tenantId)
       .eq("branch_id", branchId)
@@ -72,6 +74,7 @@ export async function getCatalogSnapshot(
   ].find(Boolean);
   if (error) throw new Error("Menü verileri Supabase üzerinden okunamadı.");
 
+  const today = todayInTurkey();
   const categoryRows = (categoriesResult.data || []) as CategoryRow[];
   const stationRows = (stationsResult.data || []) as StationRow[];
   const categoryNames = new Map(categoryRows.map((item) => [item.id, item.name]));
@@ -104,6 +107,7 @@ export async function getCatalogSnapshot(
         ? stationNames.get(item.kitchen_station_id) || null
         : null,
       fulfillment: item.fulfillment,
+      soldOut: item.sold_out_on === today,
       isActive: item.is_active,
     }),
   );

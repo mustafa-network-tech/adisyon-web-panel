@@ -4,6 +4,7 @@ export type PublicMenuProduct = {
   description: string | null;
   priceMinor: number;
   orderable: boolean;
+  soldOut: boolean;
 };
 
 export type PublicMenuCategory = {

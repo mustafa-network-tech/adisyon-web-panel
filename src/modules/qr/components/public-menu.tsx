@@ -130,7 +130,12 @@ export function PublicMenuView({ token, menu }: Props) {
                         {formatMoney(product.priceMinor)}
                       </p>
                     </div>
-                    {menu.orderingEnabled && !product.orderable && (
+                    {product.soldOut && (
+                      <span className="shrink-0 self-center rounded-lg bg-[#fff0ee] px-2 py-1 text-[11px] font-black text-[#b63b32]">
+                        Tükendi
+                      </span>
+                    )}
+                    {menu.orderingEnabled && !product.orderable && !product.soldOut && (
                       <span className="shrink-0 self-center text-[11px] font-bold text-[#8a948f]">
                         Garsona sorun
                       </span>

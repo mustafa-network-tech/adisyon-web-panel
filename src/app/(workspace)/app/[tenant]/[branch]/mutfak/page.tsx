@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { KitchenBoard } from "@/modules/kitchen/components/kitchen-board";
 import { requireWorkspacePermission } from "@/lib/auth/access";
 import { hasAnyPermission, workspaceSections } from "@/lib/permissions";
+import { AvailabilityPanel } from "@/modules/catalog/components/availability-panel";
+import { getCatalogSnapshot } from "@/modules/catalog/repository";
 import { getKitchenSnapshot } from "@/modules/kitchen/repository";
 import { getReceiptBranding } from "@/modules/receipts/repository";
 
@@ -15,5 +17,7 @@ export default async function KitchenPage({ params }: { params: Promise<{ tenant
     getKitchenSnapshot(context.tenantId, context.branchId),
     getReceiptBranding(context),
   ]);
-  return <KitchenBoard tenant={tenant} branch={branch} branchId={context.branchId} canUpdate={hasAnyPermission(context.permissions, ["kitchen.update"])} branding={branding} {...kitchen} />;
+  const canAvailability = hasAnyPermission(context.permissions, ["catalog.availability"]);
+  const catalog = canAvailability ? await getCatalogSnapshot(context.tenantId, context.branchId) : null;
+  return <><KitchenBoard tenant={tenant} branch={branch} branchId={context.branchId} canUpdate={hasAnyPermission(context.permissions, ["kitchen.update"])} branding={branding} {...kitchen} />{catalog && <div className="px-4 pb-8 sm:px-6 lg:px-8"><AvailabilityPanel tenant={tenant} branch={branch} products={catalog.products} /></div>}</>;
 }

@@ -27,6 +27,7 @@ function mapRpcError(message: string): OrderActionResult {
     table_has_active_order: "Bu masada zaten aktif bir sipariş bulunuyor.",
     table_not_available: "Bu masa şu anda siparişe açılamıyor.",
     product_not_available: "Seçilen ürünlerden biri artık satışta değil.",
+    product_sold_out: "Seçilen ürünlerden biri bugün tükendi.",
     product_station_required:
       "Mutfağa göndermek için tüm ürünlere mutfak istasyonu atanmalıdır.",
     order_has_no_pending_items: "Mutfağa gönderilecek yeni ürün bulunmuyor.",

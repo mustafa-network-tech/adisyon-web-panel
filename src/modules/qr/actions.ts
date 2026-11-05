@@ -69,6 +69,7 @@ const customerErrors: Record<string, string> = {
   qr_ordering_disabled: "Bu işletme QR menüden sipariş almıyor. Lütfen garsonu çağırın.",
   table_not_available: "Bu masa şu anda siparişe açık değil. Lütfen garsonu çağırın.",
   product_not_available: "Seçtiğiniz ürünlerden biri artık satışta değil. Menüyü yenileyin.",
+  product_sold_out: "Seçtiğiniz ürünlerden biri bugün tükendi. Menüyü yenileyin.",
   product_station_required: "Ürünlerden biri şu an QR ile sipariş edilemiyor. Lütfen garsonu çağırın.",
   qr_rate_limited: "Çok sık sipariş verdiniz. Birkaç saniye sonra tekrar deneyin.",
   qr_not_found: "Bu QR kod geçerli değil. Lütfen garsonu çağırın.",

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { requireWorkspacePermission } from "@/lib/auth/access";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { CrudActionState } from "@/modules/settings/action-state";
@@ -160,4 +161,33 @@ export async function upsertProductAction(
 
   refreshCatalogRoutes(route.tenant, route.branch);
   return successState(values.data.id ? "Ürün güncellendi." : "Ürün eklendi.");
+}
+
+const availabilityId = z
+  .string()
+  .regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+
+/** Marks a product sold out for today (or back on sale). Resets by itself tomorrow. */
+export async function setProductAvailabilityAction(input: {
+  tenant: string;
+  branch: string;
+  productId: string;
+  soldOut: boolean;
+}): Promise<{ ok: boolean; message: string }> {
+  if (!availabilityId.safeParse(input.productId).success || typeof input.soldOut !== "boolean") {
+    return { ok: false, message: "Ürün bilgisi geçersiz." };
+  }
+  const context = await requireWorkspacePermission(input.tenant, input.branch, ["catalog.availability"]);
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("set_product_availability", {
+    target_tenant_id: context.tenantId,
+    target_branch_id: context.branchId,
+    target_product_id: input.productId,
+    target_sold_out: input.soldOut,
+  });
+  if (error) return { ok: false, message: "Ürün durumu değiştirilemedi." };
+
+  refreshCatalogRoutes(input.tenant, input.branch);
+  revalidatePath(`/app/${input.tenant}/${input.branch}/mutfak`);
+  return { ok: true, message: input.soldOut ? "Ürün bugünlük tükendi olarak işaretlendi." : "Ürün tekrar satışta." };
 }

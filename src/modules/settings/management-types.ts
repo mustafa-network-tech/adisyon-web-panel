@@ -20,6 +20,7 @@ export const grantablePermissions = [
   { code: "attendance.manage", label: "Puantaj onayı" },
   { code: "payroll.manage", label: "Maaş ve prim" },
   { code: "discounts.apply", label: "İndirim uygulama" },
+  { code: "catalog.availability", label: "Ürün tükendi işaretleme" },
 ] as const;
 export type MembershipStatus = "invited" | "active" | "suspended";
 

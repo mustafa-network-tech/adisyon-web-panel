@@ -5,9 +5,10 @@ import { CheckCircle2, Pencil, Plus, Tags, UtensilsCrossed } from "lucide-react"
 import { formatMoney } from "@/lib/money";
 import { initialCrudActionState } from "@/modules/settings/action-state";
 import { upsertCategoryAction, upsertProductAction } from "../actions";
+import { AvailabilityToggle } from "./availability-toggle";
 import type { CatalogSnapshot, MenuCategory, MenuProduct } from "../types";
 
-type CatalogManagerProps = CatalogSnapshot & { tenant: string; branch: string };
+type CatalogManagerProps = CatalogSnapshot & { tenant: string; branch: string; canAvailability?: boolean };
 
 const fulfillmentLabel = { kitchen: "Mutfak", direct: "Doğrudan servis" } as const;
 
@@ -17,7 +18,7 @@ function effectiveFulfillment(product: MenuProduct, categories: MenuCategory[]) 
   return product.fulfillment || categories.find((category) => category.id === product.categoryId)?.fulfillment || "kitchen";
 }
 
-export function CatalogManager({ tenant, branch, categories, products, kitchenStations }: CatalogManagerProps) {
+export function CatalogManager({ tenant, branch, categories, products, kitchenStations, canAvailability = false }: CatalogManagerProps) {
   const [editingCategory, setEditingCategory] = useState<MenuCategory | null>(null);
   const [editingProduct, setEditingProduct] = useState<MenuProduct | null>(null);
   const [categoryState, categoryAction, categoryPending] = useActionState(upsertCategoryAction, initialCrudActionState);
@@ -57,7 +58,7 @@ export function CatalogManager({ tenant, branch, categories, products, kitchenSt
           <div className="mt-4 flex gap-2"><button disabled={productPending || categories.length === 0} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#e8623a] px-5 text-sm font-black text-white disabled:opacity-50"><Plus size={16} />{productPending ? "Kaydediliyor…" : "Ürünü kaydet"}</button>{editingProduct && <button type="button" onClick={() => setEditingProduct(null)} className="min-h-11 rounded-xl border border-[#dce3df] px-4 text-sm font-bold">Vazgeç</button>}</div>
         </form>
 
-        <div className="overflow-hidden rounded-[22px] border border-[#dfe5e1] bg-white"><div className="border-b border-[#e8ecea] p-5"><h2 className="text-lg font-black">Ürünler</h2><p className="mt-1 text-xs font-semibold text-[#8a948f]">{products.length} kayıt</p></div><div className="divide-y divide-[#edf0ee]">{products.map((product) => <button key={product.id} type="button" onClick={() => setEditingProduct(product)} className="grid w-full gap-2 p-4 text-left hover:bg-[#fafbfa] sm:grid-cols-[1fr_150px_120px_auto] sm:items-center"><div><p className="text-sm font-black">{product.name}</p><p className="mt-1 text-xs font-semibold text-[#8a948f]">{product.categoryName} · {effectiveFulfillment(product, categories) === "direct" ? fulfillmentLabel.direct : product.kitchenStationName || "İstasyon yok"}</p></div><p className="text-sm font-black text-[#e8623a]">{formatMoney(product.priceMinor)}</p><span className={`w-fit rounded-lg px-2.5 py-1 text-[10px] font-black ${product.isActive ? "bg-[#e7f5ef] text-[#176e56]" : "bg-[#eef0ef] text-[#68736e]"}`}>{product.isActive ? "Aktif" : "Pasif"}</span><span className="flex items-center gap-1 text-xs font-bold text-[#68736e]"><Pencil size={14} /> Düzenle</span></button>)}{products.length === 0 && <div className="p-10 text-center"><CheckCircle2 className="mx-auto text-[#a7afab]" /><p className="mt-3 text-sm font-semibold text-[#8a948f]">Henüz ürün eklenmedi.</p></div>}</div></div>
+        <div className="overflow-hidden rounded-[22px] border border-[#dfe5e1] bg-white"><div className="border-b border-[#e8ecea] p-5"><h2 className="text-lg font-black">Ürünler</h2><p className="mt-1 text-xs font-semibold text-[#8a948f]">{products.length} kayıt</p></div><div className="divide-y divide-[#edf0ee]">{products.map((product) => <div key={product.id} className="flex items-center hover:bg-[#fafbfa]"><button type="button" onClick={() => setEditingProduct(product)} className="grid min-w-0 flex-1 gap-2 p-4 text-left sm:grid-cols-[1fr_150px_120px_auto] sm:items-center"><div><p className="text-sm font-black">{product.name}</p><p className="mt-1 text-xs font-semibold text-[#8a948f]">{product.categoryName} · {effectiveFulfillment(product, categories) === "direct" ? fulfillmentLabel.direct : product.kitchenStationName || "İstasyon yok"}</p></div><p className="text-sm font-black text-[#e8623a]">{formatMoney(product.priceMinor)}</p><span className={`w-fit rounded-lg px-2.5 py-1 text-[10px] font-black ${product.isActive ? "bg-[#e7f5ef] text-[#176e56]" : "bg-[#eef0ef] text-[#68736e]"}`}>{product.isActive ? "Aktif" : "Pasif"}</span><span className="flex items-center gap-1 text-xs font-bold text-[#68736e]"><Pencil size={14} /> Düzenle</span></button>{canAvailability && <div className="pr-4"><AvailabilityToggle tenant={tenant} branch={branch} productId={product.id} productName={product.name} soldOut={product.soldOut} /></div>}</div>)}{products.length === 0 && <div className="p-10 text-center"><CheckCircle2 className="mx-auto text-[#a7afab]" /><p className="mt-3 text-sm font-semibold text-[#8a948f]">Henüz ürün eklenmedi.</p></div>}</div></div>
       </section>
     </div>
   );
