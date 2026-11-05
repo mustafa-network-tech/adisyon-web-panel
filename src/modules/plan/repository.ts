@@ -23,5 +23,7 @@ export async function getPlanUsage(tenantId: string, branchId: string): Promise<
     stationLimit: number(value.stationLimit),
     tablesUsed: number(value.tablesUsed) ?? 0,
     stationsUsed: number(value.stationsUsed) ?? 0,
+    // Older databases do not report it; treat that as writable.
+    writable: value.writable !== false,
   };
 }

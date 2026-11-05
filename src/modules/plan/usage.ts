@@ -12,6 +12,8 @@ export type PlanUsage = {
   stationLimit: number | null;
   tablesUsed: number;
   stationsUsed: number;
+  /** False once the trial or subscription has ended (read-only mode). */
+  writable: boolean;
 };
 
 /** "7 / 15" or "7 (sınırsız)". */
@@ -60,3 +62,38 @@ export const planPresets = {
 } as const;
 
 export type PlanPresetCode = keyof typeof planPresets;
+
+/** What every write attempt answers once the trial or subscription has ended. */
+export const readOnlyMessage = `Deneme veya abonelik süreniz doldu; hesabınız salt okunur. Etkinleştirmek için ${contactEmail} adresine yazın.`;
+
+export function isReadOnlyError(message: string | undefined) {
+  return Boolean(message?.includes("tenant_read_only"));
+}
+
+/** Banner text for the panel. */
+export function readOnlyBanner(status: PlanUsage["status"]) {
+  const what = status === "trial" ? "Deneme süreniz" : "Abonelik süreniz";
+  return `${what} doldu. Hesabınız salt okunur: bilgilerinizi görebilirsiniz ancak yeni kayıt yapılamaz.`;
+}
+
+/** Value for an <input type="datetime-local"> in the browser's local time. */
+export function toLocalInput(date: Date) {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+/** Same time `months` later (a 31st becomes the last day of a shorter month). */
+export function addMonthsLocal(localInput: string, months: number) {
+  const start = new Date(localInput);
+  if (Number.isNaN(start.getTime())) return "";
+  const target = new Date(start.getFullYear(), start.getMonth() + months, 1, start.getHours(), start.getMinutes());
+  const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+  target.setDate(Math.min(start.getDate(), lastDay));
+  return toLocalInput(target);
+}
+
+/** The ISO instant the server stores; empty for an empty or invalid input. */
+export function localInputToIso(localInput: string) {
+  const date = new Date(localInput);
+  return localInput && !Number.isNaN(date.getTime()) ? date.toISOString() : "";
+}

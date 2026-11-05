@@ -6,6 +6,7 @@ import { requireWorkspacePermission } from "@/lib/auth/access";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { CrudActionState } from "@/modules/settings/action-state";
 import { parseCategoryInput, parseProductInput } from "./validation";
+import { isReadOnlyError, readOnlyMessage } from "@/modules/plan/usage";
 
 function errorState(message: string): CrudActionState {
   return { status: "error", message };
@@ -75,6 +76,7 @@ export async function upsertCategoryAction(
         .single();
 
   if (result.error || !result.data) {
+    if (isReadOnlyError(result.error?.message)) return errorState(readOnlyMessage);
     return errorState("Kategori kaydedilemedi. Aynı isimde bir kayıt olabilir.");
   }
 
@@ -157,6 +159,7 @@ export async function upsertProductAction(
         .select("id")
         .single();
 
+  if (isReadOnlyError(result.error?.message)) return errorState(readOnlyMessage);
   if (result.error || !result.data) return errorState("Ürün kaydedilemedi.");
 
   refreshCatalogRoutes(route.tenant, route.branch);

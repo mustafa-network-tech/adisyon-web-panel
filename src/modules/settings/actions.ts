@@ -8,6 +8,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { SettingsActionState } from "./management-types";
 import { memberAccessErrorMessage } from "./role-rules";
 import { invitationSchema, memberAccessSchema, memberExtrasSchema, tenantConfigurationSchema } from "./validation";
+import { isReadOnlyError, readOnlyMessage } from "@/modules/plan/usage";
 
 const errorState = (message: string): SettingsActionState => ({ status: "error", message });
 const successState = (message: string, invitationUrl?: string): SettingsActionState => ({ status: "success", message, invitationUrl });
@@ -42,6 +43,7 @@ export async function saveTenantConfigurationAction(
     target_receipt_footer: values.data.receiptFooter,
     target_service_charge_basis_points: Math.round(values.data.serviceChargePercent * 100),
   });
+  if (isReadOnlyError(error?.message)) return errorState(readOnlyMessage);
   if (error) return errorState("Ayarlar kaydedilemedi. Yetkinizi ve alanları kontrol edin.");
   revalidatePath(`/app/${route.tenant}/${route.branch}`);
   return successState("İşletme ve şube ayarları kaydedildi.");

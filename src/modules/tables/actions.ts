@@ -7,6 +7,7 @@ import { limitReachedMessage } from "@/modules/plan/usage";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { CrudActionState } from "@/modules/settings/action-state";
 import { parseDiningAreaInput, parseRestaurantTableInput } from "./validation";
+import { isReadOnlyError, readOnlyMessage } from "@/modules/plan/usage";
 
 function errorState(message: string): CrudActionState {
   return { status: "error", message };
@@ -69,6 +70,7 @@ export async function upsertDiningAreaAction(
         .single();
 
   if (result.error || !result.data) {
+    if (isReadOnlyError(result.error?.message)) return errorState(readOnlyMessage);
     return errorState("Salon kaydedilemedi. Aynı isimde bir salon olabilir.");
   }
 
@@ -135,6 +137,7 @@ export async function upsertRestaurantTableAction(
     const usage = await getPlanUsage(context.tenantId, context.branchId);
     return errorState(limitReachedMessage("table", usage?.tableLimit ?? null));
   }
+  if (isReadOnlyError(result.error?.message)) return errorState(readOnlyMessage);
   if (result.error || !result.data) {
     return errorState("Masa kaydedilemedi. Masa etiketi benzersiz olmalıdır.");
   }

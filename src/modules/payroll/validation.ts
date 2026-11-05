@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { parseMoneyInput } from "@/lib/money";
 import { isPeriod } from "./calc";
+import { readOnlyMessage } from "@/modules/plan/usage";
 
 const uuid = z
   .string()
@@ -46,6 +47,7 @@ export function parseAmountInput(value: string) {
 }
 
 const errors: Record<string, string> = {
+  tenant_read_only: readOnlyMessage,
   attendance_denied: "Puantaj onaylama yetkiniz yok.",
   payroll_denied: "Maaş ve prim verilerini yönetme yetkiniz yok.",
   invalid_attendance: "Puantaj bilgilerini kontrol edin.",

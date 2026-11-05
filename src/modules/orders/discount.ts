@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { parseMoneyInput } from "@/lib/money";
+import { readOnlyMessage } from "@/modules/plan/usage";
 
 export type DiscountKind = "percent" | "amount";
 
@@ -57,6 +58,7 @@ export function describeDiscount(type: DiscountKind | null, value: number) {
 }
 
 export const discountErrorMessages: Record<string, string> = {
+  tenant_read_only: readOnlyMessage,
   discount_denied: "İndirim uygulama yetkiniz yok.",
   invalid_discount: "İndirim bilgilerini kontrol edin (gerekçe en az 3 karakter, tutar adisyon toplamını aşamaz).",
   discount_after_item_payment: "Ürün bazlı ödeme alınmış bir kaleme/adisyona indirim uygulanamaz.",

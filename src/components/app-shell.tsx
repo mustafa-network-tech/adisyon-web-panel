@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { contactEmail } from "@/lib/site";
 import { supportMailto } from "@/lib/support";
+import { readOnlyBanner } from "@/modules/plan/usage";
 import type { ThemeId } from "@/modules/theme/themes";
 import { ServiceAlerts } from "@/modules/notifications/components/service-alerts";
 import { signOutAction } from "@/modules/auth/actions";
@@ -41,12 +42,14 @@ type AppShellProps = {
   branchId: string;
   /** Days left of the trial; null when the business is not on a trial. */
   trialDaysLeft?: number | null;
+  /** Set when the trial or subscription has ended: the workspace is read-only. */
+  readOnlyStatus?: "trial" | "active" | "suspended" | "cancelled" | null;
   /** Colour theme chosen by the business. */
   theme?: ThemeId;
   children: React.ReactNode;
 };
 
-export function AppShell({ tenant, branch, tenantName, branchName, userName, userRole, permissions, supportMode, branches, userId, branchId, trialDaysLeft = null, theme = "classic", children }: AppShellProps) {
+export function AppShell({ tenant, branch, tenantName, branchName, userName, userRole, permissions, supportMode, branches, userId, branchId, trialDaysLeft = null, readOnlyStatus = null, theme = "classic", children }: AppShellProps) {
   const router = useRouter();
   function switchBranch(slug: string) {
     const section = pathname.split("/").slice(4)[0];
@@ -121,6 +124,11 @@ export function AppShell({ tenant, branch, tenantName, branchName, userName, use
             <div className="hidden sm:block"><p className="text-sm font-black">{userName}</p><p className="mt-0.5 text-[11px] font-semibold text-[#8a948f]">{userRole}</p></div>
           </div>
         </header>
+        {readOnlyStatus !== null && (
+          <p role="alert" className="bg-[#9e4328] px-4 py-3 text-center text-xs font-bold text-white sm:text-sm">
+            {readOnlyBanner(readOnlyStatus)} Etkinleştirmek için <a href={`mailto:${contactEmail}?subject=${encodeURIComponent("MK Adisyon abonelik etkinleştirme")}`} className="font-black underline">{contactEmail}</a> adresine yazın.
+          </p>
+        )}
         {trialDaysLeft !== null && (
           <p role="status" className={`px-4 py-2.5 text-center text-xs font-bold sm:text-sm ${trialDaysLeft <= 2 ? "bg-[#fff2ed] text-[#9e4328]" : "bg-[#fff8e7] text-[#8a6415]"}`}>
             {trialDaysLeft === 0 ? "Deneme süreniz doldu." : `Deneme sürümü: ${trialDaysLeft} gün kaldı.`} Paket seçmek için <a href={`mailto:${contactEmail}?subject=${encodeURIComponent("MK Adisyon paket talebi")}`} className="font-black underline">{contactEmail}</a> adresine yazın.

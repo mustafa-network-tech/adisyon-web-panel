@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { limitReachedMessage } from "@/modules/plan/usage";
+import { limitReachedMessage, readOnlyMessage } from "@/modules/plan/usage";
 
 const uuid = z
   .string()
@@ -21,6 +21,7 @@ export const stationColors = ["#e8623a", "#285e9f", "#23866b", "#e3a53b", "#8a3f
 export const stationSuggestions = ["Mutfak", "Izgara", "Fırın", "Bar", "Soğuk", "Tatlı"] as const;
 
 const messages: Record<string, string> = {
+  tenant_read_only: readOnlyMessage,
   catalog_manage_denied: "Menü yönetimi yetkiniz yok.",
   invalid_station: "İstasyon adı (2–40 karakter), rengi ve ürün seçimini kontrol edin.",
   station_not_found: "İstasyon bulunamadı.",

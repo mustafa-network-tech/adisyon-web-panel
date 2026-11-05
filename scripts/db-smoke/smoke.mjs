@@ -570,6 +570,59 @@ check("B's own QR order works", orderB.ticketCount === 1);
 check("the order landed in B's tenant only", (await one("select count(*)::int n from public.orders where tenant_id = $1 and table_id = $2", [tenantB, tableB])).n === 1 && (await one("select count(*)::int n from public.orders where tenant_id = $1 and id in (select order_id from public.order_items where product_name = 'B Corba')", [tenant])).n === 0);
 check("waiter calls of B do not reach A", (await rpc("call_waiter", { target_token: tokenB, target_kind: "waiter" })).status === "sent" && (await one("select count(*)::int n from public.waiter_calls where tenant_id = $1 and table_id = $2", [tenant, tableB])).n === 0);
 
+// --- read-only mode after the trial or subscription ends -------------------------------
+const PLATFORM = "90000000-0000-4000-8000-0000000000a1";
+await db.query("insert into auth.users (id, email, raw_user_meta_data) values ($1, 'platform@t.test', '{}'::jsonb)", [PLATFORM]);
+await db.query("insert into public.profiles (id, full_name) values ($1, 'Platform') on conflict do nothing", [PLATFORM]);
+await db.query("insert into public.platform_admins (user_id) values ($1)", [PLATFORM]);
+
+const freshTableB = async (label) => (await one("insert into public.restaurant_tables (tenant_id, branch_id, area_id, label) values ($1,$2,$3,$4) returning id", [tenantB, branchB, areaB, label])).id;
+const tableB2 = await freshTableB("B Masa 2");
+const tableB3 = await freshTableB("B Masa 3");
+const tableB4 = await freshTableB("B Masa 4");
+await actAs(db, OWNER_B);
+check("a running trial is writable", (await rpc("get_plan_usage", { target_tenant_id: tenantB, target_branch_id: branchB })).writable === true);
+await db.query("update public.subscriptions set ends_at = now() - interval '1 hour' where tenant_id = $1", [tenantB]);
+const expired = await rpc("get_plan_usage", { target_tenant_id: tenantB, target_branch_id: branchB });
+check("an ended trial is reported as read-only", expired.writable === false && expired.status === "trial", JSON.stringify(expired));
+
+const ordersOf = async (tenantId) => (await one("select count(*)::int n from public.orders where tenant_id = $1", [tenantId])).n;
+const ordersBefore = await ordersOf(tenantB);
+await expectError("open_order", { target_tenant_id: tenantB, target_branch_id: branchB, target_table_id: tableB2, target_guest_count: 1, target_items: [{ productId: productB, quantity: 1 }], target_idempotency_key: key() }, "tenant_read_only", "no new orders in read-only mode");
+await expectError("place_customer_order", { target_token: tokenB, target_items: [{ productId: productB, quantity: 1 }], target_idempotency_key: key() }, "tenant_read_only", "guests cannot order from an expired business");
+let menuWriteBlocked = false;
+try {
+  await db.query("insert into public.menu_categories (tenant_id, branch_id, name) values ($1, $2, 'Yeni') ", [tenantB, branchB]);
+} catch (error) {
+  menuWriteBlocked = String(error.message).includes("tenant_read_only");
+}
+check("the menu cannot be changed in read-only mode", menuWriteBlocked);
+await expectError("save_option_group", { target_tenant_id: tenantB, target_branch_id: branchB, target_group_id: null, target_name: "Porsiyon", target_kind: "variant", target_required: true, target_max_select: null, target_is_active: true, target_choices: [{ name: "Tam", priceDeltaMinor: 0 }], target_product_ids: [] }, "tenant_read_only", "options cannot be changed in read-only mode");
+await expectError("set_tenant_theme", { target_tenant_id: tenantB, target_branch_id: branchB, target_theme: "burgundy" }, "tenant_read_only", "settings cannot be changed in read-only mode");
+check("nothing was written while read-only", (await ordersOf(tenantB)) === ordersBefore);
+check("the owner can still read everything", (await countAs(OWNER_B, "orders")) === ordersBefore && (await countAs(OWNER_B, "products")) === 1);
+await actAs(db, WAITER);
+const t18 = await table("Masa 18");
+const stillWorks = await openOn(t18, [{ productId: cola, quantity: 1 }]);
+check("other businesses are not affected", Boolean(stillWorks.orderId));
+
+// only a platform administrator can activate the next period
+await actAs(db, OWNER_B);
+await expectError("update_tenant_subscription", { target_tenant_id: tenantB, target_plan_code: "START", target_status: "active", target_starts_at: new Date().toISOString(), target_ends_at: null, target_notes: null, target_user_limit: 5, target_branch_limit: 1, target_table_limit: 15, target_station_limit: 1 }, "platform_admin_required", "a business cannot activate itself");
+await actAs(db, PLATFORM);
+await rpc("update_tenant_subscription", { target_tenant_id: tenantB, target_plan_code: "START", target_status: "active", target_starts_at: new Date().toISOString(), target_ends_at: new Date(Date.now() + 30 * 86400000).toISOString(), target_notes: "ilk ay odendi", target_user_limit: 5, target_branch_limit: 1, target_table_limit: 15, target_station_limit: 1 });
+await actAs(db, OWNER_B);
+check("the business is writable again once the platform activates it", (await rpc("get_plan_usage", { target_tenant_id: tenantB, target_branch_id: branchB })).writable === true);
+const reopened = await rpc("open_order", { target_tenant_id: tenantB, target_branch_id: branchB, target_table_id: tableB3, target_guest_count: 1, target_items: [{ productId: productB, quantity: 1 }], target_idempotency_key: key() });
+check("and orders work again", Boolean(reopened.orderId));
+
+// an activated period that runs out turns read-only by itself; the platform can still help
+await db.query("update public.subscriptions set ends_at = now() - interval '1 minute' where tenant_id = $1 and plan_code = 'START'", [tenantB]);
+await expectError("open_order", { target_tenant_id: tenantB, target_branch_id: branchB, target_table_id: tableB4, target_guest_count: 1, target_items: [{ productId: productB, quantity: 1 }], target_idempotency_key: key() }, "tenant_read_only", "an ended paid period is read-only too");
+await actAs(db, PLATFORM);
+await db.query("insert into public.menu_categories (tenant_id, branch_id, name) values ($1, $2, 'Platform duzeltmesi')", [tenantB, branchB]);
+check("a platform administrator can still write to an expired business", (await one("select count(*)::int n from public.menu_categories where tenant_id = $1 and name = 'Platform duzeltmesi'", [tenantB])).n === 1);
+
 // --- result ------------------------------------------------------------------
 console.log(`passed: ${passed}`);
 if (failures.length) {

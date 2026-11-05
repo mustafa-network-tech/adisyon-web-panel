@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireWorkspacePermission } from "@/lib/auth/access";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { OrderActionResult } from "./types";
+import { readOnlyMessage } from "@/modules/plan/usage";
 
 const uuid = z
   .string()
@@ -29,6 +30,7 @@ const mergeSchema = z.object({
 });
 
 const errors: Record<string, string> = {
+  tenant_read_only: readOnlyMessage,
   order_update_denied: "Sipariş düzenleme yetkiniz yok.",
   order_not_editable: "Kapanmış veya iptal edilmiş sipariş taşınamaz/birleştirilemez.",
   order_version_conflict: "Sipariş başka bir cihazda değişti. Güncel veriler yükleniyor; işlemi yeniden deneyin.",

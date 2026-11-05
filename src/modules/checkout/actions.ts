@@ -5,10 +5,12 @@ import { requireWorkspacePermission } from "@/lib/auth/access";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { FinanceActionResult } from "@/modules/cash-register/types";
 import { closeSessionSchema, movementSchema, openSessionSchema, paymentSchema, refundSchema } from "./validation";
+import { readOnlyMessage } from "@/modules/plan/usage";
 
 function fail(code: string, message: string): FinanceActionResult { return { ok: false, code, message }; }
 function mapError(message: string): FinanceActionResult {
   const messages: Record<string, string> = {
+  tenant_read_only: readOnlyMessage,
     cash_session_already_open: "Bu kasa için zaten açık bir vardiya var.",
     cash_session_not_open: "Kasa vardiyası açık değil.",
     cash_register_not_available: "Seçilen kasa kullanılamıyor.",

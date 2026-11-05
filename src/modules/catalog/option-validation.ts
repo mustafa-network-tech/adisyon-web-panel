@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { readOnlyMessage } from "@/modules/plan/usage";
 
 const uuid = z
   .string()
@@ -42,6 +43,7 @@ export const optionGroupInputSchema = z
   });
 
 export const optionErrorMessages: Record<string, string> = {
+  tenant_read_only: readOnlyMessage,
   catalog_manage_denied: "Menü yönetimi yetkiniz yok.",
   availability_denied: "Ürün durumu değiştirme yetkiniz yok.",
   removal_must_be_free: "Çıkarılacak malzemeler ücretsiz olmalıdır.",

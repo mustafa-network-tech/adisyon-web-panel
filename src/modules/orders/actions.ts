@@ -10,6 +10,7 @@ import {
   submitOrderInputSchema,
   updateOrderItemInputSchema,
 } from "./validation";
+import { readOnlyMessage } from "@/modules/plan/usage";
 
 type RpcPayload = {
   orderId?: unknown;
@@ -22,6 +23,7 @@ function failure(code: string, message: string): OrderActionResult {
 
 function mapRpcError(message: string): OrderActionResult {
   const errors: Record<string, string> = {
+  tenant_read_only: readOnlyMessage,
     order_version_conflict:
       "Sipariş başka bir cihazda değişti. Güncel veriler yükleniyor; işlemi yeniden deneyin.",
     table_has_active_order: "Bu masada zaten aktif bir sipariş bulunuyor.",

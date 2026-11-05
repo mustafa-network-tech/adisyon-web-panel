@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { readOnlyMessage } from "@/modules/plan/usage";
 
 const postgresUuid = z
   .string()
@@ -18,6 +19,7 @@ export const voidItemInputSchema = z.object({
 });
 
 export const voidErrorMessages: Record<string, string> = {
+  tenant_read_only: readOnlyMessage,
   void_denied: "Gönderilmiş ürünü iptal/ikram etme yetkiniz yok.",
   invalid_void: "Adet ve gerekçe girin (gerekçe en az 3 karakter).",
   void_exceeds_sent: "Mutfağa gönderilenden fazlası iptal edilemez. Gönderilmemiş adetler için normal düzenlemeyi kullanın.",

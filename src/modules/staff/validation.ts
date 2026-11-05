@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { isIsoDate } from "./dates";
+import { readOnlyMessage } from "@/modules/plan/usage";
 
 const uuid = z
   .string()
@@ -58,6 +59,7 @@ export const staffProfileInputSchema = z
   });
 
 export const staffErrorMessages: Record<string, string> = {
+  tenant_read_only: readOnlyMessage,
   shifts_manage_denied: "Vardiya planlama yetkiniz yok.",
   staff_manage_denied: "Personel kartlarını yalnızca şirket yöneticisi düzenleyebilir.",
   invalid_shift: "Vardiya bilgilerini kontrol edin (tarih en fazla 62 gün geriye, 400 gün ileriye olabilir).",

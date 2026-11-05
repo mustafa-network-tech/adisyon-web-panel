@@ -16,7 +16,8 @@ export default async function WorkspaceLayout({ children, params }: { children: 
     supabase.from("tenant_settings").select("theme").eq("tenant_id", context.tenantId).maybeSingle(),
   ]);
   const theme = resolveTheme(settings.data?.theme);
-  const trialDaysLeft = usage?.status === "trial" ? daysLeft(usage.endsAt) : null;
+  const readOnly = usage !== null && !usage.writable;
+  const trialDaysLeft = usage?.status === "trial" && !readOnly ? daysLeft(usage.endsAt) : null;
 
   return (
     <AppShell
@@ -32,6 +33,7 @@ export default async function WorkspaceLayout({ children, params }: { children: 
       userId={context.userId}
       branchId={context.branchId}
       trialDaysLeft={trialDaysLeft}
+      readOnlyStatus={readOnly ? usage?.status ?? "trial" : null}
       theme={theme}
     >
       {children}

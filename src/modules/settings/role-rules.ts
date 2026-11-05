@@ -1,3 +1,4 @@
+import { readOnlyMessage } from "@/modules/plan/usage";
 /**
  * Role assignment rules. They are enforced in the database by
  * public.update_tenant_member_access (migrations 0011 and 0017); this file only
@@ -16,6 +17,7 @@ export const roleAssignmentRules = [
 ] as const;
 
 const accessErrors: Record<string, string> = {
+  tenant_read_only: readOnlyMessage,
   users_manage_denied: "Kullanıcı yönetimi yetkiniz yok.",
   member_access_required: "En az bir şube ve bir rol seçin.",
   cross_tenant_member_access: "Seçilen şube veya rol bu işletmeye ait değil.",
