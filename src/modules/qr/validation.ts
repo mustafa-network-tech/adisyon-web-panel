@@ -21,6 +21,11 @@ export const customerOrderInputSchema = z.object({
     .max(40),
 });
 
+export const callWaiterInputSchema = z.object({
+  token: qrTokenSchema,
+  kind: z.enum(["waiter", "bill"]),
+});
+
 export const setOrderingInputSchema = z.object({
   tenant: z.string().trim().min(1).max(100),
   branch: z.string().trim().min(1).max(100),

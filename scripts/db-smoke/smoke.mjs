@@ -228,6 +228,30 @@ await expectError("sales_report", reportArgs(), "report_denied", "waiter has no 
 await actAs(db, MANAGER);
 await expectError("sales_report", reportArgs({ range_start: await addDays(-200) }), "invalid_report_range", "range is capped");
 
+// --- waiter calls (phase F) --------------------------------------------------
+const t2Token = (await one("select qr_token from public.restaurant_tables where id = $1", [t2])).qr_token;
+await actAs(db, null);
+const call1 = await rpc("call_waiter", { target_token: t2Token, target_kind: "waiter" });
+check("customer can call the waiter without logging in", call1.status === "sent", JSON.stringify(call1));
+check("a second call for the same need is not duplicated", (await rpc("call_waiter", { target_token: t2Token, target_kind: "waiter" })).status === "already_pending");
+check("asking for the bill is a separate call", (await rpc("call_waiter", { target_token: t2Token, target_kind: "bill" })).status === "sent");
+await expectError("call_waiter", { target_token: "0".repeat(64), target_kind: "waiter" }, "qr_not_found", "unknown QR code rejected");
+await expectError("call_waiter", { target_token: t2Token, target_kind: "pizza" }, "invalid_call", "unknown call kind rejected");
+await actAs(db, WAITER);
+const pending = await all("select id from public.waiter_calls where acknowledged_at is null");
+check("two calls are pending", pending.length === 2);
+await rpc("acknowledge_waiter_call", { target_tenant_id: tenant, target_branch_id: branch, target_call_id: pending[0].id });
+check("staff can acknowledge a call", (await all("select id from public.waiter_calls where acknowledged_at is null")).length === 1);
+await actAs(db, "99999999-9999-4999-8999-999999999999");
+await expectError("acknowledge_waiter_call", { target_tenant_id: tenant, target_branch_id: branch, target_call_id: pending[1].id }, "call_denied", "outsiders cannot acknowledge");
+await actAs(db, null);
+for (let i = 0; i < 4; i += 1) {
+  await db.query("update public.waiter_calls set acknowledged_at = now() where acknowledged_at is null");
+  await rpc("call_waiter", { target_token: t2Token, target_kind: "waiter" });
+}
+await db.query("update public.waiter_calls set acknowledged_at = now() where acknowledged_at is null");
+await expectError("call_waiter", { target_token: t2Token, target_kind: "waiter" }, "call_rate_limited", "call spam is rate limited");
+
 // --- table operations (phase F) ---------------------------------------------
 await actAs(db, WAITER);
 const t4 = await table("Masa 4");

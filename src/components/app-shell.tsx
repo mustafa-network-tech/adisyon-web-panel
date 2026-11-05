@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   Wifi,
 } from "lucide-react";
+import { ServiceAlerts } from "@/modules/notifications/components/service-alerts";
 import { signOutAction } from "@/modules/auth/actions";
 import { Brand } from "./brand";
 
@@ -31,10 +32,12 @@ type AppShellProps = {
   permissions: Permission[];
   supportMode: boolean;
   branches: Array<{ slug: string; name: string }>;
+  userId: string;
+  branchId: string;
   children: React.ReactNode;
 };
 
-export function AppShell({ tenant, branch, tenantName, branchName, userName, userRole, permissions, supportMode, branches, children }: AppShellProps) {
+export function AppShell({ tenant, branch, tenantName, branchName, userName, userRole, permissions, supportMode, branches, userId, branchId, children }: AppShellProps) {
   const router = useRouter();
   function switchBranch(slug: string) {
     const section = pathname.split("/").slice(4)[0];
@@ -108,6 +111,7 @@ export function AppShell({ tenant, branch, tenantName, branchName, userName, use
           </div>
         </header>
         <main className="min-h-[calc(100dvh-76px)] pb-24 lg:pb-0">{children}</main>
+        {hasAnyPermission(permissions, ["tables.read"]) && <ServiceAlerts tenant={tenant} branch={branch} branchId={branchId} userId={userId} overseesFloor={hasAnyPermission(permissions, ["shifts.manage"])} />}
       </div>
 
       <nav className="fixed inset-x-3 bottom-3 z-40 grid rounded-2xl border border-[#dce3df] bg-white/95 p-2 shadow-[0_16px_45px_rgb(23_33_29/0.18)] backdrop-blur-xl lg:hidden" style={{ gridTemplateColumns: `repeat(${navItems.length}, minmax(0, 1fr))` }} aria-label="Mobil çalışma alanı menüsü">

@@ -44,5 +44,5 @@ export async function createDatabase(upTo = 999) {
 }
 
 export async function actAs(db, userId) {
-  await db.exec(`select set_config('request.jwt.claim.sub', '${userId}', false)`);
+  await db.query("select set_config('request.jwt.claim.sub', $1, false)", [userId ?? ""]);
 }

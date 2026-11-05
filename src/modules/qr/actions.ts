@@ -5,6 +5,7 @@ import { requireWorkspacePermission } from "@/lib/auth/access";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { CustomerOrderResult, QrActionResult } from "./types";
 import {
+  callWaiterInputSchema,
   customerOrderInputSchema,
   rotateTokenInputSchema,
   setOrderingInputSchema,
@@ -102,4 +103,31 @@ export async function placeCustomerOrderAction(
     return { ok: false, code: "invalid_response", message: "Sipariş yanıtı doğrulanamadı." };
   }
   return { ok: true, orderNumber: payload.orderNumber };
+}
+
+const callErrors: Record<string, string> = {
+  qr_not_found: "Bu QR kod geçerli değil. Lütfen yakındaki bir çalışanı çağırın.",
+  call_rate_limited: "Çok sık çağrı yaptınız. Çalışanlarımız yolda; lütfen biraz bekleyin.",
+};
+
+export type CallWaiterResult =
+  | { ok: true; status: "sent" | "already_pending" }
+  | { ok: false; message: string };
+
+export async function callWaiterAction(input: unknown): Promise<CallWaiterResult> {
+  const values = callWaiterInputSchema.safeParse(input);
+  if (!values.success) return { ok: false, message: "Çağrı bilgisi geçersiz." };
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc("call_waiter", {
+    target_token: values.data.token,
+    target_kind: values.data.kind,
+  });
+  if (error) {
+    const code = Object.keys(callErrors).find((key) => error.message.includes(key));
+    return { ok: false, message: code ? callErrors[code] : "Çağrı gönderilemedi. Lütfen yakındaki bir çalışanı çağırın." };
+  }
+  const status = (data as { status?: unknown } | null)?.status;
+  if (status !== "sent" && status !== "already_pending") return { ok: false, message: "Çağrı yanıtı doğrulanamadı." };
+  return { ok: true, status };
 }

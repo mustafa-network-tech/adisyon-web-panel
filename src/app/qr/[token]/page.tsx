@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ServiceButtons } from "@/modules/qr/components/service-buttons";
 import { PublicMenuView } from "@/modules/qr/components/public-menu";
 import { getPublicMenu } from "@/modules/qr/repository";
 
@@ -39,6 +40,7 @@ export default async function QrMenuPage({
         <p className="mt-2 inline-block rounded-full bg-[#17211d] px-3 py-1 text-xs font-black text-white">
           {menu.tableLabel}
         </p>
+        <ServiceButtons token={token} />
         {!menu.orderingEnabled && (
           <p className="mt-4 rounded-2xl border border-[#dfe5e1] bg-white p-4 text-sm font-semibold text-[#68736e]">
             Siparişinizi garsonumuza iletebilirsiniz.

@@ -76,7 +76,7 @@ export function PublicMenuView({ token, menu }: Props) {
         <CheckCircle2 className="mx-auto text-[#23866b]" size={52} />
         <h2 className="mt-4 text-2xl font-black">Siparişiniz alındı</h2>
         <p className="mt-2 text-sm font-semibold text-[#397a67]">
-          Sipariş no #{placedOrder} · {menu.tableLabel}. Mutfağa iletildi.
+          Sipariş no #{placedOrder} · {menu.tableLabel}. Siparişiniz iletildi, masanıza getirilecek.
         </p>
         <button
           type="button"
