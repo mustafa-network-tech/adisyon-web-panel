@@ -28,6 +28,10 @@ function mapRpcError(message: string): OrderActionResult {
     table_not_available: "Bu masa şu anda siparişe açılamıyor.",
     product_not_available: "Seçilen ürünlerden biri artık satışta değil.",
     product_sold_out: "Seçilen ürünlerden biri bugün tükendi.",
+    option_sold_out: "Seçilen seçeneklerden biri bugün tükendi.",
+    option_required: "Zorunlu bir seçenek (örn. porsiyon) seçilmemiş.",
+    option_limit: "Bir seçenek grubunda izin verilenden fazla seçim yapılmış.",
+    invalid_option: "Seçilen seçeneklerden biri bu ürün için geçerli değil. Menüyü yenileyin.",
     product_station_required:
       "Mutfağa göndermek için tüm ürünlere mutfak istasyonu atanmalıdır.",
     order_has_no_pending_items: "Mutfağa gönderilecek yeni ürün bulunmuyor.",

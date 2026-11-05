@@ -6,7 +6,10 @@ import { Minus, Plus, Search, ShoppingBag, Users, X } from "lucide-react";
 import { formatMoney } from "@/lib/money";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { MenuProduct } from "@/modules/catalog/types";
+import { OptionPicker } from "@/modules/catalog/components/option-picker";
+import { startingPriceMinor } from "@/modules/catalog/options";
 import { openOrderAction } from "@/modules/orders/actions";
+import { addToDraft, changeLineNotes, changeLineQuantity, draftItems, draftTotalMinor } from "@/modules/orders/draft";
 import type { OrderLine } from "@/modules/orders/types";
 import type { DiningArea, RestaurantTable, TableStatus } from "../types";
 
@@ -35,6 +38,7 @@ export function TableBoard({ tenant, branch, branchId, areas, tables: allTables,
   const [areaId, setAreaId] = useState(activeAreas[0]?.id || "");
   const [selected, setSelected] = useState<RestaurantTable | null>(null);
   const [order, setOrder] = useState<OrderLine[]>([]);
+  const [pickerProduct, setPickerProduct] = useState<MenuProduct | null>(null);
   const [query, setQuery] = useState("");
   const [guestCount, setGuestCount] = useState(2);
   const [feedback, setFeedback] = useState("");
@@ -55,27 +59,34 @@ export function TableBoard({ tenant, branch, branchId, areas, tables: allTables,
     : activeAreas[0]?.id || "";
   const tables = allTables.filter((table) => table.areaId === currentAreaId);
   const products = allProducts.filter((product) => product.isActive && product.name.toLocaleLowerCase("tr-TR").includes(query.toLocaleLowerCase("tr-TR")));
-  const total = useMemo(() => order.reduce((sum, item) => sum + item.quantity * item.unitPriceMinor, 0), [order]);
+  const total = useMemo(() => draftTotalMinor(order), [order]);
 
   function addProduct(productId: string) {
     const product = allProducts.find((item) => item.id === productId && item.isActive);
-    if (!product) return;
+    if (!product || product.soldOut) return;
     idempotencyKey.current = null;
-    setOrder((items) => {
-      const existing = items.find((item) => item.productId === productId);
-      if (existing) return items.map((item) => item.productId === productId ? { ...item, quantity: item.quantity + 1 } : item);
-      return [...items, { productId, name: product.name, quantity: 1, unitPriceMinor: product.priceMinor, notes: "" }];
-    });
+    if (product.optionGroups.length > 0) {
+      setPickerProduct(product);
+      return;
+    }
+    setOrder((items) => addToDraft(items, product, []));
   }
 
-  function changeQuantity(productId: string, delta: number) {
+  function confirmOptions(selectedIds: string[]) {
+    if (!pickerProduct) return;
     idempotencyKey.current = null;
-    setOrder((items) => items.map((item) => item.productId === productId ? { ...item, quantity: item.quantity + delta } : item).filter((item) => item.quantity > 0));
+    setOrder((items) => addToDraft(items, pickerProduct, selectedIds));
+    setPickerProduct(null);
   }
 
-  function changeNotes(productId: string, notes: string) {
+  function changeQuantity(lineKey: string, delta: number) {
     idempotencyKey.current = null;
-    setOrder((items) => items.map((item) => item.productId === productId ? { ...item, notes } : item));
+    setOrder((items) => changeLineQuantity(items, lineKey, delta));
+  }
+
+  function changeNotes(lineKey: string, notes: string) {
+    idempotencyKey.current = null;
+    setOrder((items) => changeLineNotes(items, lineKey, notes));
   }
 
   function selectTable(table: RestaurantTable) {
@@ -101,7 +112,7 @@ export function TableBoard({ tenant, branch, branchId, areas, tables: allTables,
         branch,
         tableId: selected.id,
         guestCount,
-        items: order.map((item) => ({ productId: item.productId, quantity: item.quantity, notes: item.notes || "" })),
+        items: draftItems(order),
         idempotencyKey: requestKey,
       });
       if (!result.ok) {
@@ -132,12 +143,13 @@ export function TableBoard({ tenant, branch, branchId, areas, tables: allTables,
       </div>}
     </section>
 
+    {pickerProduct && <OptionPicker productName={pickerProduct.name} basePriceMinor={pickerProduct.priceMinor} groups={pickerProduct.optionGroups} onConfirm={confirmOptions} onCancel={() => setPickerProduct(null)} />}
     <aside className={`fixed inset-0 z-50 bg-white transition-transform duration-300 xl:static xl:z-auto xl:block xl:border-l xl:border-[#dfe5e1] ${selected ? "translate-x-0" : "translate-x-full xl:translate-x-0"}`} aria-label="Sipariş oluşturma paneli">
       {selected ? <div className="flex h-dvh flex-col xl:h-[calc(100dvh-76px)]">
         <div className="flex items-center justify-between border-b border-[#e5e9e7] p-5"><div><p className="text-xs font-black uppercase tracking-[0.15em] text-[#e8623a]">Yeni sipariş</p><h2 className="mt-1 text-2xl font-black">{selected.label} · {selected.areaName}</h2></div><button type="button" onClick={() => setSelected(null)} className="grid size-11 place-items-center rounded-xl bg-[#f0f2f1] text-[#68736e] xl:hidden" aria-label="Paneli kapat"><X size={20} /></button></div>
         <div className="grid grid-cols-[1fr_92px] gap-3 border-b border-[#e5e9e7] p-4"><label className="flex min-h-11 items-center gap-2 rounded-xl bg-[#f1f3f2] px-3"><Search size={17} className="text-[#8a948f]" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Ürün ara" className="min-w-0 flex-1 bg-transparent text-sm outline-none" /></label><label><span className="sr-only">Kişi sayısı</span><input type="number" min="1" max="100" value={guestCount} onChange={(event) => setGuestCount(Number(event.target.value))} className="min-h-11 w-full rounded-xl border border-[#dce3df] px-3 text-sm font-bold" aria-label="Kişi sayısı" /></label></div>
-        <div className="scrollbar-thin flex-1 overflow-y-auto p-4"><p className="mb-3 text-[11px] font-black uppercase tracking-[0.14em] text-[#8a948f]">Aktif ürünler</p><div className="grid grid-cols-2 gap-2">{products.map((product) => <button key={product.id} type="button" onClick={() => addProduct(product.id)} className="min-h-20 rounded-xl border border-[#dfe5e1] bg-white p-3 text-left hover:border-[#e8623a]"><span className="block text-sm font-black leading-5">{product.name}</span><span className="mt-2 block text-xs font-bold text-[#e8623a]">{formatMoney(product.priceMinor)}</span></button>)}{products.length === 0 && <p className="col-span-2 rounded-xl bg-[#f5f7f6] p-5 text-center text-xs font-semibold text-[#8a948f]">Aktif ürün bulunamadı.</p>}</div>
-          {order.length > 0 && <><p className="mb-3 mt-6 text-[11px] font-black uppercase tracking-[0.14em] text-[#8a948f]">Sipariş ürünleri</p><div className="space-y-2">{order.map((item) => <div key={item.productId} className="rounded-xl bg-[#f5f7f6] p-3"><div className="flex items-center gap-3"><div className="min-w-0 flex-1"><p className="truncate text-sm font-black">{item.name}</p><p className="mt-1 text-xs font-bold text-[#68736e]">{formatMoney(item.unitPriceMinor * item.quantity)}</p></div><div className="flex items-center rounded-lg border border-[#d9e0dc] bg-white"><button type="button" onClick={() => changeQuantity(item.productId, -1)} className="grid size-9 place-items-center" aria-label={`${item.name} azalt`}><Minus size={14} /></button><span className="w-7 text-center text-xs font-black">{item.quantity}</span><button type="button" onClick={() => changeQuantity(item.productId, 1)} className="grid size-9 place-items-center" aria-label={`${item.name} artır`}><Plus size={14} /></button></div></div><input value={item.notes || ""} onChange={(event) => changeNotes(item.productId, event.target.value)} maxLength={500} placeholder="Ürün notu (isteğe bağlı)" className="mt-2 min-h-10 w-full rounded-lg border border-[#dfe5e1] bg-white px-3 text-xs outline-none focus:border-[#e8623a]" /></div>)}</div></>}
+        <div className="scrollbar-thin flex-1 overflow-y-auto p-4"><p className="mb-3 text-[11px] font-black uppercase tracking-[0.14em] text-[#8a948f]">Aktif ürünler</p><div className="grid grid-cols-2 gap-2">{products.map((product) => <button key={product.id} type="button" onClick={() => addProduct(product.id)} disabled={product.soldOut} className="min-h-20 rounded-xl border border-[#dfe5e1] bg-white p-3 text-left hover:border-[#e8623a] disabled:opacity-55"><span className="block text-sm font-black leading-5">{product.name}</span><span className={`mt-2 block text-xs font-bold ${product.soldOut ? "text-[#b63b32]" : "text-[#e8623a]"}`}>{product.soldOut ? "Bugün tükendi" : product.optionGroups.length > 0 ? `${formatMoney(startingPriceMinor(product.priceMinor, product.optionGroups))} · seçenekli` : formatMoney(product.priceMinor)}</span></button>)}{products.length === 0 && <p className="col-span-2 rounded-xl bg-[#f5f7f6] p-5 text-center text-xs font-semibold text-[#8a948f]">Aktif ürün bulunamadı.</p>}</div>
+          {order.length > 0 && <><p className="mb-3 mt-6 text-[11px] font-black uppercase tracking-[0.14em] text-[#8a948f]">Sipariş ürünleri</p><div className="space-y-2">{order.map((item) => <div key={item.lineKey} className="rounded-xl bg-[#f5f7f6] p-3"><div className="flex items-center gap-3"><div className="min-w-0 flex-1"><p className="truncate text-sm font-black">{item.name}</p>{item.optionLabels.length > 0 && <p className="mt-0.5 text-[11px] font-bold leading-4 text-[#68736e]">{item.optionLabels.join(" · ")}</p>}<p className="mt-1 text-xs font-bold text-[#68736e]">{formatMoney(item.unitPriceMinor * item.quantity)}</p></div><div className="flex items-center rounded-lg border border-[#d9e0dc] bg-white"><button type="button" onClick={() => changeQuantity(item.lineKey, -1)} className="grid size-9 place-items-center" aria-label={`${item.name} azalt`}><Minus size={14} /></button><span className="w-7 text-center text-xs font-black">{item.quantity}</span><button type="button" onClick={() => changeQuantity(item.lineKey, 1)} className="grid size-9 place-items-center" aria-label={`${item.name} artır`}><Plus size={14} /></button></div></div><input value={item.notes || ""} onChange={(event) => changeNotes(item.lineKey, event.target.value)} maxLength={500} placeholder="Ürün notu (isteğe bağlı)" className="mt-2 min-h-10 w-full rounded-lg border border-[#dfe5e1] bg-white px-3 text-xs outline-none focus:border-[#e8623a]" /></div>)}</div></>}
         </div>
         <div className="border-t border-[#dfe5e1] bg-white p-4"><div className="flex items-end justify-between"><div><p className="text-xs font-bold text-[#8a948f]">Toplam</p><p className="mt-1 text-3xl font-black tracking-tight">{formatMoney(total)}</p></div><span className="text-xs font-bold text-[#68736e]">{order.reduce((sum, item) => sum + item.quantity, 0)} ürün</span></div>{feedback && <p role="alert" className="mt-3 rounded-xl bg-[#fff2ed] p-3 text-xs font-bold text-[#9e4328]">{feedback}</p>}<button type="button" onClick={openOrder} disabled={isOpening || order.length === 0 || guestCount < 1} className="mt-4 flex min-h-13 w-full items-center justify-center gap-2 rounded-xl bg-[#e8623a] px-5 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-45"><ShoppingBag size={18} />{isOpening ? "Sipariş açılıyor…" : "Siparişi aç ve kaydet"}</button></div>
       </div> : <div className="hidden h-[calc(100dvh-76px)] place-items-center p-8 text-center xl:grid"><div><span className="mx-auto grid size-16 place-items-center rounded-2xl bg-[#eef1ef] text-[#7a8580]"><LayoutGridIcon /></span><h2 className="mt-5 text-xl font-black">Bir masa seçin</h2><p className="mt-2 max-w-xs text-sm leading-6 text-[#7a8580]">Ürünleri seçin ve güvenli transaction ile siparişi açın.</p></div></div>}

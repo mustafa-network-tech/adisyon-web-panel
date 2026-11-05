@@ -15,6 +15,7 @@ export const customerOrderInputSchema = z.object({
         productId: uuid,
         quantity: z.number().int().min(1).max(20),
         notes: z.string().trim().max(200).default(""),
+        options: z.array(uuid).max(30).default([]),
       }),
     )
     .min(1)

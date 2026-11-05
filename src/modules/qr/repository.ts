@@ -11,7 +11,16 @@ export async function getPublicMenu(token: string): Promise<PublicMenu | null> {
     target_token: token,
   });
   if (error) throw new Error("Menü okunamadı.");
-  return (data as PublicMenu | null) ?? null;
+  const menu = data as PublicMenu | null;
+  if (!menu) return null;
+  // Older database versions do not send option groups; treat that as "no options".
+  return {
+    ...menu,
+    categories: menu.categories.map((category) => ({
+      ...category,
+      products: category.products.map((product) => ({ ...product, soldOut: product.soldOut ?? false, optionGroups: product.optionGroups ?? [] })),
+    })),
+  };
 }
 
 type TableRow = {

@@ -1,3 +1,5 @@
+import type { OptionChoice, OptionGroup, OptionKind } from "./options";
+
 export type Fulfillment = "kitchen" | "direct";
 
 export type MenuProduct = {
@@ -14,6 +16,8 @@ export type MenuProduct = {
   fulfillment: Fulfillment | null;
   /** True when the product was marked sold out for today. */
   soldOut: boolean;
+  /** Active option groups (portion, extras, removals) with their choices. */
+  optionGroups: OptionGroup[];
   isActive: boolean;
 };
 
@@ -32,7 +36,21 @@ export type KitchenStationOption = {
   isActive: boolean;
 };
 
+export type OptionChoiceAdmin = OptionChoice & { isActive: boolean };
+
+export type OptionGroupAdmin = {
+  id: string;
+  name: string;
+  kind: OptionKind;
+  minSelect: number;
+  maxSelect: number | null;
+  isActive: boolean;
+  choices: OptionChoiceAdmin[];
+  productIds: string[];
+};
+
 export type CatalogSnapshot = {
+  optionGroups: OptionGroupAdmin[];
   categories: MenuCategory[];
   products: MenuProduct[];
   kitchenStations: KitchenStationOption[];

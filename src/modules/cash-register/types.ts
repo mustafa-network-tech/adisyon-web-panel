@@ -24,6 +24,7 @@ export type CheckoutOrderItem = {
   taxRate: number;
   source: "staff" | "qr";
   listUnitPriceMinor: number | null;
+  options: string[];
 };
 
 export type CheckoutOrder = {

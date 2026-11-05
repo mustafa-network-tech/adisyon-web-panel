@@ -270,10 +270,73 @@ await db.query("update public.products set sold_out_on = (now() at time zone 'Eu
 const nextDayMenu = await rpc("get_public_menu", { target_token: t5Token });
 check("a sold out mark expires the next day", nextDayMenu.categories.flatMap((c) => c.products).find((p) => p.name === "Kola").orderable === true);
 
+const orderVersion = async (id) => Number((await one("select version from public.orders where id = $1", [id])).version);
+// --- product options ----------------------------------------------------------------
+await actAs(db, OWNER);
+const saveGroup = (over) => rpc("save_option_group", { target_tenant_id: tenant, target_branch_id: branch, target_group_id: null, target_name: "Porsiyon", target_kind: "variant", target_required: true, target_max_select: null, target_is_active: true, target_choices: [], target_product_ids: [kebab], ...over });
+const portion = await saveGroup({ target_choices: [{ name: "Yarım", priceDeltaMinor: -10000 }, { name: "Tam", priceDeltaMinor: 0 }, { name: "Büyük", priceDeltaMinor: 8000 }] });
+const extras = await saveGroup({ target_name: "Ekstralar", target_kind: "extra", target_required: false, target_max_select: 2, target_choices: [{ name: "Peynir", priceDeltaMinor: 1500 }, { name: "Sos", priceDeltaMinor: 1000 }, { name: "Mantar", priceDeltaMinor: 2000 }] });
+const removals = await saveGroup({ target_name: "Çıkar", target_kind: "removal", target_required: false, target_choices: [{ name: "Soğan", priceDeltaMinor: 0 }, { name: "Turşu", priceDeltaMinor: 0 }] });
+await expectError("save_option_group", { target_tenant_id: tenant, target_branch_id: branch, target_group_id: null, target_name: "Ücretli çıkar", target_kind: "removal", target_required: false, target_max_select: null, target_is_active: true, target_choices: [{ name: "Domates", priceDeltaMinor: 500 }], target_product_ids: [kebab] }, "removal_must_be_free", "a removal cannot cost money");
+await expectError("save_option_group", { target_tenant_id: tenant, target_branch_id: branch, target_group_id: null, target_name: "Boş", target_kind: "extra", target_required: false, target_max_select: null, target_is_active: true, target_choices: [], target_product_ids: [] }, "invalid_option_group", "a group needs at least one choice");
+await actAs(db, WAITER);
+await expectError("save_option_group", { target_tenant_id: tenant, target_branch_id: branch, target_group_id: null, target_name: "Hile", target_kind: "extra", target_required: false, target_max_select: null, target_is_active: true, target_choices: [{ name: "X", priceDeltaMinor: 0 }], target_product_ids: [] }, "catalog_manage_denied", "waiters cannot edit options");
+
+const choiceId = async (groupId, name) => (await one("select id from public.option_choices where group_id = $1 and name = $2", [groupId, name])).id;
+const big = await choiceId(portion.id, "Büyük");
+const half = await choiceId(portion.id, "Yarım");
+const full = await choiceId(portion.id, "Tam");
+const cheese = await choiceId(extras.id, "Peynir");
+const sauce = await choiceId(extras.id, "Sos");
+const mushroom = await choiceId(extras.id, "Mantar");
+const onion = await choiceId(removals.id, "Soğan");
+const t6 = await table("Masa 6");
+const t7 = await table("Masa 7");
+const openOn = (tableId, items) => rpc("open_order", { target_tenant_id: tenant, target_branch_id: branch, target_table_id: tableId, target_guest_count: 1, target_items: items, target_idempotency_key: key() });
+
+await expectError("open_order", { target_tenant_id: tenant, target_branch_id: branch, target_table_id: t6, target_guest_count: 1, target_items: [{ productId: kebab, quantity: 1 }], target_idempotency_key: key() }, "option_required", "a required portion must be chosen");
+await expectError("open_order", { target_tenant_id: tenant, target_branch_id: branch, target_table_id: t6, target_guest_count: 1, target_items: [{ productId: kebab, quantity: 1, options: [big, half] }], target_idempotency_key: key() }, "option_limit", "only one portion can be chosen");
+await expectError("open_order", { target_tenant_id: tenant, target_branch_id: branch, target_table_id: t6, target_guest_count: 1, target_items: [{ productId: kebab, quantity: 1, options: [full, cheese, sauce, mushroom] }], target_idempotency_key: key() }, "option_limit", "extras are capped");
+await expectError("open_order", { target_tenant_id: tenant, target_branch_id: branch, target_table_id: t6, target_guest_count: 1, target_items: [{ productId: cola, quantity: 1, options: [cheese] }], target_idempotency_key: key() }, "invalid_option", "options of another product are refused");
+await expectError("open_order", { target_tenant_id: tenant, target_branch_id: branch, target_table_id: t6, target_guest_count: 1, target_items: [{ productId: kebab, quantity: 1, options: ["not-a-uuid"] }], target_idempotency_key: key() }, "invalid_option", "garbage option ids are refused");
+
+const optionOrder = await openOn(t6, [{ productId: kebab, quantity: 2, options: [big, cheese, onion] }, { productId: kebab, quantity: 1, options: [half] }]);
+const optionLines = await all("select id, quantity, unit_price_minor, line_total_minor from public.order_items where order_id = $1 order by unit_price_minor desc", [optionOrder.orderId]);
+check("price = base + chosen price changes", Number(optionLines[0].unit_price_minor) === 36550 + 8000 + 1500 && Number(optionLines[1].unit_price_minor) === 36550 - 10000, JSON.stringify(optionLines));
+check("line total uses the option price", Number(optionLines[0].line_total_minor) === 2 * 46050);
+const copied = await all("select group_name, kind, choice_name, price_delta_minor from public.order_item_options where order_item_id = $1 order by kind", [optionLines[0].id]);
+check("the chosen options are copied onto the line", copied.length === 3 && copied.some((row) => row.kind === "removal" && row.choice_name === "Soğan"), JSON.stringify(copied));
+
+await actAs(db, OWNER);
+await saveGroup({ target_group_id: extras.id, target_name: "Ekstralar", target_kind: "extra", target_required: false, target_max_select: 2, target_choices: [{ id: cheese, name: "Peynir", priceDeltaMinor: 2500 }, { id: sauce, name: "Sos", priceDeltaMinor: 1000 }] });
+check("editing a group keeps the lines already ordered", Number((await one("select price_delta_minor from public.order_item_options where order_item_id = $1 and choice_name = 'Peynir'", [optionLines[0].id])).price_delta_minor) === 1500);
+check("a choice left out is removed from the group", (await one("select count(*)::int n from public.option_choices where group_id = $1", [extras.id])).n === 2);
+
+await actAs(db, MANAGER);
+await rpc("set_option_choice_availability", { target_tenant_id: tenant, target_branch_id: branch, target_choice_id: sauce, target_sold_out: true });
+await actAs(db, WAITER);
+await expectError("append_order_items", { target_tenant_id: tenant, target_branch_id: branch, target_order_id: optionOrder.orderId, target_expected_version: await orderVersion(optionOrder.orderId), target_items: [{ productId: kebab, quantity: 1, options: [full, sauce] }], target_idempotency_key: key() }, "option_sold_out", "a sold out extra cannot be chosen");
+
+await actAs(db, MANAGER);
+const optionVersion = await orderVersion(optionOrder.orderId);
+const discountedOption = await rpc("apply_item_discount", { target_tenant_id: tenant, target_branch_id: branch, target_order_id: optionOrder.orderId, target_order_item_id: optionLines[0].id, target_expected_version: optionVersion, target_type: "percent", target_value: 5000, target_reason: "ikram yarısı" });
+check("an item discount starts from the option price", discountedOption.unitPriceMinor === 23025, JSON.stringify(discountedOption));
+
+await actAs(db, null);
+const optionMenu = await rpc("get_public_menu", { target_token: t5Token });
+const kebabMenu = optionMenu.categories.flatMap((c) => c.products).find((p) => p.name === "Kebap");
+check("the public menu lists the option groups", kebabMenu.optionGroups.length === 3 && kebabMenu.optionGroups[0].choices.length >= 2, JSON.stringify(kebabMenu.optionGroups.map((g) => g.name)));
+const sauceInMenu = kebabMenu.optionGroups.flatMap((g) => g.choices).find((c) => c.name === "Sos");
+check("the public menu marks a sold out choice", sauceInMenu.soldOut === true);
+const t7Token = (await one("select qr_token from public.restaurant_tables where id = $1", [t7])).qr_token;
+await expectError("place_customer_order", { target_token: t7Token, target_items: [{ productId: kebab, quantity: 1 }], target_idempotency_key: key() }, "option_required", "QR orders must choose the required portion");
+const qrOption = await rpc("place_customer_order", { target_token: t7Token, target_items: [{ productId: kebab, quantity: 1, options: [full, cheese] }], target_idempotency_key: key() });
+check("a guest can order with options", qrOption.ticketCount === 1, JSON.stringify(qrOption));
+check("the kitchen ticket line keeps its options", (await one("select count(*)::int n from public.order_item_options o join public.order_items i on i.id = o.order_item_id join public.orders ord on ord.id = i.order_id where ord.table_id = $1", [t7])).n === 2);
+
 // --- table operations (phase F) ---------------------------------------------
 await actAs(db, WAITER);
 const t4 = await table("Masa 4");
-const orderVersion = async (id) => Number((await one("select version from public.orders where id = $1", [id])).version);
 await expectError("move_order_to_table", { target_tenant_id: tenant, target_branch_id: branch, target_order_id: open1.orderId, target_expected_version: await orderVersion(open1.orderId), target_table_id: t3 }, "table_has_active_order", "cannot move onto an occupied table");
 await expectError("move_order_to_table", { target_tenant_id: tenant, target_branch_id: branch, target_order_id: open1.orderId, target_expected_version: await orderVersion(open1.orderId), target_table_id: t1 }, "same_table", "cannot move to the same table");
 await expectError("move_order_to_table", { target_tenant_id: tenant, target_branch_id: branch, target_order_id: open1.orderId, target_expected_version: 999, target_table_id: t4 }, "order_version_conflict", "stale version rejected");

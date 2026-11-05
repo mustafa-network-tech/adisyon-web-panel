@@ -14,6 +14,8 @@ export type KitchenTicketItem = {
   orderItemId: string;
   quantity: number;
   name: string;
+  /** Chosen options: "Büyük", "+ Peynir", "Çıkar: Soğan". */
+  options: string[];
   note: string | null;
 };
 

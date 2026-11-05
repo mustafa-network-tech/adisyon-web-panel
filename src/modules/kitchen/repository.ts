@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { optionLabel, type OptionKind } from "@/modules/catalog/options";
 import type {
   ActiveKitchenTicketStatus,
   KitchenSnapshot,
@@ -105,7 +106,7 @@ export async function getKitchenSnapshot(
     ...new Set(ticketItems.map((item) => item.order_item_id)),
   ];
 
-  const [tablesResult, profilesResult, orderItemsResult] = await Promise.all([
+  const [tablesResult, profilesResult, orderItemsResult, optionsResult] = await Promise.all([
     tableIds.length
       ? supabase
           .from("restaurant_tables")
@@ -125,8 +126,17 @@ export async function getKitchenSnapshot(
           .eq("branch_id", branchId)
           .in("id", orderItemIds)
       : Promise.resolve({ data: [], error: null }),
+    orderItemIds.length
+      ? supabase
+          .from("order_item_options")
+          .select("order_item_id, kind, choice_name")
+          .eq("tenant_id", tenantId)
+          .eq("branch_id", branchId)
+          .in("order_item_id", orderItemIds)
+          .order("created_at")
+      : Promise.resolve({ data: [], error: null }),
   ]);
-  if (tablesResult.error || profilesResult.error || orderItemsResult.error) {
+  if (tablesResult.error || profilesResult.error || orderItemsResult.error || optionsResult.error) {
     throw new Error("Mutfak fişi ilişkileri okunamadı.");
   }
 
@@ -141,6 +151,12 @@ export async function getKitchenSnapshot(
   const orderItemMap = new Map(
     ((orderItemsResult.data || []) as OrderItemRow[]).map((row) => [row.id, row]),
   );
+  const optionsByItem = new Map<string, string[]>();
+  for (const row of optionsResult.data || []) {
+    const list = optionsByItem.get(row.order_item_id as string) || [];
+    list.push(optionLabel(row.kind as OptionKind, row.choice_name as string));
+    optionsByItem.set(row.order_item_id as string, list);
+  }
   const itemsByTicket = new Map<string, TicketItemRow[]>();
   for (const item of ticketItems) {
     itemsByTicket.set(item.ticket_id, [
@@ -177,6 +193,7 @@ export async function getKitchenSnapshot(
                   orderItemId: item.id,
                   quantity: link.quantity,
                   name: item.product_name,
+                  options: optionsByItem.get(item.id) || [],
                   note: item.notes,
                 },
               ]

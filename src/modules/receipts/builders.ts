@@ -14,6 +14,8 @@ export type BillItem = {
   /** Percentage, e.g. 10 for 10%. Prices are VAT-inclusive. */
   taxRate: number;
   notes?: string | null;
+  /** Option labels chosen for this line. */
+  options?: string[];
   /** "qr" when the customer ordered it from the table QR menu. */
   source?: "staff" | "qr";
   /** Unit price before an item discount, when one was applied. */
@@ -80,6 +82,7 @@ export function buildKitchenReceipt(
     lines: ticket.items.map((item) => ({
       quantity: item.quantity,
       name: item.name,
+      options: item.options,
       note: item.note,
     })),
   };
@@ -135,6 +138,7 @@ export function buildBillReceipt(input: {
     lines: input.items.map((item) => ({
       quantity: item.quantity,
       name: item.source === "qr" ? `${item.name} (QR)` : item.name,
+      options: item.options,
       note: [
         item.notes,
         item.listUnitPriceMinor ? `İndirimli (liste ${formatMoney(item.listUnitPriceMinor * item.quantity)})` : null,

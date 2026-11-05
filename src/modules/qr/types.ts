@@ -1,3 +1,5 @@
+import type { OptionGroup } from "@/modules/catalog/options";
+
 export type PublicMenuProduct = {
   id: string;
   name: string;
@@ -5,6 +7,8 @@ export type PublicMenuProduct = {
   priceMinor: number;
   orderable: boolean;
   soldOut: boolean;
+  /** Portion, extras and removals the guest can choose. */
+  optionGroups: OptionGroup[];
 };
 
 export type PublicMenuCategory = {

@@ -102,12 +102,12 @@ describe("receipt builders", () => {
       stationId: "s1", stationName: "Mutfak", stationColor: "#e8623a",
       status: "new", sentAt: "2026-11-05T10:00:00Z", startedAt: null, readyAt: null,
       serverName: "Ayşe",
-      items: [{ orderItemId: "i1", quantity: 2, name: "Lahmacun", note: "acısız" }],
+      items: [{ orderItemId: "i1", quantity: 2, name: "Lahmacun", options: ["Büyük", "Çıkar: Soğan"], note: "acısız" }],
     };
     const receipt = buildKitchenReceipt(ticket, branding);
     expect(receipt.kind).toBe("kitchen");
     expect(receipt.stationName).toBe("Mutfak");
-    expect(receipt.lines).toEqual([{ quantity: 2, name: "Lahmacun", note: "acısız" }]);
+    expect(receipt.lines).toEqual([{ quantity: 2, name: "Lahmacun", options: ["Büyük", "Çıkar: Soğan"], note: "acısız" }]);
     expect(receipt.totals).toBeUndefined();
   });
 });

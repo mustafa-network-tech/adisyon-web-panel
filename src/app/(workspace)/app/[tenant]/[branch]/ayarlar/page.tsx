@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Bell, BookOpen, ScrollText, Building2, ChefHat, ChevronRight, Palette, QrCode, ShieldCheck, TableProperties, Users } from "lucide-react";
+import { Bell, BookOpen, Layers, ScrollText, Building2, ChefHat, ChevronRight, Palette, QrCode, ShieldCheck, TableProperties, Users } from "lucide-react";
 import { requireWorkspacePermission } from "@/lib/auth/access";
 import { hasAnyPermission, workspaceSections, type Permission } from "@/lib/permissions";
 
@@ -10,6 +10,7 @@ const groups = [
   { icon: Building2, title: "İşletme profili", text: "Unvan, iletişim ve şube bilgileri", required: ["settings.manage"], href: "isletme" },
   { icon: TableProperties, title: "Salon & masalar", text: "Alanlar, masa düzeni ve kapasiteler", required: ["settings.manage"], href: "salonlar" },
   { icon: BookOpen, title: "Menü & ürünler", text: "Kategoriler, fiyatlar ve ürün durumu", required: ["catalog.manage"], href: "menu" },
+  { icon: Layers, title: "Ürün seçenekleri", text: "Porsiyon, ekstra ve çıkarılacak malzeme", required: ["catalog.manage"], href: "secenekler" },
   { icon: QrCode, title: "QR menü", text: "Masa QR kodları ve müşteri sipariş modu", required: ["settings.manage"], href: "qr-menu" },
   { icon: ChefHat, title: "Mutfak istasyonları", text: "Ürün yönlendirme ve istasyon kuralları", required: ["settings.manage"], href: null },
   { icon: ScrollText, title: "Denetim kaydı", text: "Kim, ne zaman, neyi değiştirdi", required: ["settings.manage"], href: "denetim" },

@@ -10,6 +10,8 @@ export type ReceiptKind = "kitchen" | "bill";
 export type ReceiptLine = {
   quantity: number;
   name: string;
+  /** Chosen options, one per line: "Büyük", "+ Peynir", "Çıkar: Soğan". */
+  options?: string[];
   note?: string | null;
   unitPriceMinor?: number;
   totalMinor?: number;

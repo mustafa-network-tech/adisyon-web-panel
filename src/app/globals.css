@@ -146,5 +146,6 @@ a {
   .receipt-name { flex: 1; font-weight: 700; }
   .receipt-amount { flex: none; }
   .receipt-note { padding-left: 4mm; font-style: italic; }
+  .receipt-option { padding-left: 4mm; font-weight: 700; }
   .receipt-grand { font-size: 1.15em; font-weight: 700; margin-top: 1mm; }
 }

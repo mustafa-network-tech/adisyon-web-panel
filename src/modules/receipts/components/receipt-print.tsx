@@ -109,6 +109,7 @@ function ReceiptPrintArea({ document, width }: { document: ReceiptDocument; widt
               <span className="receipt-name">{line.name}</span>
               {priced && line.totalMinor !== undefined && <span className="receipt-amount">{formatMoney(line.totalMinor)}</span>}
             </div>
+            {line.options?.map((option) => <p key={option} className="receipt-option">{option}</p>)}
             {line.note && <p className="receipt-note">Not: {line.note}</p>}
           </li>
         ))}

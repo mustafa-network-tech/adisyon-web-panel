@@ -2,6 +2,7 @@ import "server-only";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type {
+  OrderItemOption,
   OrderItemSnapshot,
   OrderSnapshot,
   OrderStatus,
@@ -105,15 +106,37 @@ export async function getOrderSnapshot(
     throw new Error("Sipariş ayrıntıları Supabase üzerinden okunamadı.");
   }
 
-  const items: OrderItemSnapshot[] = (
-    (itemsResult.data || []) as OrderItemRow[]
-  ).map((item) => ({
+  const itemRows = (itemsResult.data || []) as OrderItemRow[];
+  const optionsResult = itemRows.length
+    ? await supabase
+        .from("order_item_options")
+        .select("order_item_id, group_name, kind, choice_name, price_delta_minor")
+        .eq("tenant_id", tenantId)
+        .eq("branch_id", branchId)
+        .in("order_item_id", itemRows.map((item) => item.id))
+        .order("created_at")
+    : { data: [], error: null };
+  if (optionsResult.error) throw new Error("Ürün seçenekleri okunamadı.");
+  const optionsByItem = new Map<string, OrderItemOption[]>();
+  for (const row of optionsResult.data || []) {
+    const list = optionsByItem.get(row.order_item_id as string) || [];
+    list.push({
+      groupName: row.group_name as string,
+      kind: row.kind as OrderItemOption["kind"],
+      name: row.choice_name as string,
+      priceDeltaMinor: Number(row.price_delta_minor),
+    });
+    optionsByItem.set(row.order_item_id as string, list);
+  }
+
+  const items: OrderItemSnapshot[] = itemRows.map((item) => ({
     id: item.id,
     productId: item.product_id,
     kitchenStationId: item.kitchen_station_id,
     fulfillment: item.fulfillment,
     source: item.source,
     productName: item.product_name,
+    options: optionsByItem.get(item.id) || [],
     quantity: item.quantity,
     sentQuantity: item.sent_quantity,
     unitPriceMinor: Number(item.unit_price_minor),

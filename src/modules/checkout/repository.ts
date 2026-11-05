@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { optionLabel, type OptionKind } from "@/modules/catalog/options";
 import type {
   CashSession,
   CheckoutOrder,
@@ -50,6 +51,13 @@ export async function getCheckoutSnapshot(
     missingRecentOrderIds.length ? supabase.from("orders").select("id, order_number").eq("tenant_id", tenantId).eq("branch_id", branchId).in("id", missingRecentOrderIds) : Promise.resolve({ data: [], error: null }),
   ]);
   if (itemsResult.error || tablesResult.error || profilesResult.error || movementsResult.error || recentOrdersResult.error) throw new Error("Kasa ilişkili verileri okunamadı.");
+  const billItemIds = (itemsResult.data || []).map((item) => item.id);
+  const optionRowsResult = billItemIds.length
+    ? await supabase.from("order_item_options").select("order_item_id, kind, choice_name").eq("tenant_id", tenantId).eq("branch_id", branchId).in("order_item_id", billItemIds).order("created_at")
+    : { data: [], error: null };
+  if (optionRowsResult.error) throw new Error("Ürün seçenekleri okunamadı.");
+  const optionsByItem = new Map<string, string[]>();
+  for (const row of optionRowsResult.data || []) optionsByItem.set(row.order_item_id as string, [...(optionsByItem.get(row.order_item_id as string) || []), optionLabel(row.kind as OptionKind, row.choice_name as string)]);
 
   const registerMap = new Map(registers.map((item) => [item.id, item.name]));
   const tableMap = new Map((tablesResult.data || []).map((item) => [item.id, item.label]));
@@ -78,7 +86,7 @@ export async function getCheckoutSnapshot(
       discountReason: order.discount_reason,
       paidMinor,
       outstandingMinor,
-      items: (itemsByOrder.get(order.id) || []).map((item) => ({ id: item.id, name: item.product_name, quantity: item.quantity, allocatedQuantity: allocatedByItem.get(item.id) || 0, unitPriceMinor: Number(item.unit_price_minor), taxRate: Number(item.tax_rate), source: item.source as "staff" | "qr", listUnitPriceMinor: item.list_unit_price_minor === null ? null : Number(item.list_unit_price_minor) })),
+      items: (itemsByOrder.get(order.id) || []).map((item) => ({ id: item.id, name: item.product_name, quantity: item.quantity, allocatedQuantity: allocatedByItem.get(item.id) || 0, unitPriceMinor: Number(item.unit_price_minor), options: optionsByItem.get(item.id) || [], taxRate: Number(item.tax_rate), source: item.source as "staff" | "qr", listUnitPriceMinor: item.list_unit_price_minor === null ? null : Number(item.list_unit_price_minor) })),
     }];
   });
 

@@ -13,6 +13,7 @@ export const orderDraftItemSchema = z.object({
   productId: postgresUuid,
   quantity: z.number().int().min(1).max(99),
   notes: z.string().trim().max(500).default(""),
+  options: z.array(postgresUuid).max(30).default([]),
 });
 
 export const openOrderInputSchema = routeSchema.extend({

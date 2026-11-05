@@ -9,11 +9,23 @@ export type OrderStatus =
   | "cancelled";
 
 export type OrderLine = {
+  /** Product plus chosen options; identical picks share one line. */
+  lineKey: string;
   productId: string;
   name: string;
   quantity: number;
   unitPriceMinor: number;
   notes?: string;
+  optionIds: string[];
+  /** Readable picks such as "Büyük", "+ Peynir", "Çıkar: Soğan". */
+  optionLabels: string[];
+};
+
+export type OrderItemOption = {
+  groupName: string;
+  kind: "variant" | "extra" | "removal";
+  name: string;
+  priceDeltaMinor: number;
 };
 
 export type OrderItemSnapshot = {
@@ -23,6 +35,7 @@ export type OrderItemSnapshot = {
   fulfillment: "kitchen" | "direct";
   source: "staff" | "qr";
   productName: string;
+  options: OrderItemOption[];
   quantity: number;
   sentQuantity: number;
   unitPriceMinor: number;
