@@ -16,7 +16,7 @@ const groups = [
   { icon: ScrollText, title: "Denetim kaydı", text: "Kim, ne zaman, neyi değiştirdi", required: ["settings.manage"], href: "denetim" },
   { icon: Users, title: "Kullanıcılar & roller", text: "Ekip, şube erişimi ve yetkiler", required: ["users.manage"], href: "kullanicilar" },
   { icon: Palette, title: "Tema", text: "Üç hazır renk teması", required: ["settings.manage"], href: "tema" },
-  { icon: Bell, title: "Bildirimler", text: "Operasyon uyarıları ve PWA tercihleri", required: ["settings.manage"], href: null },
+  { icon: Bell, title: "Bildirimler", text: "Sesli uyarı, sistem bildirimi ve bildirim türleri", required: ["settings.manage"], href: "bildirimler" },
 ] satisfies Array<{ icon: typeof Building2; title: string; text: string; required: Permission[]; href: string | null }>;
 
 export default async function SettingsPage({ params }: { params: Promise<{ tenant: string; branch: string }> }) {

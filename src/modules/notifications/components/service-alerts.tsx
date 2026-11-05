@@ -1,11 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 import { Ban, Bell, BellOff, BellRing, ChefHat, Receipt, X } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { acknowledgeWaiterCallAction } from "../actions";
 import { describeVoid } from "@/modules/orders/void";
 import { addAlert, callAlert, readyAlert, shouldNotifyReady, shouldNotifyVoid, voidAlert, type ServiceAlert } from "../alerts";
+import { allows } from "../prefs";
+import { showSystemNotification } from "../system-notify";
+import { currentPrefs, useNotificationPrefs } from "../use-prefs";
 
 type Props = {
   tenant: string;
@@ -19,39 +22,6 @@ type Props = {
   /** Has kitchen.read: hears about cancelled items so nothing is cooked for nothing. */
   watchesKitchen: boolean;
 };
-
-const soundKey = "mk-alert-sound";
-const soundListeners = new Set<() => void>();
-
-function readSound() {
-  try {
-    return window.localStorage.getItem(soundKey) !== "off";
-  } catch {
-    return true;
-  }
-}
-
-function subscribeSound(listener: () => void) {
-  soundListeners.add(listener);
-  window.addEventListener("storage", listener);
-  return () => {
-    soundListeners.delete(listener);
-    window.removeEventListener("storage", listener);
-  };
-}
-
-function useSoundPreference() {
-  const enabled = useSyncExternalStore(subscribeSound, readSound, () => true);
-  const toggle = useCallback(() => {
-    try {
-      window.localStorage.setItem(soundKey, enabled ? "off" : "on");
-    } catch {
-      // Without storage the preference simply is not remembered.
-    }
-    soundListeners.forEach((listener) => listener());
-  }, [enabled]);
-  return { enabled, toggle };
-}
 
 let audioContext: AudioContext | null = null;
 
@@ -87,21 +57,33 @@ const styles = {
 
 export function ServiceAlerts({ tenant, branch, branchId, userId, overseesFloor, receivesCalls, watchesKitchen }: Props) {
   const [alerts, setAlerts] = useState<ServiceAlert[]>([]);
-  const { enabled: soundOn, toggle: toggleSound } = useSoundPreference();
+  const { prefs, update } = useNotificationPrefs();
+  const soundOn = prefs.sound;
+  const toggleSound = () => update((current) => ({ ...current, sound: !current.sound }));
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
     const tableLabels = new Map<string, string>();
     let closed = false;
 
-    const push = (alert: ServiceAlert, announce: boolean) => {
+    const push = (alert: ServiceAlert, announce: boolean, force = false) => {
       if (closed) return;
+      const prefs = currentPrefs();
+      if (!force && !allows(prefs, alert.kind)) return;
       setAlerts((current) => {
         const next = addAlert(current, alert);
-        if (announce && next !== current && readSound()) beep();
+        if (announce && next !== current && prefs.sound) beep();
         return next;
       });
+      // A system notification only when the app is not in front, so it never doubles the on-screen alert.
+      if (announce && prefs.system && document.visibilityState === "hidden") {
+        void showSystemNotification({ title: alert.title, text: alert.text, tag: alert.id });
+      }
     };
+
+    // "Test bildirimi" on the notification settings page.
+    const onTest = () => push({ id: `test:${Date.now()}`, kind: "ready", title: "Test bildirimi", text: "Bildirimler bu cihazda çalışıyor." }, true, true);
+    window.addEventListener("mk-test-alert", onTest);
 
     async function tableLabel(tableId: string | null) {
       if (!tableId) return "Paket";
@@ -163,6 +145,7 @@ export function ServiceAlerts({ tenant, branch, branchId, userId, overseesFloor,
 
     return () => {
       closed = true;
+      window.removeEventListener("mk-test-alert", onTest);
       void supabase.removeChannel(channel);
     };
   }, [branchId, userId, overseesFloor, receivesCalls, watchesKitchen]);

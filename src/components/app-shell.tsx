@@ -12,6 +12,7 @@ import {
   CreditCard,
   LayoutGrid,
   BarChart3,
+  Bell,
   CalendarDays,
   LogOut,
   Settings,
@@ -112,6 +113,7 @@ export function AppShell({ tenant, branch, tenantName, branchName, userName, use
           </div>
           <div className="flex items-center gap-3">
             <span className="hidden items-center gap-2 rounded-full bg-[#e7f5ef] px-3 py-2 text-xs font-extrabold text-[#176e56] sm:inline-flex"><Wifi size={14} /> Çevrimiçi</span>
+            <Link href={`${base}/ayarlar/bildirimler`} className="grid size-10 place-items-center rounded-xl border border-[#dce3df] text-[#68736e] hover:bg-[#f6f8f7]" aria-label="Bildirim ayarları"><Bell size={18} aria-hidden="true" /></Link>
             <span className="grid size-10 place-items-center rounded-xl bg-[#f1b74a] text-xs font-black text-[color:var(--c-ink)]">{initials || "MK"}</span>
             <div className="hidden sm:block"><p className="text-sm font-black">{userName}</p><p className="mt-0.5 text-[11px] font-semibold text-[#8a948f]">{userRole}</p></div>
           </div>
