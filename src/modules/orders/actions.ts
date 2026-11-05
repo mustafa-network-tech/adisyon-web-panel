@@ -171,7 +171,7 @@ export async function submitOrderAction(
   });
   if (error) return mapRpcError(error.message);
 
-  const result = successFromRpc(data, "Sipariş mutfağa gönderildi.");
+  const result = successFromRpc(data, "Sipariş gönderildi.");
   if (result.ok) revalidateOrderRoutes(values.data.tenant, values.data.branch, result.orderId);
   return result;
 }

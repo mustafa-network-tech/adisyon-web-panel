@@ -4,11 +4,13 @@ import { parseMoneyInput } from "@/lib/money";
 const postgresUuid = z
   .string()
   .regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+const fulfillmentSchema = z.enum(["kitchen", "direct"]);
 const optionalUuid = z.union([z.literal(""), postgresUuid]);
 
 export const categoryInputSchema = z.object({
   id: optionalUuid,
   name: z.string().trim().min(2).max(80),
+  fulfillment: fulfillmentSchema.default("kitchen"),
   isActive: z.boolean(),
 });
 
@@ -16,6 +18,8 @@ export const productInputSchema = z.object({
   id: optionalUuid,
   categoryId: postgresUuid,
   kitchenStationId: optionalUuid,
+  // "" = inherit the category's preparation place
+  fulfillment: z.union([z.literal(""), fulfillmentSchema]).default(""),
   name: z.string().trim().min(2).max(120),
   description: z.string().trim().max(500),
   priceMinor: z.number().int().min(0).max(100_000_000),

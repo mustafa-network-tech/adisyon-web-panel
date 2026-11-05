@@ -20,6 +20,7 @@ export type OrderItemSnapshot = {
   id: string;
   productId: string | null;
   kitchenStationId: string | null;
+  fulfillment: "kitchen" | "direct";
   productName: string;
   quantity: number;
   sentQuantity: number;

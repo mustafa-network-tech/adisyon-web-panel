@@ -3,6 +3,7 @@ import "server-only";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type {
   CatalogSnapshot,
+  Fulfillment,
   KitchenStationOption,
   MenuCategory,
   MenuProduct,
@@ -12,6 +13,7 @@ type CategoryRow = {
   id: string;
   name: string;
   sort_order: number;
+  fulfillment: Fulfillment;
   is_active: boolean;
 };
 
@@ -23,6 +25,7 @@ type ProductRow = {
   description: string | null;
   price_minor: number;
   tax_rate: number | string;
+  fulfillment: Fulfillment | null;
   is_active: boolean;
 };
 
@@ -41,7 +44,7 @@ export async function getCatalogSnapshot(
   const [categoriesResult, productsResult, stationsResult] = await Promise.all([
     supabase
       .from("menu_categories")
-      .select("id, name, sort_order, is_active")
+      .select("id, name, sort_order, fulfillment, is_active")
       .eq("tenant_id", tenantId)
       .eq("branch_id", branchId)
       .order("sort_order")
@@ -49,7 +52,7 @@ export async function getCatalogSnapshot(
     supabase
       .from("products")
       .select(
-        "id, category_id, kitchen_station_id, name, description, price_minor, tax_rate, is_active",
+        "id, category_id, kitchen_station_id, name, description, price_minor, tax_rate, fulfillment, is_active",
       )
       .eq("tenant_id", tenantId)
       .eq("branch_id", branchId)
@@ -78,6 +81,7 @@ export async function getCatalogSnapshot(
     id: item.id,
     name: item.name,
     sortOrder: item.sort_order,
+    fulfillment: item.fulfillment,
     isActive: item.is_active,
   }));
   const kitchenStations: KitchenStationOption[] = stationRows.map((item) => ({
@@ -99,6 +103,7 @@ export async function getCatalogSnapshot(
       kitchenStationName: item.kitchen_station_id
         ? stationNames.get(item.kitchen_station_id) || null
         : null,
+      fulfillment: item.fulfillment,
       isActive: item.is_active,
     }),
   );

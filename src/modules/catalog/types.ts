@@ -1,3 +1,5 @@
+export type Fulfillment = "kitchen" | "direct";
+
 export type MenuProduct = {
   id: string;
   categoryId: string;
@@ -8,6 +10,8 @@ export type MenuProduct = {
   taxRate: number;
   kitchenStationId: string | null;
   kitchenStationName: string | null;
+  /** null = inherits the category setting */
+  fulfillment: Fulfillment | null;
   isActive: boolean;
 };
 
@@ -15,6 +19,7 @@ export type MenuCategory = {
   id: string;
   name: string;
   sortOrder: number;
+  fulfillment: Fulfillment;
   isActive: boolean;
 };
 

@@ -42,6 +42,7 @@ export async function upsertCategoryAction(
   const values = parseCategoryInput({
     id: formData.get("id") || "",
     name: formData.get("name"),
+    fulfillment: formData.get("fulfillment") || "kitchen",
     isActive: formData.get("isActive") === "true",
   });
   if (!values.success) return errorState("Kategori bilgilerini kontrol edin.");
@@ -49,6 +50,7 @@ export async function upsertCategoryAction(
   const supabase = await createSupabaseServerClient();
   const payload = {
     name: values.data.name,
+    fulfillment: values.data.fulfillment,
     is_active: values.data.isActive,
   };
 
@@ -95,6 +97,7 @@ export async function upsertProductAction(
     id: formData.get("id") || "",
     categoryId: formData.get("categoryId"),
     kitchenStationId: formData.get("kitchenStationId") || "",
+    fulfillment: formData.get("fulfillment") || "",
     name: formData.get("name"),
     description: formData.get("description") || "",
     price: formData.get("price"),
@@ -127,6 +130,7 @@ export async function upsertProductAction(
   const payload = {
     category_id: values.data.categoryId,
     kitchen_station_id: values.data.kitchenStationId || null,
+    fulfillment: values.data.fulfillment || null,
     name: values.data.name,
     description: values.data.description || null,
     price_minor: values.data.priceMinor,

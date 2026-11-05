@@ -25,6 +25,7 @@ type OrderItemRow = {
   id: string;
   product_id: string | null;
   kitchen_station_id: string | null;
+  fulfillment: "kitchen" | "direct";
   product_name: string;
   quantity: number;
   sent_quantity: number;
@@ -65,7 +66,7 @@ export async function getOrderSnapshot(
     supabase
       .from("order_items")
       .select(
-        "id, product_id, kitchen_station_id, product_name, quantity, sent_quantity, unit_price_minor, tax_rate, line_total_minor, notes",
+        "id, product_id, kitchen_station_id, fulfillment, product_name, quantity, sent_quantity, unit_price_minor, tax_rate, line_total_minor, notes",
       )
       .eq("tenant_id", tenantId)
       .eq("branch_id", branchId)
@@ -99,6 +100,7 @@ export async function getOrderSnapshot(
     id: item.id,
     productId: item.product_id,
     kitchenStationId: item.kitchen_station_id,
+    fulfillment: item.fulfillment,
     productName: item.product_name,
     quantity: item.quantity,
     sentQuantity: item.sent_quantity,
