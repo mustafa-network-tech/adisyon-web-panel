@@ -126,12 +126,12 @@ export function AppShell({ tenant, branch, tenantName, branchName, userName, use
         </header>
         {readOnlyStatus !== null && (
           <p role="alert" className="bg-[#9e4328] px-4 py-3 text-center text-xs font-bold text-white sm:text-sm">
-            {readOnlyBanner(readOnlyStatus)} Etkinleştirmek için <a href={`mailto:${contactEmail}?subject=${encodeURIComponent("MK Adisyon abonelik etkinleştirme")}`} className="font-black underline">{contactEmail}</a> adresine yazın.
+            {readOnlyBanner(readOnlyStatus)} Etkinleştirmek için <a href={`mailto:${contactEmail}?subject=${encodeURIComponent("Adisyon Web abonelik etkinleştirme")}`} className="font-black underline">{contactEmail}</a> adresine yazın.
           </p>
         )}
         {trialDaysLeft !== null && (
           <p role="status" className={`px-4 py-2.5 text-center text-xs font-bold sm:text-sm ${trialDaysLeft <= 2 ? "bg-[#fff2ed] text-[#9e4328]" : "bg-[#fff8e7] text-[#8a6415]"}`}>
-            {trialDaysLeft === 0 ? "Deneme süreniz doldu." : `Deneme sürümü: ${trialDaysLeft} gün kaldı.`} Paket seçmek için <a href={`mailto:${contactEmail}?subject=${encodeURIComponent("MK Adisyon paket talebi")}`} className="font-black underline">{contactEmail}</a> adresine yazın.
+            {trialDaysLeft === 0 ? "Deneme süreniz doldu." : `Deneme sürümü: ${trialDaysLeft} gün kaldı.`} Paket seçmek için <a href={`mailto:${contactEmail}?subject=${encodeURIComponent("Adisyon Web paket talebi")}`} className="font-black underline">{contactEmail}</a> adresine yazın.
           </p>
         )}
         <main className="min-h-[calc(100dvh-76px)] pb-24 lg:pb-0">{children}</main>

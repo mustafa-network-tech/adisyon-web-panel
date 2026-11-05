@@ -6,7 +6,7 @@ import { getPublicMenu } from "@/modules/qr/repository";
 
 export const metadata: Metadata = {
   title: "Menü",
-  robots: { index: false, follow: false },
+  robots: { index: false, follow: false, nocache: true },
 };
 export const dynamic = "force-dynamic";
 

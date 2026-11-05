@@ -6,7 +6,7 @@ import { contactEmail } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Destek ve iletişim",
-  description: "MK Adisyon destek ve iletişim: sorunuzu e-posta ile iletin, hangi bilgileri eklemeniz gerektiğini ve sık sorulan konuları görün.",
+  description: "Adisyon Web destek ve iletişim: sorunuzu e-posta ile iletin, hangi bilgileri eklemeniz gerektiğini ve sık sorulan konuları görün.",
   alternates: { canonical: "/destek" },
 };
 

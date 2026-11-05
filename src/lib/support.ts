@@ -15,7 +15,7 @@ type SupportContext = { business?: string; branch?: string; user?: string };
  * branch and user are filled in, so support does not have to ask for them.
  */
 export function supportMailto(context: SupportContext = {}) {
-  const subject = context.business ? `MK Adisyon destek - ${context.business}` : "MK Adisyon destek talebi";
+  const subject = context.business ? `Adisyon Web destek - ${context.business}` : "Adisyon Web destek talebi";
   const body = [
     `İşletme: ${context.business ?? ""}`,
     `Şube: ${context.branch ?? ""}`,

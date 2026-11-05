@@ -17,7 +17,7 @@ export type LegalDocument = {
 };
 
 const email = company.email;
-const brand = "MK Adisyon";
+const brand = "Adisyon Web";
 const owner = company.name;
 
 export const privacyPolicy: LegalDocument = {

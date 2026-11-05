@@ -1,9 +1,9 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ArrowRight,
   BarChart3,
   Check,
-  Mail,
   ChefHat,
   CreditCard,
   LayoutGrid,
@@ -11,10 +11,13 @@ import {
   Sparkles,
   Users,
 } from "lucide-react";
-import { Brand } from "@/components/brand";
-import { contactEmail } from "@/lib/site";
-import { legalLinks } from "@/lib/legal";
+import { JsonLd } from "@/components/seo/json-ld";
+import { organizationSchema, pageMetadata, softwareApplicationSchema, websiteSchema } from "@/lib/seo";
+import { siteDescription, siteTitle } from "@/lib/site";
+import { solutionPages } from "@/lib/solution-pages";
 import { PricingSection } from "@/components/marketing/pricing-section";
+
+export const metadata: Metadata = pageMetadata({ title: siteTitle, absoluteTitle: true, description: siteDescription, path: "/" });
 
 // Regenerated hourly so the launch prices disappear by themselves after the campaign deadline.
 export const revalidate = 3600;
@@ -24,16 +27,22 @@ const features = [
     icon: LayoutGrid,
     title: "Masa & sipariş",
     description: "Salon, bahçe ve terası tek görünümde yönetin. Dokunmatik sipariş akışıyla servis hızını artırın.",
+    href: "/adisyon-programi",
+    linkLabel: "Adisyon programı",
   },
   {
     icon: ChefHat,
     title: "Akıllı mutfak",
     description: "Siparişleri istasyonlara ayırın; yeni, hazırlanıyor ve hazır durumlarını anlık takip edin.",
+    href: "/restoran-otomasyonu",
+    linkLabel: "Restoran otomasyonu",
   },
   {
     icon: CreditCard,
     title: "Esnek kasa",
     description: "Nakit, kart ve karma ödeme; hesap bölme ve vardiya hareketleriyle tam kontrol sağlayın.",
+    href: "/restoran-pos-sistemi",
+    linkLabel: "Restoran POS sistemi",
   },
 ];
 
@@ -45,34 +54,23 @@ const trustItems = [
 
 export default function MarketingPage() {
   return (
-    <main className="min-h-dvh overflow-hidden bg-[#f7f8f7]">
-      <header className="relative z-20 mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-5 sm:px-8 lg:px-10">
-        <Brand />
-        <nav className="hidden items-center gap-8 text-sm font-semibold text-[#5e6a65] md:flex" aria-label="Ana menü">
-          <a href="#platform" className="transition-colors hover:text-[color:var(--c-ink)]">Platform</a>
-          <a href="#fiyatlar" className="transition-colors hover:text-[color:var(--c-ink)]">Fiyatlar</a>
-          <a href="#guvenlik" className="transition-colors hover:text-[color:var(--c-ink)]">Güvenlik</a>
-          <a href="#iletisim" className="transition-colors hover:text-[color:var(--c-ink)]">İletişim</a>
-        </nav>
-        <Link href="/giris" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[color:var(--c-ink)] px-4 text-sm font-bold text-white transition hover:bg-[color:var(--c-ink-2)]">
-          İşletme girişi <ArrowRight size={16} aria-hidden="true" />
-        </Link>
-      </header>
+    <main className="overflow-hidden">
+      <JsonLd data={[organizationSchema(), websiteSchema(), softwareApplicationSchema()]} />
 
       <section className="relative mx-auto grid min-h-[720px] w-full max-w-7xl items-center gap-14 px-5 pb-20 pt-12 sm:px-8 lg:grid-cols-[0.9fr_1.1fr] lg:px-10 lg:pb-28 lg:pt-16">
         <div className="relative z-10 max-w-xl">
           <div className="inline-flex items-center gap-2 rounded-full border border-[#f1c8b9] bg-[color:var(--c-accent-soft)] px-3 py-2 text-xs font-extrabold uppercase tracking-[0.14em] text-[color:var(--c-accent-d3)]">
             <Sparkles size={14} aria-hidden="true" /> Yeni nesil restoran yönetimi
           </div>
-          <h1 className="mt-7 text-[clamp(3rem,7vw,6.5rem)] font-black leading-[0.91] tracking-[-0.065em] text-[color:var(--c-ink)]">
-            Servisin ritmi <span className="text-[color:var(--c-accent-d2)]">sizde.</span>
+          <h1 className="mt-7 text-[clamp(2.4rem,5.4vw,4.75rem)] font-black leading-[0.98] tracking-[-0.055em] text-[color:var(--c-ink)]">
+            Restoran için adisyon programı: <span className="text-[color:var(--c-accent-d2)]">servisin ritmi sizde.</span>
           </h1>
-          <p className="mt-7 max-w-lg text-lg leading-8 text-[#68736e]">
-            Masadan mutfağa, mutfaktan kasaya tüm operasyonu hızlandıran; her işletmeye uyum sağlayan modern adisyon platformu.
+          <p className="mt-7 max-w-lg text-lg leading-8 text-[#4f5a55]">
+            Masa, sipariş, mutfak ve kasayı tek ekranda yöneten bulut tabanlı restoran otomasyonu. Her masaya özel QR menü ve QR sipariş tüm paketlerde dahildir.
           </p>
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-            <Link href="/app/demo-restoran/merkez/masalar" className="inline-flex min-h-14 items-center justify-center gap-3 rounded-2xl bg-[color:var(--c-accent-d3)] px-6 text-sm font-black text-white shadow-[0_16px_34px_rgb(181_66_33/0.24)] transition hover:-translate-y-0.5 hover:bg-[color:var(--c-accent-d5)]">
-              Demo çalışma alanı <ArrowRight size={18} aria-hidden="true" />
+            <Link href="/kayit" className="inline-flex min-h-14 items-center justify-center gap-3 rounded-2xl bg-[color:var(--c-accent-d3)] px-6 text-sm font-black text-white shadow-[0_16px_34px_rgb(181_66_33/0.24)] transition hover:-translate-y-0.5 hover:bg-[color:var(--c-accent-d5)]">
+              7 günlük denemeyi başlat <ArrowRight size={18} aria-hidden="true" />
             </Link>
             <a href="#platform" className="inline-flex min-h-14 items-center justify-center rounded-2xl border border-[#d6ddd9] bg-white px-6 text-sm font-black text-[color:var(--c-ink)] transition hover:border-[#aeb9b3]">
               Platformu keşfet
@@ -87,7 +85,7 @@ export default function MarketingPage() {
           </div>
         </div>
 
-        <div className="relative lg:min-h-[560px]" aria-label="MK Adisyon arayüz önizlemesi">
+        <div className="relative lg:min-h-[560px]" aria-label="Adisyon Web arayüz önizlemesi">
           <div className="absolute -right-24 -top-32 size-[440px] rounded-full bg-[#ffd9c9]/55 blur-3xl" />
           <div className="absolute -bottom-24 left-4 size-[320px] rounded-full bg-[#cde7dc]/70 blur-3xl" />
           <div className="relative overflow-hidden rounded-[32px] border border-white/80 bg-[color:var(--c-ink)] p-3 shadow-[0_40px_90px_rgb(23_33_29/0.24)] sm:p-5 lg:rotate-[1.5deg]">
@@ -146,17 +144,45 @@ export default function MarketingPage() {
             <p className="mt-5 text-lg leading-8 text-[#68736e]">Ekiplerin ihtiyaç duyduğu bilgi, tam ihtiyaç duydukları anda karşılarında.</p>
           </div>
           <div className="mt-12 grid gap-5 lg:grid-cols-3">
-            {features.map(({ icon: Icon, title, description }, index) => (
+            {features.map(({ icon: Icon, title, description, href, linkLabel }, index) => (
               <article key={title} className="group rounded-[28px] border border-[#e1e6e3] bg-[#f8f9f8] p-7 transition hover:-translate-y-1 hover:border-[#f0b29e] hover:bg-[#fffaf8]">
                 <div className="flex items-start justify-between">
                   <span className="grid size-13 place-items-center rounded-2xl bg-[color:var(--c-ink)] text-white"><Icon size={23} aria-hidden="true" /></span>
                   <span className="font-mono text-xs font-bold text-[#68736e]">0{index + 1}</span>
                 </div>
                 <h3 className="mt-8 text-2xl font-black tracking-tight text-[color:var(--c-ink)]">{title}</h3>
-                <p className="mt-3 leading-7 text-[#68736e]">{description}</p>
+                <p className="mt-3 leading-7 text-[#4f5a55]">{description}</p>
+                <Link href={href} className="mt-5 inline-flex items-center gap-1.5 text-sm font-black text-[color:var(--c-accent-d4)] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--c-accent-d3)]">
+                  {linkLabel} <ArrowRight size={15} aria-hidden="true" />
+                </Link>
               </article>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section id="cozumler" aria-labelledby="cozumler-baslik" className="bg-[#f7f8f7] py-24 sm:py-28">
+        <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
+          <div className="max-w-3xl">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[color:var(--c-accent-d4)]">Çözümler</p>
+            <h2 id="cozumler-baslik" className="mt-4 text-4xl font-black tracking-[-0.045em] text-[color:var(--c-ink)] sm:text-5xl">İşletmenize uygun adisyon ve restoran otomasyonu</h2>
+            <p className="mt-5 text-lg leading-8 text-[#4f5a55]">
+              Masa, sipariş, mutfak ve kasa aynı kayıt üzerinde çalışır. Masadaki QR menü müşterinin sipariş vermesini, mutfak ekranı ekibin hazırlığı izlemesini, kasa ise hesabın doğru kapanmasını sağlar.
+            </p>
+          </div>
+          <ul className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {solutionPages.map((page) => (
+              <li key={page.slug}>
+                <Link href={`/${page.slug}`} className="group block h-full rounded-[28px] border border-[#e1e6e3] bg-white p-7 transition hover:-translate-y-1 hover:border-[#f0b29e]">
+                  <h3 className="text-xl font-black tracking-tight text-[color:var(--c-ink)]">{page.navLabel}</h3>
+                  <p className="mt-3 leading-7 text-[#4f5a55]">{page.summary}</p>
+                  <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-black text-[color:var(--c-accent-d4)]">
+                    Ayrıntıları gör <ArrowRight size={15} aria-hidden="true" />
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 
@@ -183,30 +209,6 @@ export default function MarketingPage() {
         </div>
       </section>
 
-      <footer id="iletisim" className="bg-[color:var(--c-ink-deep)] py-12 text-white">
-        <div className="mx-auto grid max-w-7xl gap-10 px-5 sm:px-8 md:grid-cols-[1.2fr_1fr_1fr] lg:px-10">
-          <div>
-            <Brand inverse />
-            <p className="mt-5 max-w-sm text-sm leading-6 text-white/70">MK Digital Systems · Restoran operasyonları için tasarlandı.</p>
-          </div>
-          <div>
-            <h2 className="text-xs font-black uppercase tracking-[0.14em] text-white/60">İletişim ve destek</h2>
-            <ul className="mt-4 space-y-2.5 text-sm font-semibold">
-              <li><a href={`mailto:${contactEmail}`} className="inline-flex items-center gap-2 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"><Mail size={15} aria-hidden="true" />{contactEmail}</a></li>
-              <li><Link href="/destek" className="underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">Destek sayfası</Link></li>
-              <li><Link href="/giris" className="underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">İşletme girişi</Link></li>
-            </ul>
-          </div>
-          <div>
-            <h2 className="text-xs font-black uppercase tracking-[0.14em] text-white/60">Yasal</h2>
-            <ul className="mt-4 space-y-2.5 text-sm font-semibold">
-              {legalLinks.map((link) => (
-                <li key={link.href}><Link href={link.href} className="underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">{link.label}</Link></li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </footer>
     </main>
   );
 }

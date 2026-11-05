@@ -1,10 +1,13 @@
+import type { Metadata } from "next";
 import { AppShell } from "@/components/app-shell";
+import { noIndexMetadata } from "@/lib/seo";
 import { requireWorkspaceAccess } from "@/lib/auth/access";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getPlanUsage } from "@/modules/plan/repository";
 import { resolveTheme } from "@/modules/theme/themes";
 import { daysLeft } from "@/modules/plan/usage";
 
+export const metadata: Metadata = noIndexMetadata;
 export const dynamic = "force-dynamic";
 
 export default async function WorkspaceLayout({ children, params }: { children: React.ReactNode; params: Promise<{ tenant: string; branch: string }> }) {

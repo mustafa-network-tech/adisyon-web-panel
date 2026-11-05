@@ -70,16 +70,6 @@ export function PricingSection() {
           <li>İlk 12 aydan sonraki yenilemeler güncel tarife üzerinden yapılabilir.</li>
           <li>Hesabınızı oluşturduktan sonra aboneliğiniz ekibimiz tarafından etkinleştirilir. Denemeniz 7 gündür; sorularınız için <a href={`mailto:${contactEmail}`} className="font-bold text-[#a73d21] underline underline-offset-4">{contactEmail}</a> adresine yazabilirsiniz.</li>
         </ul>
-
-        <p className="mt-8 text-sm font-bold text-[color:var(--c-ink)]">
-          Önce görmek ister misiniz?{" "}
-          <Link
-            href="/app/demo-restoran/merkez/masalar"
-            className="inline-flex items-center gap-1.5 rounded-sm font-black text-[color:var(--c-accent-d4)] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--c-accent-d3)]"
-          >
-            Demo çalışma alanını inceleyin <ArrowRight size={15} aria-hidden="true" />
-          </Link>
-        </p>
       </div>
     </section>
   );

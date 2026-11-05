@@ -45,7 +45,7 @@ describe("company and support details", () => {
   it("builds a support mail with the business filled in", () => {
     const link = supportMailto({ business: "Lezzet", branch: "Merkez", user: "a@b.co" });
     expect(link.startsWith("mailto:iletisim@mk-digitalsystems.com?subject=")).toBe(true);
-    expect(decodeURIComponent(link)).toContain("MK Adisyon destek - Lezzet");
+    expect(decodeURIComponent(link)).toContain("Adisyon Web destek - Lezzet");
     expect(decodeURIComponent(link)).toContain("Şube: Merkez");
     expect(supportMailto()).toContain("destek%20talebi");
   });

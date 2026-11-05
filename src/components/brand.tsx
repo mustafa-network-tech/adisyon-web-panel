@@ -21,7 +21,7 @@ export function Brand({ compact = false, href = "/", inverse = false }: BrandPro
         {/* The 192 px app icon is sharp at 48 px on normal and high-density screens. */}
         <Image
           src="/icons/app-icon-192.png"
-          alt={compact ? "MK Adisyon" : ""}
+          alt={compact ? "Adisyon Web" : ""}
           width={48}
           height={48}
           priority

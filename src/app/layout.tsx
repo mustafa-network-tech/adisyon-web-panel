@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
     default: siteTitle,
-    template: "%s | MK Adisyon",
+    template: "%s | Adisyon Web",
   },
   description: siteDescription,
   applicationName: siteName,
@@ -15,7 +15,6 @@ export const metadata: Metadata = {
     type: "website",
     locale: "tr_TR",
     siteName,
-    url: "/",
     title: siteTitle,
     description: siteDescription,
     images: [shareImage],
@@ -37,7 +36,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "MK Adisyon",
+    title: "Adisyon Web",
   },
   formatDetection: {
     telephone: false,

@@ -1,3 +1,8 @@
+import type { Metadata } from "next";
+import { noIndexMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = { title: "Çevrimdışı", ...noIndexMetadata };
+
 import Link from "next/link";
 import { WifiOff } from "lucide-react";
 import { Brand } from "@/components/brand";

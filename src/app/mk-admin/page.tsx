@@ -15,7 +15,7 @@ import { MembersPanel } from "@/modules/platform-admin/components/members-panel"
 import { PlatformActionsPanel } from "@/modules/platform-admin/components/platform-actions-panel";
 import type { SubscriptionStatus } from "@/modules/platform-admin/types";
 
-export const metadata: Metadata = { title: "MK Yönetim Paneli" };
+export const metadata: Metadata = { title: "MK Yönetim Paneli", robots: { index: false, follow: false, nocache: true } };
 export const dynamic = "force-dynamic";
 
 type PlatformAdminPageProps = {

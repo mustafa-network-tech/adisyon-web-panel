@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "MK Adisyon — Restoran Yönetimi",
-    short_name: "MK Adisyon",
+    name: "Adisyon Web — Restoran Yönetimi",
+    short_name: "Adisyon Web",
     description: "Masa, sipariş, mutfak ve kasa operasyonları tek merkezde.",
     id: "/giris",
     start_url: "/giris",
