@@ -49,11 +49,13 @@ export default async function PlatformAdminPage({
   let members: Awaited<ReturnType<typeof getPlatformMembers>> = [];
   let setupRequests: Awaited<ReturnType<typeof getSetupRequests>> = [];
   let loadError = false;
+  let loadErrorDetail = "";
 
   try {
     [overview, members, setupRequests] = await Promise.all([getPlatformOverview(q), getPlatformMembers(), getSetupRequests()]);
-  } catch {
+  } catch (error) {
     loadError = true;
+    loadErrorDetail = error instanceof Error ? error.message : "";
   }
 
   const metrics = [
@@ -84,7 +86,7 @@ export default async function PlatformAdminPage({
           <PlatformActionsPanel tenants={(overview?.tenants || []).map((tenant) => ({ id: tenant.id, name: tenant.name, planCode: tenant.planCode, subscriptionStatus: tenant.subscriptionStatus, userLimit: tenant.userLimit, branchLimit: tenant.branchLimit }))} />
         </div>
 
-        {loadError && <div role="alert" className="mt-6 rounded-2xl border border-[#f3d2c6] bg-[#fff7f3] p-4 text-sm font-semibold text-[#9e4328]">Platform verileri okunamadı. Auth/RLS migration dosyasının uygulandığını ve hesabın platform yöneticisi olduğunu kontrol edin.</div>}
+        {loadError && <div role="alert" className="mt-6 rounded-2xl border border-[#f3d2c6] bg-[#fff7f3] p-4 text-sm font-semibold text-[#9e4328]">Platform verileri okunamadı. Auth/RLS migration dosyasının uygulandığını ve hesabın platform yöneticisi olduğunu kontrol edin.{loadErrorDetail && <span className="mt-2 block font-mono text-xs">{loadErrorDetail}</span>}</div>}
 
         <div className="mt-7 grid grid-cols-2 gap-3 lg:grid-cols-4">
           {metrics.map(([Icon, label, value]) => <article key={label} className="rounded-2xl border border-[#dfe5e1] bg-white p-4 sm:p-5"><Icon size={20} className="text-[color:var(--c-accent)]" /><p className="mt-5 text-xs font-bold text-[#8a948f]">{label}</p><p className="mt-1 text-2xl font-black">{value}</p></article>)}

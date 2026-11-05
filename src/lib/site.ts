@@ -13,12 +13,12 @@ export const siteTitle = "Adisyon Programı ve Restoran Otomasyonu | Adisyon Web
 export const siteDescription =
   "Masa, sipariş, mutfak ve kasayı tek ekranda yönetin. Masaya özel QR menü ve QR sipariş dahil, bulut tabanlı adisyon programı ve restoran otomasyonu.";
 
-/** Square app icon reused as the share image (512 x 512). */
+/** Share image for social previews and search (1200 x 630). */
 export const shareImage = {
-  url: "/icons/app-icon-512.png",
-  width: 512,
-  height: 512,
-  alt: "Adisyon Web logosu",
+  url: "/og/adisyon-web.png",
+  width: 1200,
+  height: 630,
+  alt: "Adisyon Web: restoran için adisyon programı ve QR menü",
 };
 
 /** Contact and support address (the same mailbox for both). */

@@ -38,7 +38,7 @@ export function pageMetadata({ title, absoluteTitle = false, description, path }
       description,
       images: [shareImage],
     },
-    twitter: { card: "summary", title: fullTitle, description, images: [shareImage] },
+    twitter: { card: "summary_large_image", title: fullTitle, description, images: [shareImage] },
   };
 }
 
@@ -59,7 +59,7 @@ export function organizationSchema(): JsonLdObject {
     "@id": organizationId,
     name: company.name,
     url: siteUrl,
-    logo: `${siteUrl}${shareImage.url}`,
+    logo: `${siteUrl}/icons/app-icon-512.png`,
     email: contactEmail,
   };
 }

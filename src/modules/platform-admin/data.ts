@@ -59,15 +59,16 @@ export async function getPlatformOverview(
         .order("created_at", { ascending: false }),
     ]);
 
-  const firstError = [
-    tenantsResult.error,
-    branchesResult.error,
-    membershipsResult.error,
-    subscriptionsResult.error,
-  ].find(Boolean);
+  const failed = [
+    ["tenants", tenantsResult.error],
+    ["branches", branchesResult.error],
+    ["tenant_memberships", membershipsResult.error],
+    ["subscriptions", subscriptionsResult.error],
+  ].find(([, error]) => Boolean(error)) as [string, { message: string }] | undefined;
 
-  if (firstError) {
-    throw new Error("Platform verileri Supabase üzerinden okunamadı.");
+  if (failed) {
+    console.error("platform overview read failed", failed[0], failed[1].message);
+    throw new Error(`Platform verileri okunamadı: ${failed[0]} tablosu (${failed[1].message}).`);
   }
 
   const tenants = (tenantsResult.data || []) as TenantRow[];
@@ -135,6 +136,9 @@ export async function getPlatformOverview(
 export async function getPlatformMembers(): Promise<PlatformMember[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.rpc("platform_list_members");
-  if (error) throw new Error("Üye listesi okunamadı.");
+  if (error) {
+    console.error("platform_list_members failed", error.message);
+    throw new Error(`Üye listesi okunamadı: platform_list_members (${error.message}).`);
+  }
   return (data || []) as PlatformMember[];
 }

@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     images: [shareImage],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: siteTitle,
     description: siteDescription,
     images: [shareImage],
