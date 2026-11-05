@@ -43,7 +43,7 @@ export async function getCheckoutSnapshot(
   const sessionIds = sessions.map((session) => session.id);
 
   const [itemsResult, tablesResult, profilesResult, movementsResult, recentOrdersResult] = await Promise.all([
-    orderIds.length ? supabase.from("order_items").select("id, order_id, product_name, quantity, unit_price_minor, tax_rate").eq("tenant_id", tenantId).eq("branch_id", branchId).in("order_id", orderIds).order("created_at") : Promise.resolve({ data: [], error: null }),
+    orderIds.length ? supabase.from("order_items").select("id, order_id, product_name, quantity, unit_price_minor, tax_rate, source").eq("tenant_id", tenantId).eq("branch_id", branchId).in("order_id", orderIds).order("created_at") : Promise.resolve({ data: [], error: null }),
     tableIds.length ? supabase.from("restaurant_tables").select("id, label").eq("tenant_id", tenantId).eq("branch_id", branchId).in("id", tableIds) : Promise.resolve({ data: [], error: null }),
     userIds.length ? supabase.from("profiles").select("id, full_name").in("id", userIds) : Promise.resolve({ data: [], error: null }),
     sessionIds.length ? supabase.from("cash_movements").select("cash_session_id, movement_type, amount_minor").eq("tenant_id", tenantId).in("cash_session_id", sessionIds) : Promise.resolve({ data: [], error: null }),
@@ -71,11 +71,12 @@ export async function getCheckoutSnapshot(
       orderNumber: Number(order.order_number),
       tableLabel: order.table_id ? tableMap.get(order.table_id) || "Masa" : "Paket",
       serverName: (order.created_by ? profileMap.get(order.created_by) : "Müşteri (QR)") || "Ekip üyesi",
+      staffName: order.created_by ? profileMap.get(order.created_by) || "Ekip üyesi" : null,
       openedAt: order.opened_at,
       totalMinor: Number(order.total_minor),
       paidMinor,
       outstandingMinor,
-      items: (itemsByOrder.get(order.id) || []).map((item) => ({ id: item.id, name: item.product_name, quantity: item.quantity, allocatedQuantity: allocatedByItem.get(item.id) || 0, unitPriceMinor: Number(item.unit_price_minor), taxRate: Number(item.tax_rate) })),
+      items: (itemsByOrder.get(order.id) || []).map((item) => ({ id: item.id, name: item.product_name, quantity: item.quantity, allocatedQuantity: allocatedByItem.get(item.id) || 0, unitPriceMinor: Number(item.unit_price_minor), taxRate: Number(item.tax_rate), source: item.source as "staff" | "qr" })),
     }];
   });
 

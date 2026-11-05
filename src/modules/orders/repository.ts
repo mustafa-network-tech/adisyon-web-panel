@@ -11,6 +11,7 @@ import type {
 type OrderRow = {
   id: string;
   table_id: string | null;
+  created_by: string | null;
   order_number: number;
   status: OrderStatus;
   guest_count: number;
@@ -26,6 +27,7 @@ type OrderItemRow = {
   product_id: string | null;
   kitchen_station_id: string | null;
   fulfillment: "kitchen" | "direct";
+  source: "staff" | "qr";
   product_name: string;
   quantity: number;
   sent_quantity: number;
@@ -51,7 +53,7 @@ export async function getOrderSnapshot(
   const { data: orderData, error: orderError } = await supabase
     .from("orders")
     .select(
-      "id, table_id, order_number, status, guest_count, subtotal_minor, tax_minor, total_minor, version, opened_at",
+      "id, table_id, created_by, order_number, status, guest_count, subtotal_minor, tax_minor, total_minor, version, opened_at",
     )
     .eq("id", orderId)
     .eq("tenant_id", tenantId)
@@ -62,11 +64,11 @@ export async function getOrderSnapshot(
   if (!orderData) return null;
   const order = orderData as OrderRow;
 
-  const [itemsResult, historyResult, tableResult] = await Promise.all([
+  const [itemsResult, historyResult, tableResult, creatorResult] = await Promise.all([
     supabase
       .from("order_items")
       .select(
-        "id, product_id, kitchen_station_id, fulfillment, product_name, quantity, sent_quantity, unit_price_minor, tax_rate, line_total_minor, notes",
+        "id, product_id, kitchen_station_id, fulfillment, source, product_name, quantity, sent_quantity, unit_price_minor, tax_rate, line_total_minor, notes",
       )
       .eq("tenant_id", tenantId)
       .eq("branch_id", branchId)
@@ -88,9 +90,12 @@ export async function getOrderSnapshot(
           .eq("id", order.table_id)
           .maybeSingle()
       : Promise.resolve({ data: null, error: null }),
+    order.created_by
+      ? supabase.from("profiles").select("full_name").eq("id", order.created_by).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
   ]);
 
-  if (itemsResult.error || historyResult.error || tableResult.error) {
+  if (itemsResult.error || historyResult.error || tableResult.error || creatorResult.error) {
     throw new Error("Sipariş ayrıntıları Supabase üzerinden okunamadı.");
   }
 
@@ -101,6 +106,7 @@ export async function getOrderSnapshot(
     productId: item.product_id,
     kitchenStationId: item.kitchen_station_id,
     fulfillment: item.fulfillment,
+    source: item.source,
     productName: item.product_name,
     quantity: item.quantity,
     sentQuantity: item.sent_quantity,
@@ -123,6 +129,7 @@ export async function getOrderSnapshot(
     orderNumber: Number(order.order_number),
     tableId: order.table_id,
     tableLabel: tableResult.data?.label || "Paket / Masasız",
+    serverName: order.created_by ? creatorResult.data?.full_name || "Ekip üyesi" : null,
     status: order.status,
     guestCount: order.guest_count,
     subtotalMinor: Number(order.subtotal_minor),

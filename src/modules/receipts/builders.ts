@@ -13,6 +13,8 @@ export type BillItem = {
   /** Percentage, e.g. 10 for 10%. Prices are VAT-inclusive. */
   taxRate: number;
   notes?: string | null;
+  /** "qr" when the customer ordered it from the table QR menu. */
+  source?: "staff" | "qr";
 };
 
 const dateTimeFormatter = new Intl.DateTimeFormat("tr-TR", {
@@ -76,7 +78,8 @@ export function buildKitchenReceipt(
 export function buildBillReceipt(input: {
   orderNumber: number;
   tableLabel: string;
-  serverName?: string;
+  /** Staff member who took the order; null/undefined for pure QR orders. */
+  serverName?: string | null;
   openedAt: string;
   items: BillItem[];
   paidMinor?: number;
@@ -101,6 +104,9 @@ export function buildBillReceipt(input: {
     { label: "Sipariş", value: `#${input.orderNumber}` },
   ];
   if (input.serverName) meta.push({ label: "Garson", value: input.serverName });
+  if (input.items.some((item) => item.source === "qr")) {
+    meta.push({ label: "Müşteri (QR)", value: input.tableLabel });
+  }
   meta.push({ label: "Açılış", value: formatReceiptDate(input.openedAt) });
   meta.push({ label: "Yazdırma", value: formatReceiptDate(input.printedAt ?? new Date()) });
 
@@ -112,7 +118,7 @@ export function buildBillReceipt(input: {
     meta,
     lines: input.items.map((item) => ({
       quantity: item.quantity,
-      name: item.name,
+      name: item.source === "qr" ? `${item.name} (QR)` : item.name,
       note: item.notes,
       unitPriceMinor: item.unitPriceMinor,
       totalMinor: item.unitPriceMinor * item.quantity,

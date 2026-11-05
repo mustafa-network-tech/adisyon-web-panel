@@ -34,6 +34,36 @@ describe("receipt builders", () => {
     expect(bill.notice).toBeTruthy();
   });
 
+  it("names the staff member and marks customer QR lines with the table", () => {
+    const bill = buildBillReceipt({
+      orderNumber: 3,
+      tableLabel: "Masa 9",
+      serverName: "Ayşe",
+      openedAt: "2026-11-05T10:00:00Z",
+      items: [
+        { name: "Çorba", quantity: 1, unitPriceMinor: 5000, taxRate: 10 },
+        { name: "Kola", quantity: 2, unitPriceMinor: 4000, taxRate: 20, source: "qr" },
+      ],
+      branding,
+    });
+    expect(bill.meta).toContainEqual({ label: "Garson", value: "Ayşe" });
+    expect(bill.meta).toContainEqual({ label: "Müşteri (QR)", value: "Masa 9" });
+    expect(bill.lines.map((line) => line.name)).toEqual(["Çorba", "Kola (QR)"]);
+  });
+
+  it("shows no waiter for a pure customer order", () => {
+    const bill = buildBillReceipt({
+      orderNumber: 4,
+      tableLabel: "Masa 2",
+      serverName: null,
+      openedAt: "2026-11-05T10:00:00Z",
+      items: [{ name: "Ayran", quantity: 1, unitPriceMinor: 1500, taxRate: 10, source: "qr" }],
+      branding,
+    });
+    expect(bill.meta.some((row) => row.label === "Garson")).toBe(false);
+    expect(bill.meta).toContainEqual({ label: "Müşteri (QR)", value: "Masa 2" });
+  });
+
   it("builds a kitchen receipt without prices", () => {
     const ticket: KitchenTicket = {
       id: "t1", orderId: "o1", orderNumber: 7, tableLabel: "Bahçe 2",

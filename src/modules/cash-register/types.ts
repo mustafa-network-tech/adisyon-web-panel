@@ -22,6 +22,7 @@ export type CheckoutOrderItem = {
   allocatedQuantity: number;
   unitPriceMinor: number;
   taxRate: number;
+  source: "staff" | "qr";
 };
 
 export type CheckoutOrder = {
@@ -29,6 +30,8 @@ export type CheckoutOrder = {
   orderNumber: number;
   tableLabel: string;
   serverName: string;
+  /** Staff member who opened the order; null for customer (QR) orders. */
+  staffName: string | null;
   openedAt: string;
   totalMinor: number;
   paidMinor: number;

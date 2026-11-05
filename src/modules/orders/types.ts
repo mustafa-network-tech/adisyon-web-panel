@@ -21,6 +21,7 @@ export type OrderItemSnapshot = {
   productId: string | null;
   kitchenStationId: string | null;
   fulfillment: "kitchen" | "direct";
+  source: "staff" | "qr";
   productName: string;
   quantity: number;
   sentQuantity: number;
@@ -42,6 +43,8 @@ export type OrderSnapshot = {
   orderNumber: number;
   tableId: string | null;
   tableLabel: string;
+  /** Staff member who opened the order; null when the customer did via QR. */
+  serverName: string | null;
   status: OrderStatus;
   guestCount: number;
   subtotalMinor: number;
