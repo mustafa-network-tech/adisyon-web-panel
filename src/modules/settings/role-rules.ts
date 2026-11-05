@@ -10,6 +10,7 @@ export const roleAssignmentRules = [
   "Şube düzeyindeki yetkililer yalnızca kendi şubelerindeki personele ve yalnızca şube düzeyindeki rollere (Müdür, Kasa, Mutfak, Garson) atama yapabilir.",
   "Hiç kimse kendi rolünü değiştiremez ve kendi hesabını askıya alamaz; bu işlem için ikinci bir yetkili gerekir.",
   "Ek yetkiler (ayarlar, menü, geçmiş raporlar vb.) yalnızca şirket düzeyindeki yöneticiler tarafından verilir.",
+  "Puantaj (günlük çalışma süresi) onayı varsayılan olarak yalnızca şirket yöneticisinde ve işletme sahibindedir; müdür ancak şirket yöneticisi “Puantaj onayı” ek yetkisini verirse onaylayabilir.",
   "Maaş, prim ve personel kartı (acil durum kişisi, notlar) bilgilerini yalnızca şirket düzeyindeki yöneticiler görür.",
   "Her rol ve erişim değişikliği denetim (audit) kaydına yazılır.",
 ] as const;

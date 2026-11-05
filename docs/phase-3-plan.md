@@ -60,7 +60,7 @@ Mevcut durum: `submit_order`, `kitchen_station_id` boş ürünü reddeder; 0013 
 
 ## Faz E — Puantaj, maaş ve prim
 
-Görünürlük: puantaj onayını müdür ve şirket yöneticisi yapar (`shifts.manage`). Maaş ve prim tutarları `payroll.manage` yetkisiyle görülür; varsayılan olarak yalnızca şirket yöneticisi ve işletme sahibi, isteğe bağlı olarak müdüre "ek yetki" ile verilebilir. Tutarlar denetim kaydına yazılmaz.
+Görünürlük: puantaj (günlük çalışma süresi) onayı `attendance.manage` yetkisiyle yapılır; varsayılan olarak şirket yöneticisi ve işletme sahibi, müdür ancak şirket yöneticisi ek yetki verirse. Vardiya planlama (`shifts.manage`) müdürde varsayılan kalır. Maaş ve prim tutarları `payroll.manage` yetkisiyle görülür; varsayılan olarak yalnızca şirket yöneticisi ve işletme sahibi, isteğe bağlı olarak müdüre "ek yetki" ile verilebilir. Tutarlar denetim kaydına yazılmaz.
 - Dönem sonu puantaj: planlanan vs. onaylanan gün/saat, devamsızlık, fazla mesai.
 - Maaş kaydı, kesinti/avans girişi; dönem özeti ve dışa aktarma.
 - Prim **zorunlu değil**: istenirse yönetici elle girer (tutar + açıklama). Otomatik prim kuralı (ciro yüzdesi, bahşiş payı) yok.

@@ -34,7 +34,7 @@ function csvCell(value: string | number) {
 }
 
 export function PayrollBoard({ tenant, branch, snapshot }: { tenant: string; branch: string; snapshot: PayrollSnapshot }) {
-  const { period, members, canPayroll } = snapshot;
+  const { period, members, canPayroll, canApprove } = snapshot;
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = members.find((member) => member.membershipId === selectedId) || null;
   const [bulkState, bulkAction, bulkPending] = useActionState(approveMonthAsPlannedAction, initialCrudActionState);
@@ -68,10 +68,10 @@ export function PayrollBoard({ tenant, branch, snapshot }: { tenant: string; bra
             <Link href={`${base}?ay=${shiftPeriod(period, 1)}`} className="grid size-11 place-items-center rounded-xl border border-[#dce3df]" aria-label="Sonraki ay"><ChevronRight size={18} /></Link>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <form action={bulkAction}>
+            {canApprove && <form action={bulkAction}>
               <input type="hidden" name="tenant" value={tenant} /><input type="hidden" name="branch" value={branch} /><input type="hidden" name="period" value={period} />
               <button disabled={bulkPending || pendingTotal === 0} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#17211d] px-4 text-sm font-black text-white disabled:opacity-45"><CheckCheck size={16} />{bulkPending ? "Onaylanıyor…" : `Bekleyen ${pendingTotal} vardiyayı planlandığı gibi onayla`}</button>
-            </form>
+            </form>}
             <button type="button" onClick={exportCsv} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#dce3df] px-4 text-sm font-black"><Download size={16} />Excel (CSV)</button>
           </div>
         </div>
@@ -112,7 +112,7 @@ export function PayrollBoard({ tenant, branch, snapshot }: { tenant: string; bra
 
       {selected && (
         <div className="grid gap-5 xl:grid-cols-[1.3fr_1fr]">
-          <ShiftApprovals key={`shifts-${selected.membershipId}-${period}`} tenant={tenant} branch={branch} member={selected} today={snapshot.today} />
+          <ShiftApprovals key={`shifts-${selected.membershipId}-${period}`} tenant={tenant} branch={branch} member={selected} today={snapshot.today} canApprove={canApprove} />
           {canPayroll && <PayrollPanel key={`pay-${selected.membershipId}-${period}`} tenant={tenant} branch={branch} period={period} member={selected} />}
         </div>
       )}
@@ -120,20 +120,20 @@ export function PayrollBoard({ tenant, branch, snapshot }: { tenant: string; bra
   );
 }
 
-function ShiftApprovals({ tenant, branch, member, today }: { tenant: string; branch: string; member: PayrollMember; today: string }) {
+function ShiftApprovals({ tenant, branch, member, today, canApprove }: { tenant: string; branch: string; member: PayrollMember; today: string; canApprove: boolean }) {
   return (
     <div className="rounded-[22px] border border-[#dfe5e1] bg-white p-5 sm:p-6">
       <h3 className="text-lg font-black">{member.fullName} · vardiya onayı</h3>
-      <p className="mt-1 text-xs font-semibold text-[#8a948f]">Fiilen çalışılan süreyi onaylayın; boş bırakırsanız planlanan süre geçerli olur.</p>
+      <p className="mt-1 text-xs font-semibold text-[#8a948f]">{canApprove ? "Fiilen çalışılan süreyi onaylayın; boş bırakırsanız planlanan süre geçerli olur." : "Süreleri yalnızca puantaj onay yetkisi olanlar değiştirebilir."}</p>
       <ul className="mt-4 divide-y divide-[#edf0ee]">
-        {member.shifts.map((shift) => <ShiftApprovalRow key={shift.id} tenant={tenant} branch={branch} shift={shift} future={shift.date > today} />)}
+        {member.shifts.map((shift) => <ShiftApprovalRow key={shift.id} tenant={tenant} branch={branch} shift={shift} future={shift.date > today} canApprove={canApprove} />)}
         {member.shifts.length === 0 && <li className="py-8 text-center text-sm font-semibold text-[#8a948f]">Bu ay için vardiya yok.</li>}
       </ul>
     </div>
   );
 }
 
-function ShiftApprovalRow({ tenant, branch, shift, future }: { tenant: string; branch: string; shift: PayrollMember["shifts"][number]; future: boolean }) {
+function ShiftApprovalRow({ tenant, branch, shift, future, canApprove }: { tenant: string; branch: string; shift: PayrollMember["shifts"][number]; future: boolean; canApprove: boolean }) {
   const [state, action, pending] = useActionState(approveAttendanceAction, initialCrudActionState);
   const planned = plannedShiftMinutes(shift.startTime, shift.endTime);
   const attendance = shift.attendance;
@@ -148,7 +148,7 @@ function ShiftApprovalRow({ tenant, branch, shift, future }: { tenant: string; b
         <span className={`rounded-md px-2 py-1 text-[10px] font-black ${attendance?.status === "worked" ? "bg-[#e7f5ef] text-[#176e56]" : attendance?.status === "absent" ? "bg-[#fff0ee] text-[#b63b32]" : future ? "bg-[#eef0ef] text-[#68736e]" : "bg-[#fff8e7] text-[#8a6415]"}`}>
           {attendance?.status === "worked" ? `Onaylı · ${formatDuration(attendance.approvedMinutes)}` : attendance?.status === "absent" ? "Gelmedi" : future ? "Henüz olmadı" : "Onay bekliyor"}
         </span>
-        {!future && (
+        {!future && canApprove && (
           <>
             <label className="w-28"><span className="sr-only">Çalışılan süre</span><input name="duration" className="min-h-10 w-full rounded-xl border border-[#dce3df] bg-[#f9faf9] px-3 text-xs" placeholder={`${Math.floor(planned / 60)}:${String(planned % 60).padStart(2, "0")}`} defaultValue={attendance?.status === "worked" && attendance.approvedMinutes !== planned ? `${Math.floor(attendance.approvedMinutes / 60)}:${String(attendance.approvedMinutes % 60).padStart(2, "0")}` : ""} /></label>
             <button name="status" value="worked" disabled={pending} className="min-h-10 rounded-xl bg-[#17211d] px-3 text-xs font-black text-white disabled:opacity-50">Onayla</button>

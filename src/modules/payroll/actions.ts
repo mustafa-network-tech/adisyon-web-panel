@@ -43,7 +43,7 @@ export async function approveAttendanceAction(
 ): Promise<CrudActionState> {
   const route = readRoute(formData);
   if (!route) return errorState("Çalışma alanı bilgisi eksik.");
-  const context = await requireWorkspacePermission(route.tenant, route.branch, ["shifts.manage"]);
+  const context = await requireWorkspacePermission(route.tenant, route.branch, ["attendance.manage"]);
 
   const minutes = parseDurationInput(text(formData, "duration"));
   if (minutes === undefined) return errorState("Süreyi 7:30 ya da 7,5 gibi girin (en fazla 24 saat).");
@@ -76,7 +76,7 @@ export async function approveMonthAsPlannedAction(
 ): Promise<CrudActionState> {
   const route = readRoute(formData);
   if (!route) return errorState("Çalışma alanı bilgisi eksik.");
-  const context = await requireWorkspacePermission(route.tenant, route.branch, ["shifts.manage"]);
+  const context = await requireWorkspacePermission(route.tenant, route.branch, ["attendance.manage"]);
   const period = text(formData, "period");
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(period)) return errorState("Dönem geçersiz.");
   const { first, last } = periodRange(period);

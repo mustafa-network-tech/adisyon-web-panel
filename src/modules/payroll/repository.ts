@@ -34,6 +34,7 @@ export type PayrollSnapshot = {
   period: string;
   today: string;
   canPayroll: boolean;
+  canApprove: boolean;
   members: PayrollMember[];
 };
 
@@ -53,6 +54,7 @@ export async function getPayrollSnapshot(input: {
   branchId: string;
   period?: string;
   canPayroll: boolean;
+  canApprove: boolean;
 }): Promise<PayrollSnapshot> {
   const supabase = await createSupabaseServerClient();
   const today = todayInTurkey();
@@ -145,5 +147,5 @@ export async function getPayrollSnapshot(input: {
     })
     .filter((member) => member.shifts.length > 0 || member.employmentStatus !== "terminated");
 
-  return { period, today, canPayroll: input.canPayroll, members };
+  return { period, today, canPayroll: input.canPayroll, canApprove: input.canApprove, members };
 }
