@@ -49,7 +49,7 @@ export type OnboardingState = {
   status: SetupStatus;
   currentStep: number;
   completedSteps: SetupStep[];
-  requestPayload: Partial<Record<"areas" | "tables" | "stations" | "menu" | "notes", string>>;
+  requestPayload: Partial<Record<"details" | "areas" | "tables" | "stations" | "menu" | "notes", string>>;
   adminNote: string | null;
   trialStartedAt: string | null;
 };
@@ -68,7 +68,9 @@ export function deriveStatus(state: Pick<OnboardingState, "status" | "trialStart
 }
 
 /** Statuses a platform administrator may move an assisted setup to, from each status. */
-export function platformNextStatuses(status: SetupStatus): SetupStatus[] {
+export function platformNextStatuses(status: SetupStatus, method: SetupMethod | null = "assisted"): SetupStatus[] {
+  // A business that has not asked for help (message came by WhatsApp / e-mail) can be taken over.
+  if (method !== "assisted") return status === "method_pending" || status === "self_in_progress" ? ["assisted_in_progress"] : [];
   switch (status) {
     case "assisted_requested":
       return ["assisted_in_progress", "info_needed"];
@@ -110,7 +112,7 @@ const errorMessages: Record<string, string> = {
   platform_admin_required: "Bu işlem için platform yönetici yetkisi gerekir.",
   onboarding_not_found: "Bu işletme için kurulum kaydı bulunamadı.",
   setup_method_locked: "Kurulum yöntemi bu aşamada değiştirilemez.",
-  invalid_setup_request: "Salonlar, masalar, mutfak istasyonları ve menü alanlarının dördünü de doldurun.",
+  invalid_setup_request: "Kurulum bilgilerini yazın (salonlar, masalar, mutfak istasyonları ve menü).",
   invalid_setup_method: "Kurulum yöntemi geçersiz.",
   setup_step_not_allowed: "Bu işlem şu anki kurulum durumunda yapılamaz.",
   invalid_setup_step: "Kurulum adımı geçersiz.",
@@ -129,6 +131,7 @@ const errorMessages: Record<string, string> = {
   table_limit_reached: "Paketin masa sınırına ulaşıldı.",
   station_limit_reached: "Paketin mutfak istasyonu sınırına ulaşıldı.",
   invalid_plan: "Seçilen paket geçersiz.",
+  tenant_not_found: "İşletme veya şubesi bulunamadı.",
 };
 
 /** Turkish message for a database error raised by the setup functions. */

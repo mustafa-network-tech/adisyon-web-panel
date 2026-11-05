@@ -75,6 +75,9 @@ describe("platform transitions", () => {
     expect(platformNextStatuses("assisted_requested")).not.toContain("trial_ready");
     expect(platformNextStatuses("trial_ready")).toEqual([]);
     expect(platformNextStatuses("self_in_progress")).toEqual([]);
+    expect(platformNextStatuses("method_pending", null)).toEqual(["assisted_in_progress"]);
+    expect(platformNextStatuses("self_in_progress", "self")).toEqual(["assisted_in_progress"]);
+    expect(platformNextStatuses("trial_ready", "self")).toEqual([]);
   });
 
   it("assisted setup is open only before the trial and before completion", () => {
@@ -111,6 +114,14 @@ describe("line parsers", () => {
       "Teras/T1/2",
       "Teras/T2/4",
     ]);
+  });
+
+  it("understands the short form 'Salon: 8 masa'", () => {
+    const result = parseTables("Salon: 3 masa\nBahçe: 2 masa (4)");
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.rows.map((row) => `${row.label}/${row.capacity}`)).toEqual(["Salon 1/2", "Salon 2/2", "Salon 3/2", "Bahçe 1/4", "Bahçe 2/4"]);
+    expect(parseTables("Salon: 0 masa")).toMatchObject({ ok: false });
   });
 
   it("names the broken line", () => {

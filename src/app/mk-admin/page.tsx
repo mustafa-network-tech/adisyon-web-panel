@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import {
   Building2,
   CalendarClock,
@@ -8,6 +9,7 @@ import {
   ShieldCheck,
   Users,
 } from "lucide-react";
+import { Brand } from "@/components/brand";
 import { requirePlatformAdmin } from "@/lib/auth/access";
 import { signOutAction } from "@/modules/auth/actions";
 import { getPlatformMembers, getPlatformOverview } from "@/modules/platform-admin/data";
@@ -50,9 +52,18 @@ export default async function PlatformAdminPage({
   let setupRequests: Awaited<ReturnType<typeof getSetupRequests>> = [];
   let loadError = false;
   let loadErrorDetail = "";
+  let membersError = "";
 
   try {
-    [overview, members, setupRequests] = await Promise.all([getPlatformOverview(q), getPlatformMembers(), getSetupRequests()]);
+    [overview, members, setupRequests] = await Promise.all([
+      getPlatformOverview(q),
+      // A failing member list must not hide the businesses.
+      getPlatformMembers().catch((memberFailure: unknown) => {
+        membersError = memberFailure instanceof Error ? memberFailure.message : "Üye listesi okunamadı.";
+        return [] as Awaited<ReturnType<typeof getPlatformMembers>>;
+      }),
+      getSetupRequests(),
+    ]);
   } catch (error) {
     loadError = true;
     loadErrorDetail = error instanceof Error ? error.message : "";
@@ -70,8 +81,8 @@ export default async function PlatformAdminPage({
       <header className="border-b border-[#dfe5e1] bg-[color:var(--c-ink)] text-white">
         <div className="mx-auto flex min-h-20 max-w-7xl items-center justify-between gap-4 px-5 sm:px-8">
           <div className="flex items-center gap-4">
-            <span className="grid size-11 place-items-center rounded-xl bg-[color:var(--c-accent)] text-xs font-black">MK</span>
-            <div><p className="text-sm font-black tracking-wide">DIGITAL SYSTEMS</p><p className="mt-1 text-[10px] font-bold uppercase tracking-[0.15em] text-white/45">Platform yönetimi</p></div>
+            <Brand inverse href="/mk-admin" />
+            <p className="hidden border-l border-white/20 pl-4 text-[10px] font-bold uppercase tracking-[0.15em] text-white/55 sm:block">Platform yönetimi</p>
           </div>
           <div className="flex items-center gap-3">
             <span className="hidden text-xs font-semibold text-white/55 sm:block">{identity.email}</span>
@@ -86,6 +97,7 @@ export default async function PlatformAdminPage({
           <PlatformActionsPanel tenants={(overview?.tenants || []).map((tenant) => ({ id: tenant.id, name: tenant.name, planCode: tenant.planCode, subscriptionStatus: tenant.subscriptionStatus, userLimit: tenant.userLimit, branchLimit: tenant.branchLimit }))} />
         </div>
 
+        {membersError && !loadError && <div role="alert" className="mt-6 rounded-2xl border border-[#f1deb0] bg-[#fff8e7] p-4 text-sm font-semibold text-[#8a6415]">Üye listesi okunamadı; işletmeler aşağıda gösteriliyor. <span className="mt-2 block font-mono text-xs">{membersError}</span></div>}
         {loadError && <div role="alert" className="mt-6 rounded-2xl border border-[#f3d2c6] bg-[#fff7f3] p-4 text-sm font-semibold text-[#9e4328]">Platform verileri okunamadı. Auth/RLS migration dosyasının uygulandığını ve hesabın platform yöneticisi olduğunu kontrol edin.{loadErrorDetail && <span className="mt-2 block font-mono text-xs">{loadErrorDetail}</span>}</div>}
 
         <div className="mt-7 grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -103,7 +115,7 @@ export default async function PlatformAdminPage({
             <table className="w-full min-w-[760px] border-collapse text-left">
               <thead><tr className="border-b border-[#e8ecea] bg-[#fafbfa] text-[10px] font-black uppercase tracking-[0.12em] text-[#8a948f]"><th className="px-5 py-4">İşletme</th><th className="px-5 py-4">Şube</th><th className="px-5 py-4">Kullanıcı</th><th className="px-5 py-4">Plan</th><th className="px-5 py-4">Durum</th><th className="px-5 py-4">Bitiş</th></tr></thead>
               <tbody>
-                {overview?.tenants.map((tenant) => <tr key={tenant.id} className="border-b border-[#edf0ee] last:border-0 hover:bg-[#fafbfa]"><td className="px-5 py-4"><p className="text-sm font-black">{tenant.name}</p><p className="mt-1 text-[11px] font-bold text-[#9aa39f]">{tenant.code} · {tenant.slug}</p></td><td className="px-5 py-4 text-sm font-bold">{tenant.branches}</td><td className="px-5 py-4 text-sm font-bold">{tenant.users} / {tenant.userLimit}</td><td className="px-5 py-4 text-sm font-bold">{tenant.planCode}</td><td className="px-5 py-4"><span className={`rounded-lg px-2.5 py-1.5 text-[11px] font-black ${tenant.subscriptionStatus === "active" ? "bg-[#e7f5ef] text-[#176e56]" : tenant.subscriptionStatus === "trial" ? "bg-[#eaf2fb] text-[#285e9f]" : "bg-[#f6ece8] text-[#9e4328]"}`}>{statusLabels[tenant.subscriptionStatus]}</span>{tenant.readOnly && <span className="ml-2 rounded-lg bg-[#9e4328] px-2.5 py-1.5 text-[11px] font-black text-white">Salt okunur</span>}</td><td className="px-5 py-4 text-sm font-bold text-[#68736e]">{formatDate(tenant.expiresAt)}</td></tr>)}
+                {overview?.tenants.map((tenant) => <tr key={tenant.id} className="border-b border-[#edf0ee] last:border-0 hover:bg-[#fafbfa]"><td className="px-5 py-4"><Link href={`/mk-admin/kurulum/${tenant.id}`} className="text-sm font-black underline-offset-4 hover:underline">{tenant.name}</Link><p className="mt-1 text-[11px] font-bold text-[#9aa39f]">{tenant.code} · {tenant.slug}</p></td><td className="px-5 py-4 text-sm font-bold">{tenant.branches}</td><td className="px-5 py-4 text-sm font-bold">{tenant.users} / {tenant.userLimit}</td><td className="px-5 py-4 text-sm font-bold">{tenant.planCode}</td><td className="px-5 py-4"><span className={`rounded-lg px-2.5 py-1.5 text-[11px] font-black ${tenant.subscriptionStatus === "active" ? "bg-[#e7f5ef] text-[#176e56]" : tenant.subscriptionStatus === "trial" ? "bg-[#eaf2fb] text-[#285e9f]" : "bg-[#f6ece8] text-[#9e4328]"}`}>{statusLabels[tenant.subscriptionStatus]}</span>{tenant.readOnly && <span className="ml-2 rounded-lg bg-[#9e4328] px-2.5 py-1.5 text-[11px] font-black text-white">Salt okunur</span>}</td><td className="px-5 py-4 text-sm font-bold text-[#68736e]">{formatDate(tenant.expiresAt)}</td></tr>)}
                 {!loadError && overview?.tenants.length === 0 && <tr><td colSpan={6} className="px-5 py-12 text-center text-sm font-semibold text-[#8a948f]">Gösterilecek işletme bulunamadı.</td></tr>}
               </tbody>
             </table>

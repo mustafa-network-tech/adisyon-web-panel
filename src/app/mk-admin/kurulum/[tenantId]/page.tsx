@@ -6,18 +6,18 @@ import { z } from "zod";
 import { requirePlatformAdmin } from "@/lib/auth/access";
 import { planForCode } from "@/modules/onboarding/plans";
 import { getReadiness } from "@/modules/onboarding/repository";
-import { deriveStatus, isAssistedOpen, platformNextStatuses, setupSteps, statusLabels, type SetupStatus } from "@/modules/onboarding/status";
+import { deriveStatus, platformNextStatuses, setupSteps, statusLabels, type SetupStatus } from "@/modules/onboarding/status";
 import { SectionForm, StatusForm } from "@/modules/platform-admin/components/setup-forms";
 import { getSetupDetail } from "@/modules/platform-admin/setup-data";
 
-export const metadata: Metadata = { title: "Kurulum talebi", robots: { index: false, follow: false, nocache: true } };
+export const metadata: Metadata = { title: "İşletme kurulumu", robots: { index: false, follow: false, nocache: true } };
 export const dynamic = "force-dynamic";
 
 const sections = [
-  { id: "areas", label: "Salonlar", hint: "Her satıra bir salon adı.", rows: 4 },
-  { id: "tables", label: "Masalar", hint: "Salon adı: Masa 1-10, VIP (8)  — kapasite parantez içinde, isteğe bağlı. Masa başına QR kod otomatik oluşur.", rows: 5 },
-  { id: "stations", label: "Mutfak istasyonları", hint: "İstasyon adı veya İstasyon adı: Kategori 1, Kategori 2 (kategorideki ürünler istasyona yönlendirilir).", rows: 4 },
-  { id: "menu", label: "Menü", hint: "Kategori | Ürün | Fiyat | Açıklama | İstasyon — son iki alan isteğe bağlı. Salon, masa ve istasyonlar yukarıda oluşturulmuş olmalı.", rows: 8 },
+  { id: "areas", label: "Salonlar", hint: "Her satıra bir salon adı.", rows: 4, placeholder: "Salon\nBahçe" },
+  { id: "tables", label: "Masalar", hint: "Salon adı: 8 masa — ya da — Salon adı: Masa 1-10, VIP (8). Kapasite parantez içinde, isteğe bağlı. Masa başına QR kod otomatik oluşur. Önce salonları oluşturun.", rows: 5, placeholder: "Salon: 8 masa\nBahçe: 3 masa (4)" },
+  { id: "stations", label: "Mutfak istasyonları", hint: "İstasyon adı veya İstasyon adı: Kategori 1, Kategori 2 (o kategorideki ürünler istasyona yönlendirilir).", rows: 4, placeholder: "Mutfak\nBar: İçecek" },
+  { id: "menu", label: "Menü", hint: "Kategori | Ürün | Fiyat | Açıklama | İstasyon — son iki alan isteğe bağlı. İstasyon adı yukarıda oluşturulmuş olmalı.", rows: 8, placeholder: "İçecek | Kola | 25\nMeze | Cacık | 30\nYemek | Adana kebap | 365 | Közde | Mutfak" },
 ] as const;
 
 const actionLabels: Record<SetupStatus, string> = {
@@ -25,7 +25,7 @@ const actionLabels: Record<SetupStatus, string> = {
   self_in_progress: "",
   assisted_requested: "Talebi al",
   info_needed: "Eksik bilgi iste",
-  assisted_in_progress: "Hazırlığa başla",
+  assisted_in_progress: "Kurulumu ben üstleniyorum",
   setup_completed: "Kurulum tamamlandı olarak işaretle",
   trial_ready: "Denemeye hazır yap",
 };
@@ -39,24 +39,25 @@ export default async function SetupDetailPage({ params }: { params: Promise<{ te
 
   const { onboarding, tenantName, subscription } = detail;
   const readiness = await getReadiness(tenantId);
-  const derived = deriveStatus(onboarding, subscription);
-  const open = isAssistedOpen(onboarding.status, onboarding.method, onboarding.trialStartedAt);
-  const next = onboarding.method === "assisted" && !onboarding.trialStartedAt ? platformNextStatuses(onboarding.status) : [];
-  const plan = planForCode(onboarding.selectedPlan);
+  const derived = onboarding ? deriveStatus(onboarding, subscription) : null;
+  // Status moves exist only while the business is still in setup.
+  const next = onboarding && !onboarding.trialStartedAt ? platformNextStatuses(onboarding.status, onboarding.method) : [];
+  const plan = onboarding ? planForCode(onboarding.selectedPlan).name : "—";
+  const requested = onboarding?.requestPayload;
 
   return (
     <main className="min-h-dvh bg-[#f4f6f8]">
       <div className="mx-auto max-w-5xl px-5 py-8 sm:px-8">
         <Link href="/mk-admin" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#dce3df] bg-white px-4 text-sm font-bold"><ArrowLeft size={16} aria-hidden="true" /> Platform yönetimi</Link>
-        <p className="mt-6 text-xs font-black uppercase tracking-[0.16em] text-[color:var(--c-accent)]">Kurulum talebi</p>
+        <p className="mt-6 text-xs font-black uppercase tracking-[0.16em] text-[color:var(--c-accent)]">İşletme kurulumu</p>
         <h1 className="mt-2 text-3xl font-black tracking-[-0.04em]">{tenantName}</h1>
 
         <dl className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            ["Paket", plan.name],
-            ["Kurulum yöntemi", onboarding.method === "assisted" ? "MK Digital Systems kursun" : onboarding.method === "self" ? "Kendim kuracağım" : "Seçilmedi"],
-            ["Durum", statusLabels[derived]],
-            ["Deneme", onboarding.trialStartedAt ? "Başlatıldı" : "Başlamadı"],
+            ["Paket", plan],
+            ["Kurulum yöntemi", onboarding?.method === "assisted" ? "MK Digital Systems kursun" : onboarding?.method === "self" ? "Kendim kuracağım" : onboarding ? "Seçilmedi" : "Kurulum akışı öncesi işletme"],
+            ["Durum", derived ? statusLabels[derived] : "—"],
+            ["Deneme", onboarding?.trialStartedAt ? "Başlatıldı" : onboarding ? "Başlamadı" : "—"],
           ].map(([label, value]) => (
             <div key={label} className="rounded-2xl border border-[#dfe5e1] bg-white p-4"><dt className="text-xs font-bold text-[#5e6a65]">{label}</dt><dd className="mt-1 text-sm font-black">{value}</dd></div>
           ))}
@@ -74,36 +75,35 @@ export default async function SetupDetailPage({ params }: { params: Promise<{ te
           </ul>
         </section>
 
-        {onboarding.adminNote && onboarding.status === "info_needed" && (
+        {onboarding?.status === "info_needed" && onboarding.adminNote && (
           <p className="mt-5 rounded-2xl bg-[#fff8e7] p-4 text-sm font-bold text-[#8a6415]">İşletmeden istenen bilgi: {onboarding.adminNote}</p>
         )}
 
-        {onboarding.method !== "assisted" && (
-          <p className="mt-5 rounded-2xl bg-white p-5 text-sm font-semibold text-[#5e6a65]">Bu işletme kurulum desteği istemedi. Platform bu işletme adına kurulum yapamaz.</p>
+        {(requested?.details || requested?.areas || requested?.menu) && (
+          <section className="mt-5 rounded-[22px] border border-[#dfe5e1] bg-white p-5" aria-labelledby="talep">
+            <h2 id="talep" className="text-lg font-black">İşletmenin kurulum talebi</h2>
+            {requested.details
+              ? <pre className="mt-3 whitespace-pre-wrap font-sans text-sm leading-6 text-[#33413b]">{requested.details}</pre>
+              : setupSteps.map((step) => <div key={step.id} className="mt-3"><h3 className="text-sm font-black">{step.label}</h3><pre className="whitespace-pre-wrap font-sans text-sm text-[#33413b]">{requested[step.id] || "—"}</pre></div>)}
+            {requested.notes && <p className="mt-3 text-sm"><strong>Ek not:</strong> {requested.notes}</p>}
+          </section>
         )}
 
-        {onboarding.method === "assisted" && (
-          <>
-            <section className="mt-5 rounded-[22px] border border-[#dfe5e1] bg-white p-5" aria-labelledby="durum">
-              <h2 id="durum" className="text-lg font-black">Durum işlemleri</h2>
-              {next.length === 0
-                ? <p className="mt-2 text-sm text-[#5e6a65]">Bu durumda yapılacak bir geçiş yok.{onboarding.trialStartedAt ? " İşletme denemesini başlattı." : ""}</p>
-                : <div className="mt-4 grid gap-4 sm:grid-cols-2">{next.map((status) => <StatusForm key={status} tenantId={tenantId} status={status} label={actionLabels[status]} needsNote={status === "info_needed"} primary={status === "trial_ready"} />)}</div>}
-              <p className="mt-4 text-xs leading-5 text-[#5e6a65]">Denemeyi yalnızca işletme sahibi başlatır. &quot;Denemeye hazır&quot; için dört alanda da kayıt olmalıdır.</p>
-            </section>
+        <section className="mt-5 rounded-[22px] border border-[#dfe5e1] bg-white p-5" aria-labelledby="durum">
+          <h2 id="durum" className="text-lg font-black">Durum işlemleri</h2>
+          {next.length === 0
+            ? <p className="mt-2 text-sm text-[#5e6a65]">{onboarding ? (onboarding.trialStartedAt ? "İşletme denemesini başlattı; durum geçişi yok." : "Bu durumda yapılacak bir geçiş yok.") : "Bu işletme kurulum akışından önce oluşturuldu; durum takibi yok. Aşağıdan doğrudan kayıt oluşturabilirsiniz."}</p>
+            : <div className="mt-4 grid gap-4 sm:grid-cols-2">{next.map((status) => <StatusForm key={status} tenantId={tenantId} status={status} label={actionLabels[status]} needsNote={status === "info_needed"} primary={status === "trial_ready" || status === "assisted_in_progress"} />)}</div>}
+          <p className="mt-4 text-xs leading-5 text-[#5e6a65]">Denemeyi yalnızca işletme sahibi başlatır. &quot;Denemeye hazır&quot; için dört alanda da kayıt olmalıdır. WhatsApp veya e-postayla gelen işlerde önce &quot;Kurulumu ben üstleniyorum&quot; deyin.</p>
+        </section>
 
-            <h2 className="mb-3 mt-8 text-lg font-black">İşletmenin ilettiği bilgiler ve kurulum</h2>
-            {!open && <p className="mb-4 rounded-2xl bg-[#f1f6f3] p-4 text-sm font-semibold text-[#2f4f43]">Bu aşamada işletme adına kayıt oluşturulamaz.</p>}
-            <div className="space-y-4">
-              {sections.map((section) => (
-                open
-                  ? <SectionForm key={section.id} tenantId={tenantId} section={section.id} label={section.label} hint={section.hint} initial={onboarding.requestPayload[section.id] ?? ""} rows={section.rows} />
-                  : <div key={section.id} className="rounded-[22px] border border-[#dfe5e1] bg-white p-5"><h3 className="text-sm font-black">{section.label}</h3><pre className="mt-2 whitespace-pre-wrap text-sm text-[#5e6a65]">{onboarding.requestPayload[section.id] || "—"}</pre></div>
-              ))}
-              {onboarding.requestPayload.notes && <p className="rounded-2xl bg-white p-5 text-sm"><strong>Ek not:</strong> {onboarding.requestPayload.notes}</p>}
-            </div>
-          </>
-        )}
+        <h2 className="mb-1 mt-8 text-lg font-black">İşletme adına kurulum</h2>
+        <p className="mb-4 text-sm leading-6 text-[#5e6a65]">Yalnızca salon, masa, mutfak istasyonu ve menü oluşturulur; mevcut kayıtlar silinmez, aynı isimliler atlanır. Sırayla uygulayın: salonlar, masalar, istasyonlar, menü. Her işlem denetim kaydına yazılır.</p>
+        <div className="space-y-4">
+          {sections.map((section) => (
+            <SectionForm key={section.id} tenantId={tenantId} section={section.id} label={section.label} hint={section.hint} initial="" placeholder={section.placeholder} rows={section.rows} />
+          ))}
+        </div>
       </div>
     </main>
   );

@@ -29,7 +29,8 @@ export async function getSetupRequests(): Promise<SetupRequestSummary[]> {
 }
 
 export type SetupDetail = {
-  onboarding: OnboardingState;
+  /** null for businesses created before the setup flow existed. */
+  onboarding: OnboardingState | null;
   tenantName: string;
   tenantSlug: string;
   subscription: SubscriptionLite;
@@ -42,9 +43,9 @@ export async function getSetupDetail(tenantId: string): Promise<SetupDetail | nu
     supabase.from("tenants").select("name, slug").eq("id", tenantId).maybeSingle(),
     supabase.from("subscriptions").select("status, ends_at").eq("tenant_id", tenantId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
-  if (!row || !tenant) return null;
+  if (!tenant) return null;
   return {
-    onboarding: mapOnboarding(row as unknown as Parameters<typeof mapOnboarding>[0]),
+    onboarding: row ? mapOnboarding(row as unknown as Parameters<typeof mapOnboarding>[0]) : null,
     tenantName: tenant.name as string,
     tenantSlug: tenant.slug as string,
     subscription: subscription ? { status: subscription.status as NonNullable<SubscriptionLite>["status"], endsAt: (subscription.ends_at as string | null) ?? null } : null,

@@ -16,7 +16,7 @@ function Message({ state }: { state: { status: string; message: string | null } 
 }
 
 /** Applies one of the four setup sections for the business from the text the business sent. */
-export function SectionForm({ tenantId, section, label, hint, initial, rows }: { tenantId: string; section: "areas" | "tables" | "stations" | "menu"; label: string; hint: string; initial: string; rows: number }) {
+export function SectionForm({ tenantId, section, label, hint, initial, rows, placeholder }: { tenantId: string; section: "areas" | "tables" | "stations" | "menu"; label: string; hint: string; initial: string; rows: number; placeholder?: string }) {
   const [state, action, pending] = useActionState(applySetupSectionAction, initialCrudActionState);
   return (
     <form action={action} className="rounded-[22px] border border-[#dfe5e1] bg-white p-5">
@@ -24,7 +24,7 @@ export function SectionForm({ tenantId, section, label, hint, initial, rows }: {
       <input type="hidden" name="section" value={section} />
       <label htmlFor={`section-${section}`} className="block text-sm font-black">{label}</label>
       <p className="mt-1 text-xs leading-5 text-[#5e6a65]">{hint}</p>
-      <textarea id={`section-${section}`} name="text" rows={rows} defaultValue={initial} className={`mt-3 font-mono ${field}`} />
+      <textarea id={`section-${section}`} name="text" rows={rows} defaultValue={initial} placeholder={placeholder} className={`mt-3 font-mono ${field}`} />
       <button type="submit" disabled={pending} className="mt-3 inline-flex min-h-11 items-center rounded-xl bg-[color:var(--c-ink)] px-5 text-sm font-black text-white disabled:opacity-55">
         {pending ? "Uygulanıyor…" : "İşletme adına oluştur"}
       </button>

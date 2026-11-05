@@ -44,10 +44,7 @@ export async function chooseSelfSetupAction(_previous: CrudActionState, formData
 }
 
 const requestSchema = z.object({
-  areas: z.string().trim().min(2, "Salonları yazın.").max(4000),
-  tables: z.string().trim().min(2, "Masaları yazın.").max(8000),
-  stations: z.string().trim().min(2, "Mutfak istasyonlarını yazın.").max(4000),
-  menu: z.string().trim().min(2, "Menüyü yazın.").max(20000),
+  details: z.string().trim().min(5, "Kurulum bilgilerini yazın.").max(20000, "Metin çok uzun."),
   notes: z.string().trim().max(1000),
 });
 
@@ -56,10 +53,7 @@ export async function submitAssistedRequestAction(_previous: CrudActionState, fo
   const target = await resolve(formData);
   if (!target) return error("Çalışma alanı bilgisi eksik.");
   const values = requestSchema.safeParse({
-    areas: formData.get("areas") ?? "",
-    tables: formData.get("tables") ?? "",
-    stations: formData.get("stations") ?? "",
-    menu: formData.get("menu") ?? "",
+    details: formData.get("details") ?? "",
     notes: formData.get("notes") ?? "",
   });
   if (!values.success) return error(values.error.issues[0]?.message ?? "Formu kontrol edin.");

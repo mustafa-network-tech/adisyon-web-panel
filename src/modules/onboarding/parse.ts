@@ -4,6 +4,7 @@
  *
  *   Salonlar:    one hall name per line
  *   Masalar:     "Salon adı: Masa 1, Masa 2, Masa 3-8 (4)"   (4 = capacity, optional)
+ *                or the shorthand "Salon adı: 8 masa"
  *   İstasyonlar: "İstasyon adı" or "İstasyon adı: Kategori 1, Kategori 2"
  *   Menü:        "Kategori | Ürün | Fiyat | Açıklama | İstasyon"  (last two optional)
  */
@@ -55,7 +56,17 @@ export function parseTables(text: string): ParseResult<TableRow> {
     const colon = line.indexOf(":");
     if (colon < 1) return fail(`Satır ${number}: "Salon adı: Masa 1, Masa 2-5" biçiminde yazın.`);
     const area = line.slice(0, colon).trim();
-    const tokens = line.slice(colon + 1).split(",").map((token) => token.trim()).filter(Boolean);
+    const rest = line.slice(colon + 1).trim();
+    // Shorthand: "Salon: 8 masa" or "Salon: 8 (4)" = Salon 1 .. Salon 8.
+    const count = rest.match(/^(\d{1,3})\s*(?:masa)?\s*(?:\((\d{1,3})\))?$/i);
+    if (count) {
+      const total = Number(count[1]);
+      const capacity = count[2] ? Number(count[2]) : 2;
+      if (total < 1 || total > 200 || capacity < 1 || capacity > 500) return fail(`Satır ${number}: masa sayısı veya kapasite geçersiz.`);
+      for (let index = 1; index <= total; index += 1) rows.push({ area, label: `${area} ${index}`, capacity });
+      continue;
+    }
+    const tokens = rest.split(",").map((token) => token.trim()).filter(Boolean);
     if (tokens.length === 0) return fail(`Satır ${number}: en az bir masa yazın.`);
     for (const token of tokens) {
       const expanded = expandTableToken(token);

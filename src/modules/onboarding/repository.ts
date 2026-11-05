@@ -30,7 +30,7 @@ export function mapOnboarding(row: OnboardingRow): OnboardingState {
     status: row.status,
     currentStep: row.current_step,
     completedSteps: (row.completed_steps ?? []).filter((step): step is SetupStep => setupSteps.some((item) => item.id === step)),
-    requestPayload: { areas: text("areas"), tables: text("tables"), stations: text("stations"), menu: text("menu"), notes: text("notes") },
+    requestPayload: { details: text("details"), areas: text("areas"), tables: text("tables"), stations: text("stations"), menu: text("menu"), notes: text("notes") },
     adminNote: row.admin_note,
     trialStartedAt: row.trial_started_at,
   };

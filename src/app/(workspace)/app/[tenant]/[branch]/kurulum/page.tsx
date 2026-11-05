@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { ArrowLeft, ArrowRight, Check, Hammer, LifeBuoy, Rocket } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Hammer, LifeBuoy, Mail, Rocket } from "lucide-react";
 import { requireWorkspaceAccess } from "@/lib/auth/access";
 import { formatTl } from "@/lib/pricing";
+import { contactEmail, whatsappDisplay, whatsappLink } from "@/lib/site";
+import { WhatsappIcon } from "@/components/marketing/whatsapp-icon";
 import { CatalogManager } from "@/modules/catalog/components/catalog-manager";
 import { getCatalogSnapshot } from "@/modules/catalog/repository";
 import { chooseSelfSetupAction, completeSetupStepAction, reopenSetupStepAction } from "@/modules/onboarding/actions";
@@ -35,8 +36,8 @@ export default async function SetupPage({ params, searchParams }: PageProps) {
   const base = `/app/${tenant}/${branch}`;
 
   const onboarding = await getOnboarding(context.tenantId);
-  // Businesses created before the setup flow existed, or users who cannot manage settings.
-  if (!onboarding) redirect(`${base}/masalar`);
+  // Businesses created before the setup flow existed have no setup record: they ask for help by WhatsApp / e-mail.
+  if (!onboarding) return <ContactView base={base} tenantName={context.tenantName} />;
 
   const [usage, owner] = await Promise.all([getPlanUsage(context.tenantId, context.branchId), isTenantOwner(context.tenantId, context.userId)]);
   const derived = deriveStatus(onboarding, usage ? { status: usage.status ?? "trial", endsAt: usage.endsAt } : null);
@@ -61,7 +62,7 @@ export default async function SetupPage({ params, searchParams }: PageProps) {
 
       <div className="mt-6">
         {derived === "trial_active" || derived === "trial_ended" || derived === "subscription_active"
-          ? <Finished base={base} derived={derived} />
+          ? (query.yontem === "destek" ? <ContactView base={base} tenantName={context.tenantName} embedded /> : <Finished base={base} derived={derived} />)
           : <SetupBody tenant={tenant} branch={branch} base={base} owner={owner} onboarding={onboarding} query={query} tenantId={context.tenantId} branchId={context.branchId} usage={usage} planPrice={formatTl(plan.regularPrice)} />}
       </div>
     </section>
@@ -78,6 +79,7 @@ function Finished({ base, derived }: { base: string; derived: "trial_active" | "
       <Link href={derived === "trial_ended" ? `${base}/paket` : `${base}/masalar`} className="mt-5 inline-flex min-h-12 items-center gap-2 rounded-xl bg-[color:var(--c-ink)] px-5 text-sm font-black text-white">
         {derived === "trial_ended" ? "Paketi etkinleştir" : "Masalara git"} <ArrowRight size={16} aria-hidden="true" />
       </Link>
+      <p className="mt-4 text-sm text-[#5e6a65]">Salon, masa, istasyon veya menü işlerinde yardım için <Link href={`${base}/kurulum?yontem=destek`} className="font-black underline underline-offset-4">kurulum talep edin</Link>.</p>
     </div>
   );
 }
@@ -177,8 +179,9 @@ function AssistedStatus({ tenant, branch, base, owner, onboarding }: { tenant: s
       {status !== "info_needed" && (
         <details className={card}>
           <summary className="cursor-pointer text-sm font-black">İlettiğiniz bilgiler</summary>
+          {onboarding.requestPayload.details && <p className="mt-4 whitespace-pre-wrap text-sm text-[#33413b]">{onboarding.requestPayload.details}</p>}
           <dl className="mt-4 space-y-4 text-sm">
-            {setupSteps.map((step) => (
+            {!onboarding.requestPayload.details && setupSteps.map((step) => (
               <div key={step.id}><dt className="font-black">{step.label}</dt><dd className="mt-1 whitespace-pre-wrap text-[#5e6a65]">{onboarding.requestPayload[step.id] || "—"}</dd></div>
             ))}
           </dl>
@@ -271,5 +274,30 @@ async function Wizard({ tenant, branch, base, owner, onboarding, requestedStep, 
         </p>
       )}
     </div>
+  );
+}
+
+/** Setup help for businesses that cannot send an in-app request: WhatsApp or e-mail, MK enters it. */
+function ContactView({ base, tenantName, embedded = false }: { base: string; tenantName: string; embedded?: boolean }) {
+  const subject = encodeURIComponent(`Kurulum talebi - ${tenantName}`);
+  const body = encodeURIComponent("Merhaba, salon, masa, mutfak istasyonu ve menü kurulumu için bilgilerimi iletiyorum:\n\nSalonlar ve masa sayıları:\nMutfak istasyonları:\nMenü (ürün ve fiyatlar):");
+  const content = (
+    <div className={card + " space-y-4"}>
+      <h2 className="text-xl font-black">Kurulum talep et</h2>
+      <p className="text-sm leading-6 text-[#5e6a65]">Salonlarınızı ve masa sayılarını, mutfak istasyonlarınızı ve menünüzü (ürün ve fiyatlar) WhatsApp veya e-posta ile bize iletin; MK Digital Systems ekibi bu dört alanı sizin adınıza hazırlar. Şube, personel, yetki ve ödeme ayarları size aittir.</p>
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <a href={whatsappLink(`Merhaba, ${tenantName} için salon, masa, mutfak istasyonu ve menü kurulumu yaptırmak istiyorum.`)} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#25d366] px-5 text-sm font-black text-white"><WhatsappIcon size={16} /> WhatsApp: {whatsappDisplay}</a>
+        <a href={`mailto:${contactEmail}?subject=${subject}&body=${body}`} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[color:var(--c-ink)] px-5 text-sm font-black text-white"><Mail size={16} aria-hidden="true" /> {contactEmail}</a>
+      </div>
+      <Link href={`${base}/ayarlar`} className="inline-block text-sm font-bold text-[#5e6a65] underline underline-offset-4">Ayarlara dön</Link>
+    </div>
+  );
+  if (embedded) return content;
+  return (
+    <section className="mx-auto w-full max-w-3xl p-4 sm:p-6 lg:p-8">
+      <p className="text-xs font-black uppercase tracking-[0.16em] text-[color:var(--c-accent)]">Kurulum desteği</p>
+      <h1 className="mt-2 text-3xl font-black tracking-[-0.04em] sm:text-4xl">{tenantName}</h1>
+      <div className="mt-6">{content}</div>
+    </section>
   );
 }

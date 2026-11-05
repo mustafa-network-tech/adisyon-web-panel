@@ -629,7 +629,7 @@ await db.query("insert into public.platform_admins (user_id) values ($1)", [PLAT
   await expectError("set_setup_method", { target_tenant_id: tenantC, target_method: "assisted", target_payload: { ...request, menu: "" } }, "invalid_setup_request", "assisted request needs all four areas");
   await rpc("set_setup_method", { target_tenant_id: tenantC, target_method: "assisted", target_payload: { ...request, payrollRoles: "kurulsun", branches: "kurulsun" } });
   const stored = (await one("select request_payload from public.tenant_onboarding where tenant_id = $1", [tenantC])).request_payload;
-  check("only the four setup areas are stored in the request", Object.keys(stored).sort().join(",") === "areas,menu,notes,stations,tables", Object.keys(stored).join(","));
+  check("only the four setup areas are stored in the request", Object.keys(stored).sort().join(",") === "areas,details,menu,notes,stations,tables", Object.keys(stored).join(","));
   check("assisted request is queued", (await one("select status from public.tenant_onboarding where tenant_id = $1", [tenantC])).status === "assisted_requested");
   await expectError("complete_setup_step", { target_tenant_id: tenantC, target_step: "areas" }, "setup_step_not_allowed", "self wizard is closed while MK prepares");
 
@@ -686,16 +686,58 @@ await db.query("insert into public.platform_admins (user_id) values ($1)", [PLAT
   const startedC = await rpc("start_trial", { target_tenant_id: tenantC });
   check("the owner starts the trial after the platform marked it ready", Boolean(startedC.endsAt));
   await actAs(db, PLATFORM);
-  await expectError("platform_setup_apply_areas", { target_tenant_id: tenantC, target_names: ["Yeni"] }, "assisted_setup_not_open", "platform setup closes once the trial runs");
+  check("platform can still adjust the four areas after the trial started", (await rpc("platform_setup_apply_areas", { target_tenant_id: tenantC, target_names: ["Yeni"] })).created === 1);
 
   // an ended trial keeps all data and turns read-only
   const counts = async () => one("select (select count(*) from public.dining_areas where tenant_id = $1)::int a, (select count(*) from public.restaurant_tables where tenant_id = $1)::int t, (select count(*) from public.products where tenant_id = $1)::int p", [tenantC]);
   const countsBefore = await counts();
   await db.query("update public.subscriptions set ends_at = now() - interval '1 minute' where tenant_id = $1", [tenantC]);
   const countsAfter = await counts();
-  check("no data is deleted when the trial ends", JSON.stringify(countsBefore) === JSON.stringify(countsAfter) && countsAfter.a === 2 && countsAfter.t === 3 && countsAfter.p === 2, JSON.stringify(countsAfter));
+  check("no data is deleted when the trial ends", JSON.stringify(countsBefore) === JSON.stringify(countsAfter) && countsAfter.a === 3 && countsAfter.t === 3 && countsAfter.p === 2, JSON.stringify(countsAfter));
   await actAs(db, OWNER_C);
   check("an ended trial is read-only", (await rpc("get_plan_usage", { target_tenant_id: tenantC, target_branch_id: branchC })).writable === false);
+}
+
+// --- free-text request, WhatsApp/e-mail takeover, businesses without a setup record --------------
+{
+  const mkUser = async (id, name) => {
+    await db.query("insert into auth.users (id, email, raw_user_meta_data) values ($1, $2, $3)", [id, name + "@t.test", JSON.stringify({ full_name: name })]);
+    await db.query("insert into public.profiles (id, full_name) values ($1, $2) on conflict do nothing", [id, name]);
+  };
+  const OWNER_D = "40000000-0000-4000-8000-0000000000d1";
+  const OWNER_E = "50000000-0000-4000-8000-0000000000e1";
+  await mkUser(OWNER_D, "Deniz Sahip");
+  await mkUser(OWNER_E, "Ela Sahip");
+
+  await actAs(db, OWNER_D);
+  await rpc("create_my_tenant", { target_name: "Dorduncu Lokanta", target_branch_name: "Sube", target_plan_code: "START" });
+  const tenantD = (await one("select id from public.tenants where name = 'Dorduncu Lokanta'")).id;
+  await expectError("set_setup_method", { target_tenant_id: tenantD, target_method: "assisted", target_payload: { details: "x" } }, "invalid_setup_request", "an empty or tiny request is refused");
+  await rpc("set_setup_method", { target_tenant_id: tenantD, target_method: "assisted", target_payload: { details: "Salon 8 masa, bahce 3 masa. Kola 25 lira, cacik 30 lira", notes: "" } });
+  const requestD = await one("select status, request_payload from public.tenant_onboarding where tenant_id = $1", [tenantD]);
+  check("a free-text request is enough and lands in the queue", requestD.status === "assisted_requested" && requestD.request_payload.details.startsWith("Salon 8 masa"), JSON.stringify(requestD));
+
+  // a business that never asked: the message came by WhatsApp, MK takes over
+  await actAs(db, OWNER_E);
+  await rpc("create_my_tenant", { target_name: "Besinci Lokanta", target_branch_name: "Sube", target_plan_code: "PRO" });
+  const tenantE = (await one("select id from public.tenants where name = 'Besinci Lokanta'")).id;
+  await actAs(db, PLATFORM);
+  await expectError("platform_set_setup_status", { target_tenant_id: tenantE, target_status: "trial_ready", target_note: null }, "invalid_status_transition", "takeover goes through preparation first");
+  await rpc("platform_set_setup_status", { target_tenant_id: tenantE, target_status: "assisted_in_progress", target_note: null });
+  const takeover = await one("select status, setup_method from public.tenant_onboarding where tenant_id = $1", [tenantE]);
+  check("MK can take over a business that has not asked for setup", takeover.status === "assisted_in_progress" && takeover.setup_method === "assisted", JSON.stringify(takeover));
+  check("the takeover is audited", (await one("select count(*)::int n from public.audit_logs where tenant_id = $1 and action = 'platform.setup.status_changed' and (metadata ->> 'takeover')::boolean", [tenantE])).n === 1);
+  check("MK creates halls for it", (await rpc("platform_setup_apply_areas", { target_tenant_id: tenantE, target_names: ["Salon", "Bahce"] })).created === 2);
+  await actAs(db, OWNER_D);
+  await expectError("platform_setup_apply_areas", { target_tenant_id: tenantE, target_names: ["Hack"] }, "platform_admin_required", "another owner cannot set up business E");
+
+  // a business created before the setup flow (no setup record at all)
+  await db.query("delete from public.tenant_onboarding where tenant_id = $1", [tenant]);
+  const areasBefore = (await one("select count(*)::int n from public.dining_areas where tenant_id = $1", [tenant])).n;
+  await actAs(db, PLATFORM);
+  check("platform can set up a business without a setup record", (await rpc("platform_setup_apply_areas", { target_tenant_id: tenant, target_names: ["Bahce"] })).created === 1);
+  check("it lands in that business only", (await one("select count(*)::int n from public.dining_areas where tenant_id = $1", [tenant])).n === areasBefore + 1 && (await one("select count(*)::int n from public.dining_areas where tenant_id = $1 and name = 'Bahce'", [tenantB])).n === 0);
+  await expectError("platform_setup_apply_areas", { target_tenant_id: "00000000-0000-4000-8000-000000000000", target_names: ["X"] }, "tenant_not_found", "unknown business refused");
 }
 const freshTableB = async (label) => (await one("insert into public.restaurant_tables (tenant_id, branch_id, area_id, label) values ($1,$2,$3,$4) returning id", [tenantB, branchB, areaB, label])).id;
 const tableB2 = await freshTableB("B Masa 2");
