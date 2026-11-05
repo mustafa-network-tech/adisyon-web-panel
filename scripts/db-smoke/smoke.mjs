@@ -49,7 +49,8 @@ const key = () => crypto.randomUUID();
 const OWNER = "10000000-0000-4000-8000-000000000001";
 const WAITER = "10000000-0000-4000-8000-000000000002";
 const MANAGER = "10000000-0000-4000-8000-000000000003";
-for (const [id, name] of [[OWNER, "Ayşe Sahip"], [WAITER, "Ece Garson"], [MANAGER, "Mert Müdür"]]) {
+const CASHIER = "10000000-0000-4000-8000-000000000004";
+for (const [id, name] of [[OWNER, "Ayşe Sahip"], [WAITER, "Ece Garson"], [MANAGER, "Mert Müdür"], [CASHIER, "Kemal Kasa"]]) {
   await db.query("insert into auth.users (id, email, raw_user_meta_data) values ($1, $2, $3)", [id, `${id}@t.test`, JSON.stringify({ full_name: name })]);
   await db.query("insert into public.profiles (id, full_name) values ($1, $2) on conflict do nothing", [id, name]);
 }
@@ -72,7 +73,8 @@ async function addMember(userId, roleCode) {
 const ownerMembership = (await one("select id from public.tenant_memberships where user_id = $1", [OWNER])).id;
 const waiterMembership = await addMember(WAITER, "waiter");
 await addMember(MANAGER, "manager");
-check("staff card auto-created for new members", (await one("select count(*)::int n from public.staff_profiles where tenant_id = $1", [tenant])).n === 3);
+await addMember(CASHIER, "cashier");
+check("staff card auto-created for new members", (await one("select count(*)::int n from public.staff_profiles where tenant_id = $1", [tenant])).n === 4);
 
 // --- catalogue --------------------------------------------------------------
 const station = (await one("select id from public.kitchen_stations where tenant_id = $1 and branch_id = $2", [tenant, branch])).id;
@@ -134,7 +136,7 @@ const tomorrowShift = await rpc("save_shift", shiftArgs({ target_date: await add
 check("non-overlapping shift saved", Boolean(tomorrowShift.id));
 
 const roster = await rpc("list_branch_staff", { target_tenant_id: tenant, target_branch_id: branch });
-check("manager sees the branch roster", roster.length === 3);
+check("manager sees the branch roster", roster.length === 4);
 check("manager does not see private staff fields", roster.every((p) => p.notes === null && p.emergencyName === null));
 
 await expectError("approve_shift_attendance", { target_tenant_id: tenant, target_branch_id: branch, target_shift_id: shift.id, target_status: "worked", target_minutes: null, target_note: null }, "attendance_denied", "manager without attendance.manage cannot approve");
@@ -202,6 +204,29 @@ const colaItem = (await one("select id from public.order_items where order_id = 
 await expectError("record_order_payments", { target_tenant_id: tenant, target_branch_id: branch, target_order_id: open2.orderId, target_cash_session_id: cashSession, target_payments: [{ method: "cash", amountMinor: 4000, allocations: [{ orderItemId: colaItem, quantity: 1 }] }], target_idempotency_key: key() }, "allocation_not_allowed_with_discount", "item split blocked with a discount");
 const paid = await rpc("record_order_payments", { target_tenant_id: tenant, target_branch_id: branch, target_order_id: open2.orderId, target_cash_session_id: cashSession, target_payments: [{ method: "cash", amountMinor: 10000 }], target_idempotency_key: key() });
 check("paying the discounted total closes the order", paid.orderClosed === true, JSON.stringify(paid));
+
+// --- sales report (phase F) --------------------------------------------------
+const reportArgs = (over = {}) => ({ target_tenant_id: tenant, target_branch_id: branch, range_start: today, range_end: today, ...over });
+await actAs(db, MANAGER);
+const report = await rpc("sales_report", reportArgs());
+check("report counts the closed order", report.summary.orderCount === 1, JSON.stringify(report.summary));
+check("report separates gross, discount and net", report.summary.grossMinor === 12000 && report.summary.discountMinor === 2000 && report.summary.netMinor === 10000, JSON.stringify(report.summary));
+check("report ignores merged adisyons in cancellations", report.summary.cancelledCount === 0, JSON.stringify(report.summary));
+check("report lists payments by method", report.payments.cashMinor === 10000 && report.payments.cardMinor === 0, JSON.stringify(report.payments));
+check("report ranks products", report.products[0].name === "Kola" && report.products[0].quantity === 3 && report.products[0].revenueMinor === 12000, JSON.stringify(report.products));
+check("report groups by category and staff", report.categories[0].name === "Soğuk İçecek" && report.staff[0].name === "Ece Garson", JSON.stringify([report.categories, report.staff]));
+check("report shows the open cash session", report.sessions.length === 1 && report.sessions[0].countedMinor === null, JSON.stringify(report.sessions));
+check("report has a day and an hour bucket", report.byDay.length === 1 && report.byHour.length === 1);
+await rpc("sales_report", reportArgs({ range_start: yesterday }));
+check("manager may read past days", true);
+await actAs(db, CASHIER);
+await rpc("sales_report", reportArgs());
+check("cashier may read today", true);
+await expectError("sales_report", reportArgs({ range_start: yesterday }), "report_history_denied", "cashier cannot read past days");
+await actAs(db, WAITER);
+await expectError("sales_report", reportArgs(), "report_denied", "waiter has no reports");
+await actAs(db, MANAGER);
+await expectError("sales_report", reportArgs({ range_start: await addDays(-200) }), "invalid_report_range", "range is capped");
 
 // --- table operations (phase F) ---------------------------------------------
 await actAs(db, WAITER);

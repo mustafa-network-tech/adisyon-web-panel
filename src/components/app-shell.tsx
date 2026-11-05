@@ -11,6 +11,7 @@ import {
   ChefHat,
   CreditCard,
   LayoutGrid,
+  BarChart3,
   CalendarDays,
   LogOut,
   Settings,
@@ -50,6 +51,7 @@ export function AppShell({ tenant, branch, tenantName, branchName, userName, use
     { href: `${base}/masalar`, label: "Masalar", icon: LayoutGrid, required: workspaceSections.tables },
     { href: `${base}/mutfak`, label: "Mutfak", icon: ChefHat, required: workspaceSections.kitchen },
     { href: `${base}/kasa`, label: "Kasa", icon: CreditCard, required: workspaceSections.checkout },
+    { href: `${base}/rapor`, label: "Raporlar", icon: BarChart3, required: workspaceSections.reports },
     { href: `${base}/personel`, label: "Personel", icon: CalendarDays, required: workspaceSections.staff },
     { href: `${base}/ayarlar`, label: "Ayarlar", icon: Settings, required: workspaceSections.settings },
   ].filter((item) => hasAnyPermission(permissions, item.required));

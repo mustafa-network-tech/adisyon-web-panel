@@ -54,6 +54,7 @@ export const workspaceSections = {
   ],
   settings: ["settings.manage", "catalog.manage", "users.manage"],
   orders: ["orders.create", "orders.update"],
+  reports: ["reports.read"],
   staff: ["staff.view", "shifts.manage", "staff.manage", "payroll.manage", "attendance.manage"],
 } as const satisfies Record<string, readonly Permission[]>;
 
