@@ -14,6 +14,9 @@ export const permissions = [
   "settings.manage",
   "catalog.manage",
   "users.manage",
+  "staff.view",
+  "shifts.manage",
+  "staff.manage",
 ] as const;
 
 export type Permission = (typeof permissions)[number];
@@ -48,6 +51,7 @@ export const workspaceSections = {
   ],
   settings: ["settings.manage", "catalog.manage", "users.manage"],
   orders: ["orders.create", "orders.update"],
+  staff: ["staff.view", "shifts.manage", "staff.manage"],
 } as const satisfies Record<string, readonly Permission[]>;
 
 export function hasAnyPermission(

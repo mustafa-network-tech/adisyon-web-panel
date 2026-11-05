@@ -11,6 +11,7 @@ import {
   ChefHat,
   CreditCard,
   LayoutGrid,
+  CalendarDays,
   LogOut,
   Settings,
   ShieldCheck,
@@ -49,6 +50,7 @@ export function AppShell({ tenant, branch, tenantName, branchName, userName, use
     { href: `${base}/masalar`, label: "Masalar", icon: LayoutGrid, required: workspaceSections.tables },
     { href: `${base}/mutfak`, label: "Mutfak", icon: ChefHat, required: workspaceSections.kitchen },
     { href: `${base}/kasa`, label: "Kasa", icon: CreditCard, required: workspaceSections.checkout },
+    { href: `${base}/personel`, label: "Personel", icon: CalendarDays, required: workspaceSections.staff },
     { href: `${base}/ayarlar`, label: "Ayarlar", icon: Settings, required: workspaceSections.settings },
   ].filter((item) => hasAnyPermission(permissions, item.required));
 
@@ -106,7 +108,7 @@ export function AppShell({ tenant, branch, tenantName, branchName, userName, use
         <main className="min-h-[calc(100dvh-76px)] pb-24 lg:pb-0">{children}</main>
       </div>
 
-      <nav className="fixed inset-x-3 bottom-3 z-40 grid grid-cols-4 rounded-2xl border border-[#dce3df] bg-white/95 p-2 shadow-[0_16px_45px_rgb(23_33_29/0.18)] backdrop-blur-xl lg:hidden" aria-label="Mobil çalışma alanı menüsü">
+      <nav className="fixed inset-x-3 bottom-3 z-40 grid rounded-2xl border border-[#dce3df] bg-white/95 p-2 shadow-[0_16px_45px_rgb(23_33_29/0.18)] backdrop-blur-xl lg:hidden" style={{ gridTemplateColumns: `repeat(${navItems.length}, minmax(0, 1fr))` }} aria-label="Mobil çalışma alanı menüsü">
         {navItems.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href);
           return <Link key={href} href={href} className={`flex min-h-13 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-black ${active ? "bg-[#17211d] text-white" : "text-[#75807a]"}`}><Icon size={19} /><span>{label}</span></Link>;

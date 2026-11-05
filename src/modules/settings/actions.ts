@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { requireAuthenticatedUser, requireWorkspacePermission } from "@/lib/auth/access";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { SettingsActionState } from "./management-types";
+import { memberAccessErrorMessage } from "./role-rules";
 import { invitationSchema, memberAccessSchema, memberExtrasSchema, tenantConfigurationSchema } from "./validation";
 
 const errorState = (message: string): SettingsActionState => ({ status: "error", message });
@@ -93,7 +94,7 @@ export async function updateMemberAccessAction(
     target_status: values.data.status, target_branch_ids: values.data.branchIds,
     target_role_ids: [values.data.roleId],
   });
-  if (error) return errorState("Kullanıcı erişimi güncellenemedi. Son sahip ve kapsam kurallarını kontrol edin.");
+  if (error) return errorState(memberAccessErrorMessage(error.message));
   revalidatePath(`/app/${route.tenant}/${route.branch}/ayarlar/kullanicilar`);
   return successState("Kullanıcı rolü ve şube erişimi güncellendi.");
 }
