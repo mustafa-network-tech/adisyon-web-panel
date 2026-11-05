@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
-import { Bell, BellOff, BellRing, ChefHat, Receipt, X } from "lucide-react";
+import { Ban, Bell, BellOff, BellRing, ChefHat, Receipt, X } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { acknowledgeWaiterCallAction } from "../actions";
-import { addAlert, callAlert, readyAlert, shouldNotifyReady, type ServiceAlert } from "../alerts";
+import { describeVoid } from "@/modules/orders/void";
+import { addAlert, callAlert, readyAlert, shouldNotifyReady, shouldNotifyVoid, voidAlert, type ServiceAlert } from "../alerts";
 
 type Props = {
   tenant: string;
@@ -13,6 +14,10 @@ type Props = {
   userId: string;
   /** Managers and floor planners also hear about orders they did not take. */
   overseesFloor: boolean;
+  /** Has tables.read: hears ready orders and customer calls. */
+  receivesCalls: boolean;
+  /** Has kitchen.read: hears about cancelled items so nothing is cooked for nothing. */
+  watchesKitchen: boolean;
 };
 
 const soundKey = "mk-alert-sound";
@@ -77,9 +82,10 @@ const styles = {
   ready: { box: "border-[#bddfcf] bg-[#edf8f3]", icon: "bg-[#23866b]", Icon: ChefHat },
   waiter: { box: "border-[#f2cdbd] bg-[#fff4ee]", icon: "bg-[#e8623a]", Icon: BellRing },
   bill: { box: "border-[#c5d9ef] bg-[#eef5fc]", icon: "bg-[#285e9f]", Icon: Receipt },
+  void: { box: "border-[#f0c6bb] bg-[#fff1ee]", icon: "bg-[#b63b32]", Icon: Ban },
 } as const;
 
-export function ServiceAlerts({ tenant, branch, branchId, userId, overseesFloor }: Props) {
+export function ServiceAlerts({ tenant, branch, branchId, userId, overseesFloor, receivesCalls, watchesKitchen }: Props) {
   const [alerts, setAlerts] = useState<ServiceAlert[]>([]);
   const { enabled: soundOn, toggle: toggleSound } = useSoundPreference();
 
@@ -117,38 +123,49 @@ export function ServiceAlerts({ tenant, branch, branchId, userId, overseesFloor 
       push(readyAlert(ticket.id, await tableLabel(order.table_id), Number(order.order_number)), true);
     }
 
-    // Calls that arrived while this device was closed or offline.
-    void supabase
-      .from("waiter_calls")
-      .select("id, table_id, kind")
-      .eq("branch_id", branchId)
-      .is("acknowledged_at", null)
-      .order("created_at")
-      .limit(10)
-      .then(({ data }) => {
-        for (const call of data || []) void announceCall(call as { id: string; table_id: string; kind: "waiter" | "bill" }, false);
-      });
+    if (receivesCalls) {
+      // Calls that arrived while this device was closed or offline.
+      void supabase
+        .from("waiter_calls")
+        .select("id, table_id, kind")
+        .eq("branch_id", branchId)
+        .is("acknowledged_at", null)
+        .order("created_at")
+        .limit(10)
+        .then(({ data }) => {
+          for (const call of data || []) void announceCall(call as { id: string; table_id: string; kind: "waiter" | "bill" }, false);
+        });
+    }
 
-    const channel = supabase
-      .channel(`alerts:${branchId}:${userId}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "waiter_calls", filter: `branch_id=eq.${branchId}` }, (payload) => {
-        void announceCall(payload.new as { id: string; table_id: string; kind: "waiter" | "bill" }, true);
-      })
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "waiter_calls", filter: `branch_id=eq.${branchId}` }, (payload) => {
-        const call = payload.new as { id: string; acknowledged_at: string | null };
-        if (call.acknowledged_at) setAlerts((current) => current.filter((alert) => alert.callId !== call.id));
-      })
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "kitchen_tickets", filter: `branch_id=eq.${branchId}` }, (payload) => {
-        const ticket = payload.new as { id: string; order_id: string; status: string };
-        if (ticket.status === "ready") void announceReady(ticket);
-      })
-      .subscribe();
+    let channel = supabase.channel(`alerts:${branchId}:${userId}`);
+    if (receivesCalls) {
+      channel = channel
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "waiter_calls", filter: `branch_id=eq.${branchId}` }, (payload) => {
+          void announceCall(payload.new as { id: string; table_id: string; kind: "waiter" | "bill" }, true);
+        })
+        .on("postgres_changes", { event: "UPDATE", schema: "public", table: "waiter_calls", filter: `branch_id=eq.${branchId}` }, (payload) => {
+          const call = payload.new as { id: string; acknowledged_at: string | null };
+          if (call.acknowledged_at) setAlerts((current) => current.filter((alert) => alert.callId !== call.id));
+        })
+        .on("postgres_changes", { event: "UPDATE", schema: "public", table: "kitchen_tickets", filter: `branch_id=eq.${branchId}` }, (payload) => {
+          const ticket = payload.new as { id: string; order_id: string; status: string };
+          if (ticket.status === "ready") void announceReady(ticket);
+        });
+    }
+    if (overseesFloor || watchesKitchen) {
+      channel = channel.on("postgres_changes", { event: "INSERT", schema: "public", table: "order_item_voids", filter: `branch_id=eq.${branchId}` }, (payload) => {
+        const row = payload.new as { id: string; mode: "void" | "comp"; quantity: number; product_name: string; reason: string; actor_user_id: string | null; actor_name: string | null; table_label: string | null };
+        if (!shouldNotifyVoid({ mode: row.mode, actorUserId: row.actor_user_id, userId, overseesFloor, watchesKitchen })) return;
+        push(voidAlert({ id: row.id, tableLabel: row.table_label, mode: row.mode, text: describeVoid({ mode: row.mode, quantity: row.quantity, productName: row.product_name, reason: row.reason, actorName: row.actor_name }) }), true);
+      });
+    }
+    channel.subscribe();
 
     return () => {
       closed = true;
       void supabase.removeChannel(channel);
     };
-  }, [branchId, userId, overseesFloor]);
+  }, [branchId, userId, overseesFloor, receivesCalls, watchesKitchen]);
 
   function dismiss(alert: ServiceAlert) {
     setAlerts((current) => current.filter((item) => item.id !== alert.id));

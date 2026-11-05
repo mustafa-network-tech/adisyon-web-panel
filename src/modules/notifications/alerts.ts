@@ -1,4 +1,4 @@
-export type AlertKind = "ready" | "waiter" | "bill";
+export type AlertKind = "ready" | "waiter" | "bill" | "void";
 
 export type ServiceAlert = {
   id: string;
@@ -37,6 +37,27 @@ export function callAlert(callId: string, kind: "waiter" | "bill", tableLabel: s
     callId,
     title: kind === "waiter" ? `${tableLabel} · garson çağırıyor` : `${tableLabel} · hesap istiyor`,
     text: kind === "waiter" ? "Müşteri QR menüden garson çağırdı." : "Müşteri QR menüden hesap istedi.",
+  };
+}
+
+/** Who hears about a cancelled or comped item: managers (not the person who did it) and, for cancellations, the kitchen. */
+export function shouldNotifyVoid(input: {
+  mode: "void" | "comp";
+  actorUserId: string | null;
+  userId: string;
+  overseesFloor: boolean;
+  watchesKitchen: boolean;
+}) {
+  if (input.actorUserId === input.userId) return false;
+  return input.overseesFloor || (input.watchesKitchen && input.mode === "void");
+}
+
+export function voidAlert(input: { id: string; tableLabel: string | null; text: string; mode: "void" | "comp" }): ServiceAlert {
+  return {
+    id: `void:${input.id}`,
+    kind: "void",
+    title: `${input.tableLabel || "Masa"} · ${input.mode === "void" ? "ürün iptali" : "ikram"}`,
+    text: input.text,
   };
 }
 

@@ -6,7 +6,7 @@ export const auditCategories: { id: AuditCategory; label: string; prefixes: stri
   { id: "people", label: "Kullanıcılar ve yetkiler", prefixes: ["tenant.member", "tenant.invitation", "tenant.self_created"] },
   { id: "staff", label: "Personel ve vardiya", prefixes: ["staff.", "shift", "attendance."] },
   { id: "payroll", label: "Maaş ve prim", prefixes: ["payroll."] },
-  { id: "settings", label: "Ayarlar ve QR", prefixes: ["tenant.settings", "qr.", "tenant.context", "platform."] },
+  { id: "settings", label: "Ayarlar, menü ve QR", prefixes: ["tenant.settings", "qr.", "tenant.context", "platform.", "product.", "option_group.", "option_choice."] },
 ];
 
 const actionLabels: Record<string, string> = {
@@ -19,9 +19,15 @@ const actionLabels: Record<string, string> = {
   "order.discount_removed": "Adisyon indirimi kaldırıldı",
   "order_item.discount_applied": "Ürün indirimi uygulandı",
   "order_item.discount_removed": "Ürün indirimi kaldırıldı",
+  "order_item.voided": "Gönderilmiş ürün iptal edildi",
+  "order_item.comped": "Ürün ikram edildi",
   "order.moved": "Adisyon başka masaya taşındı",
   "order.merged": "Adisyonlar birleştirildi",
   "kitchen.ticket_transitioned": "Mutfak fişi durumu değişti",
+  "product.availability_changed": "Ürün tükendi durumu değişti",
+  "option_group.saved": "Ürün seçenek grubu kaydedildi",
+  "option_group.deleted": "Ürün seçenek grubu silindi",
+  "option_choice.availability_changed": "Seçenek tükendi durumu değişti",
   "payment.recorded": "Ödeme alındı",
   "payment.refunded": "İade yapıldı",
   "cash.session_opened": "Kasa vardiyası açıldı",
@@ -72,6 +78,7 @@ const metadataLabels: Record<string, string> = {
   movedItems: "Taşınan kalem",
   minutes: "Dakika",
   name: "Ad",
+  soldOut: "Tükendi",
 };
 
 /** Short, human readable details; identifiers and internal keys are left out. */

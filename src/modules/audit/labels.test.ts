@@ -4,6 +4,7 @@ import { actionLabel, auditCategories, categoryPrefixes, summarizeMetadata } fro
 describe("audit labels", () => {
   it("translates known actions and keeps unknown ones visible", () => {
     expect(actionLabel("order.merged")).toBe("Adisyonlar birleştirildi");
+    expect(actionLabel("order_item.voided")).toBe("Gönderilmiş ürün iptal edildi");
     expect(actionLabel("something.new")).toBe("something.new");
   });
 

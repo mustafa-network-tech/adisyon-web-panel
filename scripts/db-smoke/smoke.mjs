@@ -334,6 +334,77 @@ const qrOption = await rpc("place_customer_order", { target_token: t7Token, targ
 check("a guest can order with options", qrOption.ticketCount === 1, JSON.stringify(qrOption));
 check("the kitchen ticket line keeps its options", (await one("select count(*)::int n from public.order_item_options o join public.order_items i on i.id = o.order_item_id join public.orders ord on ord.id = i.order_id where ord.table_id = $1", [t7])).n === 2);
 
+// --- cancel or comp an item that was already sent ---------------------------------
+await actAs(db, WAITER);
+const t8 = await table("Masa 8");
+const voidOrder = await openOn(t8, [{ productId: kebab, quantity: 3, options: [full] }, { productId: cola, quantity: 2 }]);
+const voidSubmit = await rpc("submit_order", { target_tenant_id: tenant, target_branch_id: branch, target_order_id: voidOrder.orderId, target_expected_version: voidOrder.version, target_idempotency_key: key() });
+check("the order was sent to the kitchen", voidSubmit.ticketCount === 1);
+const itemOf = async (orderId, name) => (await one("select id, quantity, sent_quantity, unit_price_minor from public.order_items where order_id = $1 and product_name = $2 order by unit_price_minor desc limit 1", [orderId, name]));
+const voidArgs = (orderId, itemId, over = {}) => ({ target_tenant_id: tenant, target_branch_id: branch, target_order_id: orderId, target_order_item_id: itemId, target_expected_version: 0, target_quantity: 1, target_mode: "void", target_reason: "müşteri vazgeçti", ...over });
+const kebabLine = await itemOf(voidOrder.orderId, "Kebap");
+const ticketQuantity = async () => Number((await one("select coalesce(sum(quantity), 0)::int n from public.kitchen_ticket_items where order_item_id = $1", [kebabLine.id])).n);
+check("the kitchen ticket holds all three kebabs", (await ticketQuantity()) === 3);
+
+await expectError("void_order_item", voidArgs(voidOrder.orderId, kebabLine.id, { target_expected_version: await orderVersion(voidOrder.orderId), target_reason: "x" }), "invalid_void", "a reason is required");
+await expectError("void_order_item", voidArgs(voidOrder.orderId, kebabLine.id, { target_expected_version: await orderVersion(voidOrder.orderId), target_quantity: 4 }), "void_exceeds_sent", "cannot take back more than was sent");
+await expectError("void_order_item", voidArgs(voidOrder.orderId, kebabLine.id, { target_expected_version: 999 }), "order_version_conflict", "stale version rejected");
+await actAs(db, CASHIER);
+await expectError("void_order_item", voidArgs(voidOrder.orderId, kebabLine.id, { target_expected_version: await orderVersion(voidOrder.orderId) }), "void_denied", "the cashier cannot cancel items");
+await actAs(db, WAITER);
+
+const beforeTotal = Number((await one("select total_minor from public.orders where id = $1", [voidOrder.orderId])).total_minor);
+await rpc("void_order_item", voidArgs(voidOrder.orderId, kebabLine.id, { target_expected_version: await orderVersion(voidOrder.orderId) }));
+const afterVoid = await one("select total_minor from public.orders where id = $1", [voidOrder.orderId]);
+check("voiding one kebab lowers the total by its price", beforeTotal - Number(afterVoid.total_minor) === 36550, JSON.stringify({ beforeTotal, afterVoid }));
+check("the kitchen ticket now shows two kebabs", (await ticketQuantity()) === 2);
+const voidRecord = await one("select mode, quantity, reason, amount_minor, actor_name, table_label from public.order_item_voids where order_id = $1", [voidOrder.orderId]);
+check("the cancellation is recorded with who, where and why", voidRecord.mode === "void" && voidRecord.quantity === 1 && voidRecord.actor_name === "Ece Garson" && voidRecord.table_label === "Masa 8" && Number(voidRecord.amount_minor) === 36550, JSON.stringify(voidRecord));
+
+const colaLine = await itemOf(voidOrder.orderId, "Kola");
+await rpc("void_order_item", voidArgs(voidOrder.orderId, colaLine.id, { target_expected_version: await orderVersion(voidOrder.orderId), target_mode: "comp", target_reason: "müşteri şikayeti" }));
+const colaRows = await all("select quantity, sent_quantity, unit_price_minor, list_unit_price_minor, line_total_minor from public.order_items where order_id = $1 and product_name = 'Kola' order by unit_price_minor desc", [voidOrder.orderId]);
+check("comping one cola splits the line", colaRows.length === 2 && Number(colaRows[0].unit_price_minor) === 4000 && colaRows[0].quantity === 1 && Number(colaRows[1].unit_price_minor) === 0 && Number(colaRows[1].list_unit_price_minor) === 4000, JSON.stringify(colaRows));
+const afterComp = await one("select total_minor from public.orders where id = $1", [voidOrder.orderId]);
+check("a comp lowers the total by the list price", Number(afterVoid.total_minor) - Number(afterComp.total_minor) === 4000, JSON.stringify(afterComp));
+await expectError("void_order_item", voidArgs(voidOrder.orderId, (await one("select id from public.order_items where order_id = $1 and unit_price_minor = 0", [voidOrder.orderId])).id, { target_expected_version: await orderVersion(voidOrder.orderId), target_mode: "comp" }), "already_free", "a free item cannot be comped again");
+
+// everything taken back: the adisyon closes as cancelled and the ticket disappears from the kitchen
+const remainingKebab = await itemOf(voidOrder.orderId, "Kebap");
+await rpc("void_order_item", voidArgs(voidOrder.orderId, remainingKebab.id, { target_expected_version: await orderVersion(voidOrder.orderId), target_quantity: 2 }));
+const soloOrder = await openOn(await table("Masa 9"), [{ productId: kebab, quantity: 1, options: [full] }]);
+await rpc("submit_order", { target_tenant_id: tenant, target_branch_id: branch, target_order_id: soloOrder.orderId, target_expected_version: soloOrder.version, target_idempotency_key: key() });
+const soloLine = await itemOf(soloOrder.orderId, "Kebap");
+const soloResult = await rpc("void_order_item", voidArgs(soloOrder.orderId, soloLine.id, { target_expected_version: await orderVersion(soloOrder.orderId) }));
+check("voiding the last item cancels the adisyon", soloResult.orderCancelled === true && (await one("select status from public.orders where id = $1", [soloOrder.orderId])).status === "cancelled", JSON.stringify(soloResult));
+check("its kitchen ticket is cancelled", (await one("select count(*)::int n from public.kitchen_tickets where order_id = $1 and status = 'cancelled'", [soloOrder.orderId])).n === 1);
+
+// payments keep the adisyon honest
+const t10 = await table("Masa 10");
+const paidOrder = await openOn(t10, [{ productId: cola, quantity: 2 }]);
+await rpc("submit_order", { target_tenant_id: tenant, target_branch_id: branch, target_order_id: paidOrder.orderId, target_expected_version: paidOrder.version, target_idempotency_key: key() });
+const paidLine = await itemOf(paidOrder.orderId, "Kola");
+await actAs(db, OWNER);
+await rpc("record_order_payments", { target_tenant_id: tenant, target_branch_id: branch, target_order_id: paidOrder.orderId, target_cash_session_id: cashSession, target_payments: [{ method: "cash", amountMinor: 4000, allocations: [{ orderItemId: paidLine.id, quantity: 1 }] }], target_idempotency_key: key() });
+await actAs(db, WAITER);
+await expectError("void_order_item", voidArgs(paidOrder.orderId, paidLine.id, { target_expected_version: await orderVersion(paidOrder.orderId), target_quantity: 2 }), "void_item_paid", "a paid unit cannot be taken back");
+await rpc("void_order_item", voidArgs(paidOrder.orderId, paidLine.id, { target_expected_version: await orderVersion(paidOrder.orderId), target_quantity: 1 }));
+check("the unpaid unit could be taken back", (await one("select total_minor from public.orders where id = $1", [paidOrder.orderId])).total_minor == 4000);
+
+const t11 = await table("Masa 11");
+const partialOrder = await openOn(t11, [{ productId: cola, quantity: 2 }]);
+await rpc("submit_order", { target_tenant_id: tenant, target_branch_id: branch, target_order_id: partialOrder.orderId, target_expected_version: partialOrder.version, target_idempotency_key: key() });
+await actAs(db, OWNER);
+await rpc("record_order_payments", { target_tenant_id: tenant, target_branch_id: branch, target_order_id: partialOrder.orderId, target_cash_session_id: cashSession, target_payments: [{ method: "card", amountMinor: 6000 }], target_idempotency_key: key() });
+await actAs(db, WAITER);
+await expectError("void_order_item", voidArgs(partialOrder.orderId, (await itemOf(partialOrder.orderId, "Kola")).id, { target_expected_version: await orderVersion(partialOrder.orderId) }), "void_below_paid", "the total may not fall below what was collected");
+check("the failed void left no record behind", (await one("select count(*)::int n from public.order_item_voids where order_id = $1", [partialOrder.orderId])).n === 0);
+
+// managers see the numbers in the report
+await actAs(db, MANAGER);
+const voidReport = await rpc("sales_report", reportArgs());
+check("the report counts cancellations and comps", voidReport.summary.voidCount >= 5 && voidReport.summary.compMinor === 4000 && voidReport.summary.voidMinor > 0, JSON.stringify(voidReport.summary));
+
 // --- table operations (phase F) ---------------------------------------------
 await actAs(db, WAITER);
 const t4 = await table("Masa 4");

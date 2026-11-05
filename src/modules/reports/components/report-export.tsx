@@ -22,6 +22,8 @@ export function buildReportCsv(report: SalesReport) {
     ["Ürün indirimi", money(summary.itemDiscountMinor)],
     ["Net satış", money(summary.netMinor)],
     ["KDV", money(summary.taxMinor)],
+    ["İptal edilen ürün tutarı", money(summary.voidMinor ?? 0)],
+    ["İkram tutarı", money(summary.compMinor ?? 0)],
     ["Nakit tahsilat", money(payments.cashMinor)],
     ["Kart tahsilat", money(payments.cardMinor)],
     ["Nakit iade", money(payments.cashRefundMinor)],

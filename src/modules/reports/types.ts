@@ -12,6 +12,10 @@ export type SalesReport = {
     taxMinor: number;
     averageMinor: number;
     cancelledCount: number;
+    /** Units cancelled / comped after they were sent, and their list value. */
+    voidCount: number;
+    voidMinor: number;
+    compMinor: number;
   };
   payments: {
     cashMinor: number;

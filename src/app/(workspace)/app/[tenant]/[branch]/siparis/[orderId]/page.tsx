@@ -58,6 +58,7 @@ export default async function OrderPage({
         products={products}
         branding={branding}
         canDiscount={hasAnyPermission(context.permissions, ["discounts.apply"])}
+        canVoid={hasAnyPermission(context.permissions, ["orders.cancel"])}
         tableOperations={dining ? {
           moveTargets: dining.tables
             .filter((table) => !table.activeOrderId && table.id !== order.tableId && (table.status === "available" || table.status === "reserved"))

@@ -10,6 +10,7 @@ import { OptionPicker } from "@/modules/catalog/components/option-picker";
 import { optionLabel, startingPriceMinor } from "@/modules/catalog/options";
 import { addToDraft, changeLineQuantity, draftItems } from "../draft";
 import { DiscountPanel } from "./discount-panel";
+import { VoidPanel } from "./void-panel";
 import { TableOperations, type MergeTarget, type MoveTarget } from "./table-operations";
 import { buildBillReceipt } from "@/modules/receipts/builders";
 import { PaperWidthSelect, useReceiptPrinter } from "@/modules/receipts/components/receipt-print";
@@ -36,11 +37,13 @@ type OrderEditorProps = {
   products: MenuProduct[];
   branding: ReceiptBranding;
   canDiscount: boolean;
+  /** May cancel or comp items that were already sent (orders.cancel). */
+  canVoid?: boolean;
   /** Present only for users who may move or merge adisyons. */
   tableOperations?: { moveTargets: MoveTarget[]; mergeTargets: MergeTarget[] };
 };
 
-export function OrderEditor({ tenant, branch, branchId, order, products, branding, canDiscount, tableOperations }: OrderEditorProps) {
+export function OrderEditor({ tenant, branch, branchId, order, products, branding, canDiscount, canVoid = false, tableOperations }: OrderEditorProps) {
   const { print, receiptArea } = useReceiptPrinter();
   const router = useRouter();
   const [draft, setDraft] = useState<OrderLine[]>([]);
@@ -158,6 +161,7 @@ export function OrderEditor({ tenant, branch, branchId, order, products, brandin
 
     <aside className="space-y-5">
       {canDiscount && <DiscountPanel tenant={tenant} branch={branch} order={order} />}
+      {canVoid && <VoidPanel tenant={tenant} branch={branch} order={order} />}
       {tableOperations && editable && <TableOperations tenant={tenant} branch={branch} orderId={order.id} version={order.version} moveTargets={tableOperations.moveTargets} mergeTargets={tableOperations.mergeTargets} />}
       <div className="rounded-[24px] border border-[#dfe5e1] bg-white p-5"><div className="flex items-center gap-2"><ChefHat size={20} className="text-[#e8623a]" /><h2 className="text-lg font-black">Mutfağa gönder</h2></div><p className="mt-2 text-xs leading-5 text-[#7a8580]">Yalnızca henüz gönderilmemiş miktarlar için istasyon bazlı fiş üretilir. Doğrudan servis ürünleri (su, kola vb.) mutfağa gitmez.</p>{stationMissing && <p className="mt-3 rounded-xl bg-[#fff8e7] p-3 text-xs font-bold text-[#8a6415]">Bekleyen ürünlerden en az birinin mutfak istasyonu yok. Menü ayarlarından istasyon atayın.</p>}<button type="button" onClick={submitOrder} disabled={!editable || isPending || pendingItemCount === 0 || stationMissing} className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#e8623a] px-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-45"><Send size={17} />{isPending ? "İşleniyor…" : `${pendingItemCount} ürünü gönder`}</button></div>
 

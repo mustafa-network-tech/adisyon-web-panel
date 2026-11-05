@@ -50,11 +50,12 @@ export function ReportView({ report }: { report: SalesReport }) {
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <Tile label="Net satış" value={formatMoney(summary.netMinor)} hint={`${summary.orderCount} kapanan adisyon`} tone="good" />
         <Tile label="Ortalama adisyon" value={formatMoney(summary.averageMinor)} hint={summary.guestCount ? `${summary.guestCount} kişi` : undefined} />
         <Tile label="İndirim" value={formatMoney(summary.discountMinor + summary.itemDiscountMinor)} hint={`Adisyon ${formatMoney(summary.discountMinor)} · Ürün ${formatMoney(summary.itemDiscountMinor)}`} tone={summary.discountMinor + summary.itemDiscountMinor > 0 ? "warn" : "default"} />
         <Tile label="KDV" value={formatMoney(summary.taxMinor)} hint={`KDV hariç ${formatMoney(summary.netMinor - summary.taxMinor)}`} />
+        <Tile label="İptal / ikram" value={formatMoney((summary.voidMinor ?? 0) + (summary.compMinor ?? 0))} hint={`${summary.voidCount ?? 0} kayıt · iptal ${formatMoney(summary.voidMinor ?? 0)} · ikram ${formatMoney(summary.compMinor ?? 0)}`} tone={(summary.voidMinor ?? 0) + (summary.compMinor ?? 0) > 0 ? "warn" : "default"} />
       </div>
 
       <div className="grid gap-5 xl:grid-cols-2">

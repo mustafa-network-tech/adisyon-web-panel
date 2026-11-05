@@ -111,7 +111,7 @@ export function AppShell({ tenant, branch, tenantName, branchName, userName, use
           </div>
         </header>
         <main className="min-h-[calc(100dvh-76px)] pb-24 lg:pb-0">{children}</main>
-        {hasAnyPermission(permissions, ["tables.read"]) && <ServiceAlerts tenant={tenant} branch={branch} branchId={branchId} userId={userId} overseesFloor={hasAnyPermission(permissions, ["shifts.manage"])} />}
+        {hasAnyPermission(permissions, ["tables.read", "kitchen.read"]) && <ServiceAlerts tenant={tenant} branch={branch} branchId={branchId} userId={userId} overseesFloor={hasAnyPermission(permissions, ["shifts.manage"])} receivesCalls={hasAnyPermission(permissions, ["tables.read"])} watchesKitchen={hasAnyPermission(permissions, ["kitchen.read"])} />}
       </div>
 
       <nav className="fixed inset-x-3 bottom-3 z-40 grid rounded-2xl border border-[#dce3df] bg-white/95 p-2 shadow-[0_16px_45px_rgb(23_33_29/0.18)] backdrop-blur-xl lg:hidden" style={{ gridTemplateColumns: `repeat(${navItems.length}, minmax(0, 1fr))` }} aria-label="Mobil çalışma alanı menüsü">
