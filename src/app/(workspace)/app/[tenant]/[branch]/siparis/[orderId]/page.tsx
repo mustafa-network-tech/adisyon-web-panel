@@ -7,6 +7,7 @@ import { hasAnyPermission, workspaceSections } from "@/lib/permissions";
 import { getCatalogSnapshot } from "@/modules/catalog/repository";
 import { OrderEditor } from "@/modules/orders/components/order-editor";
 import { getOrderSnapshot } from "@/modules/orders/repository";
+import { getDiningSnapshot } from "@/modules/tables/repository";
 import { getReceiptBranding } from "@/modules/receipts/repository";
 
 export const metadata: Metadata = { title: "Sipariş" };
@@ -23,10 +24,12 @@ export default async function OrderPage({
     branch,
     workspaceSections.orders,
   );
-  const [order, catalog, branding] = await Promise.all([
+  const canMove = hasAnyPermission(context.permissions, ["orders.update"]);
+  const [order, catalog, branding, dining] = await Promise.all([
     getOrderSnapshot(context.tenantId, context.branchId, orderId),
     getCatalogSnapshot(context.tenantId, context.branchId),
     getReceiptBranding(context),
+    canMove ? getDiningSnapshot(context.tenantId, context.branchId) : Promise.resolve(null),
   ]);
   if (!order) notFound();
 
@@ -55,6 +58,14 @@ export default async function OrderPage({
         products={products}
         branding={branding}
         canDiscount={hasAnyPermission(context.permissions, ["discounts.apply"])}
+        tableOperations={dining ? {
+          moveTargets: dining.tables
+            .filter((table) => !table.activeOrderId && table.id !== order.tableId && (table.status === "available" || table.status === "reserved"))
+            .map((table) => ({ id: table.id, label: table.label, areaName: table.areaName })),
+          mergeTargets: dining.tables
+            .filter((table) => table.activeOrderId && table.activeOrderId !== order.id)
+            .map((table) => ({ orderId: table.activeOrderId as string, tableLabel: table.label, orderNumber: table.activeOrderNumber || 0 })),
+        } : undefined}
       />
     </section>
   );

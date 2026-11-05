@@ -55,7 +55,7 @@ for (const [id, name] of [[OWNER, "Ayşe Sahip"], [WAITER, "Ece Garson"], [MANAG
 }
 
 await actAs(db, OWNER);
-const created = await rpc("create_my_tenant", { target_name: "Test Lokanta", target_branch_name: "Merkez" });
+await rpc("create_my_tenant", { target_name: "Test Lokanta", target_branch_name: "Merkez" });
 const tenant = (await one("select id from public.tenants limit 1")).id;
 const branch = (await one("select id from public.branches where tenant_id = $1", [tenant])).id;
 const roleId = async (code) => (await one("select id from public.roles where tenant_id = $1 and code = $2", [tenant, code])).id;
@@ -71,7 +71,7 @@ async function addMember(userId, roleCode) {
 }
 const ownerMembership = (await one("select id from public.tenant_memberships where user_id = $1", [OWNER])).id;
 const waiterMembership = await addMember(WAITER, "waiter");
-const managerMembership = await addMember(MANAGER, "manager");
+await addMember(MANAGER, "manager");
 check("staff card auto-created for new members", (await one("select count(*)::int n from public.staff_profiles where tenant_id = $1", [tenant])).n === 3);
 
 // --- catalogue --------------------------------------------------------------
@@ -202,6 +202,26 @@ const colaItem = (await one("select id from public.order_items where order_id = 
 await expectError("record_order_payments", { target_tenant_id: tenant, target_branch_id: branch, target_order_id: open2.orderId, target_cash_session_id: cashSession, target_payments: [{ method: "cash", amountMinor: 4000, allocations: [{ orderItemId: colaItem, quantity: 1 }] }], target_idempotency_key: key() }, "allocation_not_allowed_with_discount", "item split blocked with a discount");
 const paid = await rpc("record_order_payments", { target_tenant_id: tenant, target_branch_id: branch, target_order_id: open2.orderId, target_cash_session_id: cashSession, target_payments: [{ method: "cash", amountMinor: 10000 }], target_idempotency_key: key() });
 check("paying the discounted total closes the order", paid.orderClosed === true, JSON.stringify(paid));
+
+// --- table operations (phase F) ---------------------------------------------
+await actAs(db, WAITER);
+const t4 = await table("Masa 4");
+const orderVersion = async (id) => Number((await one("select version from public.orders where id = $1", [id])).version);
+await expectError("move_order_to_table", { target_tenant_id: tenant, target_branch_id: branch, target_order_id: open1.orderId, target_expected_version: await orderVersion(open1.orderId), target_table_id: t3 }, "table_has_active_order", "cannot move onto an occupied table");
+await expectError("move_order_to_table", { target_tenant_id: tenant, target_branch_id: branch, target_order_id: open1.orderId, target_expected_version: await orderVersion(open1.orderId), target_table_id: t1 }, "same_table", "cannot move to the same table");
+await expectError("move_order_to_table", { target_tenant_id: tenant, target_branch_id: branch, target_order_id: open1.orderId, target_expected_version: 999, target_table_id: t4 }, "order_version_conflict", "stale version rejected");
+const moved = await rpc("move_order_to_table", { target_tenant_id: tenant, target_branch_id: branch, target_order_id: open1.orderId, target_expected_version: await orderVersion(open1.orderId), target_table_id: t4 });
+check("order moved to a free table", (await one("select table_id from public.orders where id = $1", [open1.orderId])).table_id === t4 && moved.version > 0);
+
+const qrOrderId = (await one("select id from public.orders where table_id = $1", [t3])).id;
+const mergeResult = await rpc("merge_orders", { target_tenant_id: tenant, target_branch_id: branch, target_source_order_id: qrOrderId, target_source_version: await orderVersion(qrOrderId), target_destination_order_id: open1.orderId, target_destination_version: await orderVersion(open1.orderId) });
+check("merge moves the items", mergeResult.movedItems === 1, JSON.stringify(mergeResult));
+check("merged source is cancelled and empty", (await one("select status, total_minor from public.orders where id = $1", [qrOrderId])).status === "cancelled");
+const mergedTotals = await one("select total_minor from public.orders where id = $1", [open1.orderId]);
+check("destination total includes the merged items", Number(mergedTotals.total_minor) === 2 * 36550 + 2 * 4000 + 4000, JSON.stringify(mergedTotals));
+check("merged customer line keeps its QR mark", (await one("select count(*)::int n from public.order_items where order_id = $1 and source = 'qr'", [open1.orderId])).n === 1);
+check("the freed table can take a new order", (await one("select count(*)::int n from public.orders where table_id = $1 and status not in ('closed','cancelled')", [t3])).n === 0);
+await expectError("merge_orders", { target_tenant_id: tenant, target_branch_id: branch, target_source_order_id: open1.orderId, target_source_version: await orderVersion(open1.orderId), target_destination_order_id: open1.orderId, target_destination_version: await orderVersion(open1.orderId) }, "same_order", "cannot merge an order into itself");
 
 // --- result ------------------------------------------------------------------
 console.log(`passed: ${passed}`);

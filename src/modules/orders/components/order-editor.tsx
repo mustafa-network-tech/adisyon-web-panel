@@ -7,6 +7,7 @@ import { formatMoney } from "@/lib/money";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { MenuProduct } from "@/modules/catalog/types";
 import { DiscountPanel } from "./discount-panel";
+import { TableOperations, type MergeTarget, type MoveTarget } from "./table-operations";
 import { buildBillReceipt } from "@/modules/receipts/builders";
 import { PaperWidthSelect, useReceiptPrinter } from "@/modules/receipts/components/receipt-print";
 import type { ReceiptBranding } from "@/modules/receipts/types";
@@ -32,9 +33,11 @@ type OrderEditorProps = {
   products: MenuProduct[];
   branding: ReceiptBranding;
   canDiscount: boolean;
+  /** Present only for users who may move or merge adisyons. */
+  tableOperations?: { moveTargets: MoveTarget[]; mergeTargets: MergeTarget[] };
 };
 
-export function OrderEditor({ tenant, branch, branchId, order, products, branding, canDiscount }: OrderEditorProps) {
+export function OrderEditor({ tenant, branch, branchId, order, products, branding, canDiscount, tableOperations }: OrderEditorProps) {
   const { print, receiptArea } = useReceiptPrinter();
   const router = useRouter();
   const [draft, setDraft] = useState<OrderLine[]>([]);
@@ -137,6 +140,7 @@ export function OrderEditor({ tenant, branch, branchId, order, products, brandin
 
     <aside className="space-y-5">
       {canDiscount && <DiscountPanel tenant={tenant} branch={branch} order={order} />}
+      {tableOperations && editable && <TableOperations tenant={tenant} branch={branch} orderId={order.id} version={order.version} moveTargets={tableOperations.moveTargets} mergeTargets={tableOperations.mergeTargets} />}
       <div className="rounded-[24px] border border-[#dfe5e1] bg-white p-5"><div className="flex items-center gap-2"><ChefHat size={20} className="text-[#e8623a]" /><h2 className="text-lg font-black">Mutfağa gönder</h2></div><p className="mt-2 text-xs leading-5 text-[#7a8580]">Yalnızca henüz gönderilmemiş miktarlar için istasyon bazlı fiş üretilir. Doğrudan servis ürünleri (su, kola vb.) mutfağa gitmez.</p>{stationMissing && <p className="mt-3 rounded-xl bg-[#fff8e7] p-3 text-xs font-bold text-[#8a6415]">Bekleyen ürünlerden en az birinin mutfak istasyonu yok. Menü ayarlarından istasyon atayın.</p>}<button type="button" onClick={submitOrder} disabled={!editable || isPending || pendingItemCount === 0 || stationMissing} className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#e8623a] px-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-45"><Send size={17} />{isPending ? "İşleniyor…" : `${pendingItemCount} ürünü gönder`}</button></div>
 
       <div className="rounded-[24px] border border-[#dfe5e1] bg-white p-5"><div className="flex items-center gap-2"><Plus size={19} className="text-[#e8623a]" /><h2 className="text-lg font-black">Ürün ekle</h2></div><div className="mt-4 max-h-64 space-y-2 overflow-y-auto">{products.map((product) => { const line = draft.find((item) => item.productId === product.id); return <div key={product.id} className="flex items-center gap-2 rounded-xl bg-[#f5f7f6] p-3"><button type="button" onClick={() => changeDraft(product, 1)} disabled={!editable || isPending} className="min-w-0 flex-1 text-left"><span className="block truncate text-xs font-black">{product.name}</span><span className="mt-1 block text-[11px] font-bold text-[#e8623a]">{formatMoney(product.priceMinor)}</span></button>{line && <div className="flex items-center rounded-lg bg-white"><button type="button" onClick={() => changeDraft(product, -1)} className="grid size-8 place-items-center" aria-label={`${product.name} azalt`}><Minus size={13} /></button><span className="w-6 text-center text-xs font-black">{line.quantity}</span><button type="button" onClick={() => changeDraft(product, 1)} className="grid size-8 place-items-center" aria-label={`${product.name} artır`}><Plus size={13} /></button></div>}</div>; })}{products.length === 0 && <p className="py-6 text-center text-xs font-semibold text-[#8a948f]">Aktif ürün yok.</p>}</div><button type="button" onClick={appendItems} disabled={!editable || isPending || draft.length === 0} className="mt-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#17211d] text-sm font-black text-white disabled:opacity-45"><Plus size={16} />Seçilenleri ekle</button></div>
