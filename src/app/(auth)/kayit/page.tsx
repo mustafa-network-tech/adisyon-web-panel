@@ -17,6 +17,7 @@ export default function SignupPage() {
         <h1 className="mt-5 text-3xl font-black tracking-[-0.04em] text-[color:var(--c-ink)]">Üye olun</h1>
         <p className="mt-3 text-sm leading-6 text-[#68736e]">Üyeliğinizi oluşturduktan sonra işletmenizi kurabilirsiniz.</p>
         <SignupForm />
+        <p className="mt-5 text-center text-xs leading-5 text-[#68736e]">Üye olarak <Link href="/kullanim-kosullari" className="font-bold underline underline-offset-2">Kullanım Koşulları</Link>&apos;nı kabul etmiş, <Link href="/gizlilik-politikasi" className="font-bold underline underline-offset-2">Gizlilik Politikası</Link> ve <Link href="/kvkk-aydinlatma-metni" className="font-bold underline underline-offset-2">KVKK Aydınlatma Metni</Link>&apos;ni okumuş olursunuz. 7 günlük deneme süresi başlar.</p>
         <p className="mt-6 text-center text-sm font-semibold text-[#68736e]">
           Zaten üye misiniz?{" "}
           <Link href="/giris" className="font-black text-[color:var(--c-accent-d4)] hover:underline">Giriş yapın</Link>

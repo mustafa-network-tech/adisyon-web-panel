@@ -3,6 +3,7 @@ import {
   ArrowRight,
   BarChart3,
   Check,
+  Mail,
   ChefHat,
   CreditCard,
   LayoutGrid,
@@ -11,6 +12,8 @@ import {
   Users,
 } from "lucide-react";
 import { Brand } from "@/components/brand";
+import { contactEmail } from "@/lib/site";
+import { legalLinks } from "@/lib/legal";
 import { PricingSection } from "@/components/marketing/pricing-section";
 
 // Regenerated hourly so the launch prices disappear by themselves after the campaign deadline.
@@ -181,10 +184,27 @@ export default function MarketingPage() {
       </section>
 
       <footer id="iletisim" className="bg-[color:var(--c-ink-deep)] py-12 text-white">
-        <div className="mx-auto flex max-w-7xl flex-col gap-8 px-5 sm:px-8 md:flex-row md:items-center md:justify-between lg:px-10">
-          <Brand inverse />
-          <p className="text-sm text-white/65">MK Digital Systems · Restoran operasyonları için tasarlandı.</p>
-          <Link href="/giris" className="inline-flex min-h-11 items-center gap-2 self-start rounded-xl border border-white/15 px-4 text-sm font-bold hover:bg-white/5 md:self-auto">İşletme girişi <ArrowRight size={15} /></Link>
+        <div className="mx-auto grid max-w-7xl gap-10 px-5 sm:px-8 md:grid-cols-[1.2fr_1fr_1fr] lg:px-10">
+          <div>
+            <Brand inverse />
+            <p className="mt-5 max-w-sm text-sm leading-6 text-white/70">MK Digital Systems · Restoran operasyonları için tasarlandı.</p>
+          </div>
+          <div>
+            <h2 className="text-xs font-black uppercase tracking-[0.14em] text-white/60">İletişim ve destek</h2>
+            <ul className="mt-4 space-y-2.5 text-sm font-semibold">
+              <li><a href={`mailto:${contactEmail}`} className="inline-flex items-center gap-2 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"><Mail size={15} aria-hidden="true" />{contactEmail}</a></li>
+              <li><Link href="/destek" className="underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">Destek sayfası</Link></li>
+              <li><Link href="/giris" className="underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">İşletme girişi</Link></li>
+            </ul>
+          </div>
+          <div>
+            <h2 className="text-xs font-black uppercase tracking-[0.14em] text-white/60">Yasal</h2>
+            <ul className="mt-4 space-y-2.5 text-sm font-semibold">
+              {legalLinks.map((link) => (
+                <li key={link.href}><Link href={link.href} className="underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">{link.label}</Link></li>
+              ))}
+            </ul>
+          </div>
         </div>
       </footer>
     </main>

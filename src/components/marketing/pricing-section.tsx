@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, CalendarClock, Check, Star } from "lucide-react";
+import { contactEmail } from "@/lib/site";
 import {
   LAUNCH_MONTHS,
   formatTl,
@@ -67,7 +68,7 @@ export function PricingSection() {
             </li>
           )}
           <li>İlk 12 aydan sonraki yenilemeler güncel tarife üzerinden yapılabilir.</li>
-          <li>Hesabınızı oluşturduktan sonra aboneliğiniz ekibimiz tarafından etkinleştirilir.</li>
+          <li>Hesabınızı oluşturduktan sonra aboneliğiniz ekibimiz tarafından etkinleştirilir. Denemeniz 7 gündür; sorularınız için <a href={`mailto:${contactEmail}`} className="font-bold text-[#a73d21] underline underline-offset-4">{contactEmail}</a> adresine yazabilirsiniz.</li>
         </ul>
 
         <p className="mt-8 text-sm font-bold text-[color:var(--c-ink)]">

@@ -43,7 +43,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         <Brand inverse />
         <div className="relative max-w-xl">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-[color:var(--c-accent-light)]">Operasyon merkezi</p>
-          <h1 className="mt-5 text-5xl font-black leading-[1.02] tracking-[-0.05em] xl:text-6xl">Servise hazır olduğunuzda, sistem de hazır.</h1>
+          <h2 className="mt-5 text-5xl font-black leading-[1.02] tracking-[-0.05em] xl:text-6xl">Servise hazır olduğunuzda, sistem de hazır.</h2>
           <p className="mt-6 max-w-lg text-lg leading-8 text-white/60">Tüm ekibiniz için hızlı, güvenli ve işletmenize özel bir çalışma alanı.</p>
           <div className="mt-10 grid gap-3 sm:grid-cols-3">
             {[[ShieldCheck, "Güvenli erişim"], [Wifi, "PWA hazır"], [CheckCircle2, "Anlık durum"]].map(([Icon, label]) => {
@@ -60,7 +60,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <div className="lg:hidden"><Brand /></div>
           <div className="mt-9 lg:mt-0">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-[color:var(--c-accent-d3)]">Hoş geldiniz</p>
-            <h2 className="mt-3 text-3xl font-black tracking-[-0.04em] text-[color:var(--c-ink)]">İşletmenize giriş yapın</h2>
+            <h1 className="mt-3 text-3xl font-black tracking-[-0.04em] text-[color:var(--c-ink)]">İşletmenize giriş yapın</h1>
             <p className="mt-3 text-sm leading-6 text-[#68736e]">Size tanımlanan e-posta ve şifreyle devam edin.</p>
           </div>
           {notice && (
@@ -70,7 +70,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           )}
           <LoginForm configured={configured} nextPath={nextPath} />
           <p className="mt-6 text-center text-sm font-semibold text-[#68736e]">Hesabınız yok mu? <Link href="/kayit" className="font-black text-[color:var(--c-accent-d4)] hover:underline">Üye olun</Link></p>
-          <p className="mt-4 text-center text-xs leading-5 text-[#68736e]">Giriş yaparak güvenlik ve kullanım koşullarını kabul etmiş olursunuz.</p>
+          <p className="mt-4 text-center text-xs leading-5 text-[#68736e]">Giriş yaparak <Link href="/kullanim-kosullari" className="font-bold underline underline-offset-2">Kullanım Koşulları</Link>&apos;nı kabul etmiş olursunuz. <Link href="/gizlilik-politikasi" className="font-bold underline underline-offset-2">Gizlilik</Link> ve <Link href="/kvkk-aydinlatma-metni" className="font-bold underline underline-offset-2">KVKK Aydınlatma Metni</Link>.</p>
         </div>
       </section>
     </main>

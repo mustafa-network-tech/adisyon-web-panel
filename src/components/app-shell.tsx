@@ -14,12 +14,14 @@ import {
   BarChart3,
   Bell,
   CalendarDays,
+  LifeBuoy,
   LogOut,
   Settings,
   ShieldCheck,
   Wifi,
 } from "lucide-react";
 import { contactEmail } from "@/lib/site";
+import { supportMailto } from "@/lib/support";
 import type { ThemeId } from "@/modules/theme/themes";
 import { ServiceAlerts } from "@/modules/notifications/components/service-alerts";
 import { signOutAction } from "@/modules/auth/actions";
@@ -100,6 +102,7 @@ export function AppShell({ tenant, branch, tenantName, branchName, userName, use
             <p className="flex items-center gap-2 text-xs font-bold text-[#7ed8ba]"><ShieldCheck size={15} /> {supportMode ? "Süreli destek erişimi" : "RLS korumalı oturum"}</p>
             <p className="mt-2 text-[10px] leading-4 text-white/40">{supportMode ? "Bu erişim gerekçeli ve audit log ile izlenir." : "Yetkiler aktif rol ve şube atamanızdan alınır."}</p>
           </div>
+          <a href={supportMailto({ business: tenantName, branch: branchName, user: userName })} className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-sm font-bold text-white/45 hover:bg-white/5 hover:text-white"><LifeBuoy size={18} /> Destek</a>
           <form action={signOutAction}><button type="submit" className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-sm font-bold text-white/45 hover:bg-white/5 hover:text-white"><LogOut size={18} /> Oturumu kapat</button></form>
         </div>
       </aside>
