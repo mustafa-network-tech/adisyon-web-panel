@@ -1,5 +1,11 @@
 # MK Adisyon Web — Faz 3 geliştirme planı
 
+## Durum (2026-11-05)
+
+- Faz A–F tamamlandı ve yayına gönderildi (migration 0015–0025).
+- Faz G ertelendi: termal yazıcı köprüsü, yazarkasa, stok/reçete, çevrimdışı sipariş kuyruğu, abonelik ödemesi, paket servis entegrasyonları ve yedekleme politikası. Gerekli donanım/hesap bilgileri (yazarkasa markası, yazıcı modeli, ödeme sağlayıcısı) şu an yok; gerektiğinde yeniden planlanacak.
+- Her migration değişikliğinden sonra `pnpm db:check-sql` ve `pnpm db:smoke` çalıştırılmalıdır.
+
 Durum: 2026-11-05 itibarıyla onaylanan kararlara göre hazırlandı.
 
 ## Onaylanan kararlar

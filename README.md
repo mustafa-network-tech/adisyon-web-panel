@@ -17,6 +17,10 @@ Sistemde aşağıdaki temel modüller bulunmaktadır:
 - Kasa, ödeme ve iade işlemleri
 - Kullanıcı, rol ve şube yetkilendirmesi
 - İşletme ve platform yönetimi
+- Fiş çıktıları (mutfak, adisyon, hesap) ve QR menü ile garson çağırma
+- İndirim, masa taşıma ve adisyon birleştirme
+- Personel kartı, vardiya planı, puantaj onayı ve maaş/prim kaydı
+- Satış raporları ve denetim kaydı
 - PWA desteği
 
 ## Yayın bilgileri
