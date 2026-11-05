@@ -218,7 +218,7 @@ export const termsOfUse: LegalDocument = {
       id: "abonelik",
       heading: "3. Deneme, abonelik ve ücretler",
       items: [
-        "Yeni işletme hesapları için 7 günlük deneme süresi tanınır. Deneme süresinin sonunda hizmeti sürdürmek için bir paket seçilmesi gerekir.",
+        "Yeni işletmelere 7 günlük deneme süresi tanınır; yazılım denemesi ücretsizdir. Deneme süresi hesabın oluşturulduğu anda değil, işletmenin ilk kurulumu (salonlar, masalar, mutfak istasyonları ve menü) tamamlandıktan sonra işletme sahibinin denemeyi başlatmasıyla başlar. Kurulum işletme tarafından yapılabileceği gibi MK Digital Systems ekibinden bu dört alanda destek de istenebilir. Deneme süresinin sonunda hizmeti sürdürmek için bir paket etkinleştirilmesi gerekir; deneme sona erdiğinde verileriniz silinmez, hesabınız salt okunur olur.",
         "Paketler, aylık ücretler ve varsa kampanya koşulları sitedeki fiyat listesinde yayımlanır. Fiyatlara KDV dahil değildir.",
         "Abonelikler hesabınız oluşturulduktan sonra ekibimiz tarafından etkinleştirilir. Ödeme ve faturalandırma bilgileri etkinleştirme sırasında bildirilir.",
         "Kampanyalı fiyat, kampanya koşullarında belirtilen süre boyunca geçerlidir; süre sonunda paketin normal fiyatı uygulanır. Fiyat listesini ileriye dönük olarak güncelleme hakkımız saklıdır.",

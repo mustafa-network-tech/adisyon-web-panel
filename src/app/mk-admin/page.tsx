@@ -11,6 +11,8 @@ import {
 import { requirePlatformAdmin } from "@/lib/auth/access";
 import { signOutAction } from "@/modules/auth/actions";
 import { getPlatformMembers, getPlatformOverview } from "@/modules/platform-admin/data";
+import { SetupRequests } from "@/modules/platform-admin/components/setup-requests";
+import { getSetupRequests } from "@/modules/platform-admin/setup-data";
 import { MembersPanel } from "@/modules/platform-admin/components/members-panel";
 import { PlatformActionsPanel } from "@/modules/platform-admin/components/platform-actions-panel";
 import type { SubscriptionStatus } from "@/modules/platform-admin/types";
@@ -45,10 +47,11 @@ export default async function PlatformAdminPage({
   const { q } = await searchParams;
   let overview = null;
   let members: Awaited<ReturnType<typeof getPlatformMembers>> = [];
+  let setupRequests: Awaited<ReturnType<typeof getSetupRequests>> = [];
   let loadError = false;
 
   try {
-    [overview, members] = await Promise.all([getPlatformOverview(q), getPlatformMembers()]);
+    [overview, members, setupRequests] = await Promise.all([getPlatformOverview(q), getPlatformMembers(), getSetupRequests()]);
   } catch {
     loadError = true;
   }
@@ -86,6 +89,8 @@ export default async function PlatformAdminPage({
         <div className="mt-7 grid grid-cols-2 gap-3 lg:grid-cols-4">
           {metrics.map(([Icon, label, value]) => <article key={label} className="rounded-2xl border border-[#dfe5e1] bg-white p-4 sm:p-5"><Icon size={20} className="text-[color:var(--c-accent)]" /><p className="mt-5 text-xs font-bold text-[#8a948f]">{label}</p><p className="mt-1 text-2xl font-black">{value}</p></article>)}
         </div>
+
+        <SetupRequests requests={setupRequests} />
 
         <div className="mt-5 overflow-hidden rounded-[24px] border border-[#dfe5e1] bg-white">
           <div className="flex flex-col gap-4 border-b border-[#e5e9e7] p-5 sm:flex-row sm:items-center sm:justify-between">

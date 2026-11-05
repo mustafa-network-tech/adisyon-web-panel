@@ -40,5 +40,29 @@ export async function resolveDefaultDestination(userId: string) {
       .maybeSingle(),
   ]);
 
-  return tenant && branch ? `/app/${tenant.slug}/${branch.slug}/masalar` : null;
+  if (!tenant || !branch) return null;
+
+  // A business that has not started its trial yet continues with the setup.
+  const { data: onboarding } = await supabase
+    .from("tenant_onboarding")
+    .select("trial_started_at")
+    .eq("tenant_id", membership.tenant_id)
+    .maybeSingle();
+  if (onboarding && !onboarding.trial_started_at) return `/app/${tenant.slug}/${branch.slug}/kurulum`;
+
+  // An ended trial sends the owner to the package activation page (data stays).
+  if (onboarding?.trial_started_at) {
+    const { data: subscription } = await supabase
+      .from("subscriptions")
+      .select("status, ends_at")
+      .eq("tenant_id", membership.tenant_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (subscription && subscription.status === "trial" && subscription.ends_at && new Date(subscription.ends_at) <= new Date()) {
+      return `/app/${tenant.slug}/${branch.slug}/paket`;
+    }
+  }
+
+  return `/app/${tenant.slug}/${branch.slug}/masalar`;
 }

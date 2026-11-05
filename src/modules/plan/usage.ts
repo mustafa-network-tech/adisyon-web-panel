@@ -14,6 +14,8 @@ export type PlanUsage = {
   stationsUsed: number;
   /** False once the trial or subscription has ended (read-only mode). */
   writable: boolean;
+  /** First setup not finished and the trial has not started: operations are not open yet. */
+  setupPending: boolean;
 };
 
 /** "7 / 15" or "7 (sınırsız)". */
@@ -68,6 +70,18 @@ export const readOnlyMessage = `Deneme veya abonelik süreniz doldu; hesabınız
 
 export function isReadOnlyError(message: string | undefined) {
   return Boolean(message?.includes("tenant_read_only"));
+}
+
+/** Operations (orders, payments, QR orders) open once the owner starts the trial. */
+export const setupPendingMessage = "Önce ilk kurulumu tamamlayıp denemeyi başlatın; sipariş ve ödeme işlemleri deneme başladıktan sonra açılır.";
+
+export function isSetupPendingError(message: string | undefined) {
+  return Boolean(message?.includes("tenant_setup_pending"));
+}
+
+/** "Ücretsiz denemenizin bitmesine 5 gün kaldı." */
+export function trialCountdownText(days: number) {
+  return days === 0 ? "Ücretsiz deneme süreniz doldu." : `Ücretsiz denemenizin bitmesine ${days} gün kaldı.`;
 }
 
 /** Banner text for the panel. */

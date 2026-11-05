@@ -20,9 +20,8 @@ import {
   ShieldCheck,
   Wifi,
 } from "lucide-react";
-import { contactEmail } from "@/lib/site";
 import { supportMailto } from "@/lib/support";
-import { readOnlyBanner } from "@/modules/plan/usage";
+import { readOnlyBanner, trialCountdownText } from "@/modules/plan/usage";
 import type { ThemeId } from "@/modules/theme/themes";
 import { ServiceAlerts } from "@/modules/notifications/components/service-alerts";
 import { signOutAction } from "@/modules/auth/actions";
@@ -42,6 +41,7 @@ type AppShellProps = {
   branchId: string;
   /** Days left of the trial; null when the business is not on a trial. */
   trialDaysLeft?: number | null;
+  setupPending?: boolean;
   /** Set when the trial or subscription has ended: the workspace is read-only. */
   readOnlyStatus?: "trial" | "active" | "suspended" | "cancelled" | null;
   /** Colour theme chosen by the business. */
@@ -49,7 +49,7 @@ type AppShellProps = {
   children: React.ReactNode;
 };
 
-export function AppShell({ tenant, branch, tenantName, branchName, userName, userRole, permissions, supportMode, branches, userId, branchId, trialDaysLeft = null, readOnlyStatus = null, theme = "classic", children }: AppShellProps) {
+export function AppShell({ tenant, branch, tenantName, branchName, userName, userRole, permissions, supportMode, branches, userId, branchId, trialDaysLeft = null, setupPending = false, readOnlyStatus = null, theme = "classic", children }: AppShellProps) {
   const router = useRouter();
   function switchBranch(slug: string) {
     const section = pathname.split("/").slice(4)[0];
@@ -126,12 +126,17 @@ export function AppShell({ tenant, branch, tenantName, branchName, userName, use
         </header>
         {readOnlyStatus !== null && (
           <p role="alert" className="bg-[#9e4328] px-4 py-3 text-center text-xs font-bold text-white sm:text-sm">
-            {readOnlyBanner(readOnlyStatus)} Etkinleştirmek için <a href={`mailto:${contactEmail}?subject=${encodeURIComponent("Adisyon Web abonelik etkinleştirme")}`} className="font-black underline">{contactEmail}</a> adresine yazın.
+            {readOnlyBanner(readOnlyStatus)} <Link href={`${base}/paket`} className="font-black underline">Paketi etkinleştirmek için buraya tıklayın</Link>. Verileriniz silinmez.
+          </p>
+        )}
+        {setupPending && (
+          <p role="status" className="bg-[#fff8e7] px-4 py-2.5 text-center text-xs font-bold text-[#8a6415] sm:text-sm">
+            İlk kurulumunuz tamamlanmadı; 7 günlük ücretsiz deneme kurulumdan sonra başlar. <Link href={`${base}/kurulum`} className="font-black underline">Kuruluma devam edin</Link>.
           </p>
         )}
         {trialDaysLeft !== null && (
           <p role="status" className={`px-4 py-2.5 text-center text-xs font-bold sm:text-sm ${trialDaysLeft <= 2 ? "bg-[#fff2ed] text-[#9e4328]" : "bg-[#fff8e7] text-[#8a6415]"}`}>
-            {trialDaysLeft === 0 ? "Deneme süreniz doldu." : `Deneme sürümü: ${trialDaysLeft} gün kaldı.`} Paket seçmek için <a href={`mailto:${contactEmail}?subject=${encodeURIComponent("Adisyon Web paket talebi")}`} className="font-black underline">{contactEmail}</a> adresine yazın.
+            {trialCountdownText(trialDaysLeft)} Paketinizi etkinleştirmek için <Link href={`${base}/paket`} className="font-black underline">buraya tıklayın</Link>.
           </p>
         )}
         <main className="min-h-[calc(100dvh-76px)] pb-24 lg:pb-0">{children}</main>

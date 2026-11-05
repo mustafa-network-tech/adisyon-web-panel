@@ -3,10 +3,13 @@ import Link from "next/link";
 import { UserPlus } from "lucide-react";
 import { Brand } from "@/components/brand";
 import { SignupForm } from "@/modules/auth/components/signup-form";
+import { parseEntry } from "@/modules/onboarding/entry";
+import { planForCode, planIdForCode } from "@/modules/onboarding/plans";
 
 export const metadata: Metadata = { title: "Üye ol" };
 
-export default function SignupPage() {
+export default async function SignupPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const entry = parseEntry(await searchParams);
   return (
     <main className="grid min-h-dvh place-items-center bg-[#f4f6f8] p-5">
       <section className="w-full max-w-md rounded-[28px] border border-[#dfe5e1] bg-white p-6 shadow-[0_28px_80px_rgb(23_33_29/0.08)] sm:p-9">
@@ -15,9 +18,9 @@ export default function SignupPage() {
           <UserPlus size={22} aria-hidden="true" />
         </div>
         <h1 className="mt-5 text-3xl font-black tracking-[-0.04em] text-[color:var(--c-ink)]">Üye olun</h1>
-        <p className="mt-3 text-sm leading-6 text-[#68736e]">Üyeliğinizi oluşturduktan sonra işletmenizi kurabilirsiniz.</p>
-        <SignupForm />
-        <p className="mt-5 text-center text-xs leading-5 text-[#68736e]">Üye olarak <Link href="/kullanim-kosullari" className="font-bold underline underline-offset-2">Kullanım Koşulları</Link>&apos;nı kabul etmiş, <Link href="/gizlilik-politikasi" className="font-bold underline underline-offset-2">Gizlilik Politikası</Link> ve <Link href="/kvkk-aydinlatma-metni" className="font-bold underline underline-offset-2">KVKK Aydınlatma Metni</Link>&apos;ni okumuş olursunuz. 7 günlük deneme süresi başlar.</p>
+        <p className="mt-3 text-sm leading-6 text-[#68736e]">Üyeliğinizi oluşturduktan sonra işletmenizi kurabilirsiniz.{entry.plan ? ` Seçtiğiniz paket: ${planForCode(entry.plan).name}.` : ""}{entry.support ? " Kurulum desteği talebiniz bir sonraki adımda alınacak." : ""}</p>
+        <SignupForm plan={entry.plan ? planIdForCode(entry.plan) : ""} support={entry.support} />
+        <p className="mt-5 text-center text-xs leading-5 text-[#68736e]">Üye olarak <Link href="/kullanim-kosullari" className="font-bold underline underline-offset-2">Kullanım Koşulları</Link>&apos;nı kabul etmiş, <Link href="/gizlilik-politikasi" className="font-bold underline underline-offset-2">Gizlilik Politikası</Link> ve <Link href="/kvkk-aydinlatma-metni" className="font-bold underline underline-offset-2">KVKK Aydınlatma Metni</Link>&apos;ni okumuş olursunuz. 7 günlük ücretsiz deneme, işletmenizin ilk kurulumu tamamlandıktan sonra başlar.</p>
         <p className="mt-6 text-center text-sm font-semibold text-[#68736e]">
           Zaten üye misiniz?{" "}
           <Link href="/giris" className="font-black text-[color:var(--c-accent-d4)] hover:underline">Giriş yapın</Link>

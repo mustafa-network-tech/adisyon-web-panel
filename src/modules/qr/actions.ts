@@ -67,6 +67,7 @@ export async function rotateTableQrAction(
 
 const customerErrors: Record<string, string> = {
   tenant_read_only: "Bu işletme şu anda sipariş alamıyor. Lütfen garsonu çağırın.",
+  tenant_setup_pending: "Bu işletme henüz sipariş almaya başlamadı. Lütfen garsonu çağırın.",
   qr_ordering_disabled: "Bu işletme QR menüden sipariş almıyor. Lütfen garsonu çağırın.",
   table_not_available: "Bu masa şu anda siparişe açık değil. Lütfen garsonu çağırın.",
   product_not_available: "Seçtiğiniz ürünlerden biri artık satışta değil. Menüyü yenileyin.",
@@ -113,6 +114,7 @@ export async function placeCustomerOrderAction(
 
 const callErrors: Record<string, string> = {
   tenant_read_only: "Bu işletme şu anda çağrı alamıyor. Lütfen yakındaki bir çalışanı çağırın.",
+  tenant_setup_pending: "Bu işletme henüz çağrı almaya başlamadı. Lütfen yakındaki bir çalışanı çağırın.",
   qr_not_found: "Bu QR kod geçerli değil. Lütfen yakındaki bir çalışanı çağırın.",
   call_rate_limited: "Çok sık çağrı yaptınız. Çalışanlarımız yolda; lütfen biraz bekleyin.",
 };

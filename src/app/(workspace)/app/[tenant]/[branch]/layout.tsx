@@ -36,6 +36,7 @@ export default async function WorkspaceLayout({ children, params }: { children: 
       userId={context.userId}
       branchId={context.branchId}
       trialDaysLeft={trialDaysLeft}
+      setupPending={usage?.setupPending === true}
       readOnlyStatus={readOnly ? usage?.status ?? "trial" : null}
       theme={theme}
     >

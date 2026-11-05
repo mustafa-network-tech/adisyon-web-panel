@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { resolveDefaultDestination } from "@/lib/auth/destination";
 import { getSafeReturnPath } from "@/lib/auth/redirects";
+import { entryQuery, parseEntry, setupLandingPath } from "@/modules/onboarding/entry";
+import { parsePlanParam } from "@/modules/onboarding/plans";
 import { createBusinessSchema } from "@/modules/settings/validation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { AuthActionState } from "@/modules/auth/state";
@@ -150,19 +152,23 @@ export async function signUpAction(
   const origin = getApplicationOrigin(await headers());
   if (!origin) return errorState("İstek adresi doğrulanamadı.");
 
+  // The package / support hints come from the URL: re-validate, never trust them.
+  const entry = parseEntry({ paket: formData.get("paket") as string | undefined, kurulum: formData.get("kurulum") as string | undefined });
+  const onboardingPath = `/baslangic${entryQuery(entry)}`;
+
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.signUp({
     email: values.data.email,
     password: values.data.password,
     options: {
       data: { full_name: values.data.fullName },
-      emailRedirectTo: `${origin}/auth/callback?next=/baslangic`,
+      emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(onboardingPath)}`,
     },
   });
   if (error) return errorState("Üyelik oluşturulamadı. Bilgileri kontrol edip tekrar deneyin.");
 
   // With e-mail confirmation disabled Supabase returns a session right away.
-  if (data.session) redirect("/baslangic");
+  if (data.session) redirect(onboardingPath);
 
   // Same response whether or not the address was already registered.
   return {
@@ -181,6 +187,12 @@ export async function createBusinessAction(
   });
   if (!values.success) return errorState("İşletme ve şube adını girin.");
 
+  // The package is validated here against the known price list; the database
+  // validates the plan code again, so a tampered form cannot pick anything else.
+  const plan = parsePlanParam(formData.get("paket") as string | null);
+  if (!plan) return errorState("Lütfen bir paket seçin.");
+  const support = formData.get("kurulum") === "destek";
+
   const supabase = await createSupabaseServerClient();
   const { data: claims } = await supabase.auth.getClaims();
   if (!claims?.claims?.sub) redirect("/giris?next=%2Fbaslangic");
@@ -188,12 +200,15 @@ export async function createBusinessAction(
   const { data, error } = await supabase.rpc("create_my_tenant", {
     target_name: values.data.name,
     target_branch_name: values.data.branchName,
+    target_plan_code: plan,
   });
   if (error) {
     return errorState(
       error.message.includes("tenant_already_owned")
         ? "Bu hesapla zaten bir işletme kurdunuz."
-        : "İşletme oluşturulamadı. Bilgileri kontrol edip tekrar deneyin.",
+        : error.message.includes("invalid_plan")
+          ? "Seçilen paket geçersiz."
+          : "İşletme oluşturulamadı. Bilgileri kontrol edip tekrar deneyin.",
     );
   }
 
@@ -201,5 +216,5 @@ export async function createBusinessAction(
   if (!payload?.tenantSlug || !payload.branchSlug) {
     return errorState("İşletme yanıtı doğrulanamadı.");
   }
-  redirect(`/app/${payload.tenantSlug}/${payload.branchSlug}/masalar`);
+  redirect(setupLandingPath(payload.tenantSlug, payload.branchSlug, { support }));
 }

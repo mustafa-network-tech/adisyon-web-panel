@@ -90,6 +90,38 @@ const t1 = await table("Masa 1");
 const t2 = await table("Masa 2");
 const t3 = await table("Masa 3");
 
+// --- setup phase, 4 steps and the 7 day trial (tenant A, self setup) -----------------------
+{
+  const sub = await one("select plan_code, status, ends_at from public.subscriptions where tenant_id = $1", [tenant]);
+  check("the business starts in setup: trial row without end date", sub.plan_code === "START" && sub.status === "trial" && sub.ends_at === null, JSON.stringify(sub));
+  const onboarding = await one("select selected_plan, status, trial_started_at from public.tenant_onboarding where tenant_id = $1", [tenant]);
+  check("onboarding row stores the validated package", onboarding.selected_plan === "START" && onboarding.status === "method_pending" && onboarding.trial_started_at === null, JSON.stringify(onboarding));
+  const tokens = await all("select qr_token from public.restaurant_tables where tenant_id = $1", [tenant]);
+  check("every new table gets its own random QR token automatically", tokens.length === 3 && new Set(tokens.map((x) => x.qr_token)).size === 3 && tokens.every((x) => /^[0-9a-f]{64}$/.test(x.qr_token)));
+  await actAs(db, WAITER);
+  await expectError("open_order", { target_tenant_id: tenant, target_branch_id: branch, target_table_id: t1, target_guest_count: 2, target_items: [{ productId: kebab, quantity: 1 }], target_idempotency_key: key() }, "tenant_setup_pending", "orders are blocked before the trial starts");
+  await actAs(db, MANAGER);
+  await expectError("set_setup_method", { target_tenant_id: tenant, target_method: "self" }, "owner_required", "only the owner manages setup");
+  await actAs(db, OWNER);
+  await expectError("start_trial", { target_tenant_id: tenant }, "trial_not_ready", "trial cannot start before setup is complete");
+  await expectError("complete_setup_step", { target_tenant_id: tenant, target_step: "areas" }, "setup_step_not_allowed", "steps need a chosen method");
+  await rpc("set_setup_method", { target_tenant_id: tenant, target_method: "self" });
+  await expectError("complete_setup_step", { target_tenant_id: tenant, target_step: "bogus" }, "invalid_setup_step", "unknown step refused");
+  for (const step of ["areas", "tables", "stations"]) await rpc("complete_setup_step", { target_tenant_id: tenant, target_step: step });
+  check("trial is not ready after three steps", (await one("select status from public.tenant_onboarding where tenant_id = $1", [tenant])).status === "self_in_progress");
+  await expectError("start_trial", { target_tenant_id: tenant }, "trial_not_ready", "three steps are not enough");
+  const done = await rpc("complete_setup_step", { target_tenant_id: tenant, target_step: "menu" });
+  check("four steps make the business ready for the trial", done.status === "trial_ready" && done.completedSteps.length === 4, JSON.stringify(done));
+  await rpc("set_setup_step", { target_tenant_id: tenant, target_step: 2 });
+  check("the owner can go back to an earlier step without losing progress", (await one("select array_length(completed_steps,1) n from public.tenant_onboarding where tenant_id = $1", [tenant])).n === 4);
+  await rpc("complete_setup_step", { target_tenant_id: tenant, target_step: "tables" });
+  const started = await rpc("start_trial", { target_tenant_id: tenant });
+  const span = await one("select ends_at - starts_at as span, starts_at <= now() ok from public.subscriptions where tenant_id = $1", [tenant]);
+  check("the trial lasts exactly 7 days from the start moment", String(span.span).startsWith("7 days") && span.ok === true && Boolean(started.endsAt), JSON.stringify(span));
+  await expectError("start_trial", { target_tenant_id: tenant }, "trial_already_started", "the trial starts only once");
+  await expectError("set_setup_method", { target_tenant_id: tenant, target_method: "self" }, "setup_method_locked", "method locked after trial start");
+}
+
 // --- fulfillment (phase B) --------------------------------------------------
 await actAs(db, WAITER);
 const open1 = await rpc("open_order", { target_tenant_id: tenant, target_branch_id: branch, target_table_id: t1, target_guest_count: 2, target_items: [{ productId: kebab, quantity: 2 }, { productId: cola, quantity: 2 }], target_idempotency_key: key() });
@@ -480,7 +512,7 @@ check("only company admins read private staff notes", (await countAs(MANAGER, "s
 await actAs(db, OWNER);
 const trial = await one("select plan_code, status, ends_at - starts_at as span, user_limit, branch_limit, table_limit, station_limit from public.subscriptions where tenant_id = $1", [tenant]);
 check("the self-service trial lasts 7 days", String(trial.span).startsWith("7 days"), JSON.stringify(trial));
-check("the trial starts with small plan limits", trial.table_limit === 15 && trial.station_limit === 3 && trial.user_limit === 5 && trial.branch_limit === 1, JSON.stringify(trial));
+check("the limits come from the chosen package", trial.table_limit === 15 && trial.station_limit === 1 && trial.user_limit === 5 && trial.branch_limit === 1, JSON.stringify(trial));
 
 const usage = await rpc("get_plan_usage", { target_tenant_id: tenant, target_branch_id: branch });
 check("any member can read the plan usage", usage.tableLimit === 15 && usage.tablesUsed === 11 && usage.stationsUsed === 1 && usage.status === "trial", JSON.stringify(usage));
@@ -550,6 +582,9 @@ const categoryB = (await one("insert into public.menu_categories (tenant_id, bra
 const productB = (await one("insert into public.products (tenant_id, branch_id, category_id, name, price_minor, tax_rate) values ($1,$2,$3,'B Corba',5000,10) returning id", [tenantB, branchB, categoryB])).id;
 const areaB = (await one("insert into public.dining_areas (tenant_id, branch_id, name) values ($1,$2,'B Salon') returning id", [tenantB, branchB])).id;
 const tableB = (await one("insert into public.restaurant_tables (tenant_id, branch_id, area_id, label) values ($1,$2,$3,'B Masa 1') returning id", [tenantB, branchB, areaB])).id;
+await rpc("set_setup_method", { target_tenant_id: tenantB, target_method: "self" });
+for (const step of ["areas", "tables", "stations", "menu"]) await rpc("complete_setup_step", { target_tenant_id: tenantB, target_step: step });
+await rpc("start_trial", { target_tenant_id: tenantB });
 await rpc("set_branch_qr_settings", { target_tenant_id: tenantB, target_branch_id: branchB, target_ordering_enabled: true });
 const tokenB = (await one("select qr_token from public.restaurant_tables where id = $1", [tableB])).qr_token;
 const tokenA = (await one("select qr_token from public.restaurant_tables where id = $1", [t5])).qr_token;
@@ -576,6 +611,92 @@ await db.query("insert into auth.users (id, email, raw_user_meta_data) values ($
 await db.query("insert into public.profiles (id, full_name) values ($1, 'Platform') on conflict do nothing", [PLATFORM]);
 await db.query("insert into public.platform_admins (user_id) values ($1)", [PLATFORM]);
 
+
+// --- assisted setup by MK Digital Systems (tenant C) and isolation ---------------------------
+{
+  const OWNER_C = "30000000-0000-4000-8000-0000000000c1";
+  await db.query("insert into auth.users (id, email, raw_user_meta_data) values ($1, 'c@t.test', $2)", [OWNER_C, JSON.stringify({ full_name: "Cem Sahip" })]);
+  await db.query("insert into public.profiles (id, full_name) values ($1, 'Cem Sahip') on conflict do nothing", [OWNER_C]);
+  await actAs(db, OWNER_C);
+  await expectError("create_my_tenant", { target_name: "Ucuncu Lokanta", target_branch_name: "Sube", target_plan_code: "HACK" }, "invalid_plan", "an unknown package is refused by the server");
+  await rpc("create_my_tenant", { target_name: "Ucuncu Lokanta", target_branch_name: "Sube", target_plan_code: "pro" });
+  const tenantC = (await one("select id from public.tenants where name = 'Ucuncu Lokanta'")).id;
+  const branchC = (await one("select id from public.branches where tenant_id = $1", [tenantC])).id;
+  const planC = await one("select plan_code, table_limit, user_limit from public.subscriptions where tenant_id = $1", [tenantC]);
+  check("the chosen package sets the plan and limits", planC.plan_code === "PRO" && planC.table_limit === null && planC.user_limit === 15, JSON.stringify(planC));
+
+  const request = { areas: "Salon\nTeras", tables: "Salon: Masa 1-3\nTeras: T1, T2", stations: "Mutfak\nBar: Icecek", menu: "Yemek | Kebap | 365 | Odun atesi | Mutfak\nIcecek | Cay | 25 | | Bar", notes: "" };
+  await expectError("set_setup_method", { target_tenant_id: tenantC, target_method: "assisted", target_payload: { ...request, menu: "" } }, "invalid_setup_request", "assisted request needs all four areas");
+  await rpc("set_setup_method", { target_tenant_id: tenantC, target_method: "assisted", target_payload: { ...request, payrollRoles: "kurulsun", branches: "kurulsun" } });
+  const stored = (await one("select request_payload from public.tenant_onboarding where tenant_id = $1", [tenantC])).request_payload;
+  check("only the four setup areas are stored in the request", Object.keys(stored).sort().join(",") === "areas,menu,notes,stations,tables", Object.keys(stored).join(","));
+  check("assisted request is queued", (await one("select status from public.tenant_onboarding where tenant_id = $1", [tenantC])).status === "assisted_requested");
+  await expectError("complete_setup_step", { target_tenant_id: tenantC, target_step: "areas" }, "setup_step_not_allowed", "self wizard is closed while MK prepares");
+
+  // isolation: another owner cannot touch or read this setup
+  await actAs(db, OWNER_B);
+  await expectError("set_setup_method", { target_tenant_id: tenantC, target_method: "self" }, "owner_required", "tenant B owner cannot change tenant C setup");
+  await expectError("start_trial", { target_tenant_id: tenantC }, "owner_required", "tenant B owner cannot start tenant C trial");
+  await expectError("get_setup_readiness", { target_tenant_id: tenantC }, "setup_access_denied", "tenant B owner cannot read tenant C readiness");
+  check("an owner sees only their own onboarding row", (await countAs(OWNER_B, "tenant_onboarding")) === 1);
+  check("a waiter sees no onboarding rows", (await countAs(WAITER, "tenant_onboarding")) === 0);
+  await expectError("platform_setup_apply_areas", { target_tenant_id: tenantC, target_names: ["Salon"] }, "platform_admin_required", "only platform admins apply setup");
+  await expectError("platform_set_setup_status", { target_tenant_id: tenantC, target_status: "assisted_in_progress", target_note: null }, "platform_admin_required", "only platform admins change the setup status");
+  await actAs(db, OWNER_C);
+  await expectError("platform_setup_apply_areas", { target_tenant_id: tenantC, target_names: ["Salon"] }, "platform_admin_required", "the owner cannot use platform setup either");
+
+  // platform side
+  await actAs(db, PLATFORM);
+  check("the platform sees every onboarding row", (await countAs(PLATFORM, "tenant_onboarding")) === 3);
+  await expectError("platform_set_setup_status", { target_tenant_id: tenantC, target_status: "trial_ready", target_note: null }, "invalid_status_transition", "requested cannot jump to ready");
+  await rpc("platform_set_setup_status", { target_tenant_id: tenantC, target_status: "assisted_in_progress", target_note: null });
+  await expectError("platform_set_setup_status", { target_tenant_id: tenantC, target_status: "info_needed", target_note: "" }, "info_note_required", "a missing-info request needs a note");
+  await rpc("platform_set_setup_status", { target_tenant_id: tenantC, target_status: "info_needed", target_note: "Masa kapasiteleri eksik." });
+  check("the business sees the information request", (await one("select admin_note from public.tenant_onboarding where tenant_id = $1", [tenantC])).admin_note === "Masa kapasiteleri eksik.");
+  await actAs(db, OWNER_C);
+  await rpc("answer_setup_info_request", { target_tenant_id: tenantC, target_payload: request });
+  check("answering returns the request to the queue", (await one("select status from public.tenant_onboarding where tenant_id = $1", [tenantC])).status === "assisted_requested");
+  await actAs(db, PLATFORM);
+  await rpc("platform_set_setup_status", { target_tenant_id: tenantC, target_status: "assisted_in_progress", target_note: null });
+  await rpc("platform_set_setup_status", { target_tenant_id: tenantC, target_status: "setup_completed", target_note: null });
+  await expectError("platform_set_setup_status", { target_tenant_id: tenantC, target_status: "trial_ready", target_note: null }, "setup_incomplete", "ready needs real data in all four areas");
+  await rpc("platform_set_setup_status", { target_tenant_id: tenantC, target_status: "assisted_in_progress", target_note: null });
+
+  await expectError("platform_setup_apply_tables", { target_tenant_id: tenantC, target_items: [{ area: "Salon", label: "Masa 1", capacity: 4 }] }, "setup_area_not_found", "tables need an existing hall");
+  check("platform creates halls", (await rpc("platform_setup_apply_areas", { target_tenant_id: tenantC, target_names: ["Salon", "Teras", "salon"] })).created === 2);
+  const tablesDone = await rpc("platform_setup_apply_tables", { target_tenant_id: tenantC, target_items: [{ area: "Salon", label: "Masa 1", capacity: 4 }, { area: "Salon", label: "Masa 2", capacity: 4 }, { area: "teras", label: "T1", capacity: 2 }] });
+  check("platform creates tables", tablesDone.created === 3);
+  const tokensC = await all("select qr_token from public.restaurant_tables where tenant_id = $1", [tenantC]);
+  check("platform-created tables get QR tokens automatically", tokensC.length === 3 && tokensC.every((x) => /^[0-9a-f]{64}$/.test(x.qr_token)));
+  check("platform creates stations", (await rpc("platform_setup_apply_stations", { target_tenant_id: tenantC, target_items: [{ name: "Bar", categories: [] }] })).created === 1);
+  await expectError("platform_setup_apply_menu", { target_tenant_id: tenantC, target_items: [{ category: "Icecek", name: "Cay", price_minor: 2500, station: "Yok" }] }, "setup_station_not_found", "menu needs a known station");
+  const menuDone = await rpc("platform_setup_apply_menu", { target_tenant_id: tenantC, target_items: [{ category: "Yemek", name: "Kebap", price_minor: 36500, description: "Odun atesi" }, { category: "Icecek", name: "Cay", price_minor: 2500, station: "Bar" }, { category: "Icecek", name: "Cay", price_minor: 2500, station: "Bar" }] });
+  check("platform creates the menu (duplicates skipped)", menuDone.created === 2, JSON.stringify(menuDone));
+  await expectError("platform_setup_apply_menu", { target_tenant_id: tenantC, target_items: [{ category: "X", name: "Y", price_minor: -1 }] }, "invalid_setup_items", "negative prices refused");
+  await rpc("platform_set_setup_status", { target_tenant_id: tenantC, target_status: "setup_completed", target_note: null });
+  await expectError("start_trial", { target_tenant_id: tenantC }, "owner_required", "the platform cannot start the trial for the owner");
+  await rpc("platform_set_setup_status", { target_tenant_id: tenantC, target_status: "trial_ready", target_note: null });
+  check("the platform stops at ready-for-trial; the trial has not started", (await one("select trial_started_at from public.tenant_onboarding where tenant_id = $1", [tenantC])).trial_started_at === null);
+  check("the business is still in setup before the owner starts", (await one("select ends_at from public.subscriptions where tenant_id = $1", [tenantC])).ends_at === null);
+  const audit = await all("select action, tenant_id from public.audit_logs where tenant_id = $1 and action like 'platform.setup.%'", [tenantC]);
+  check("platform actions are audited with the tenant", audit.length >= 8 && audit.every((row) => row.tenant_id === tenantC), String(audit.length));
+  check("platform actions did not touch tenant A", (await one("select count(*)::int n from public.dining_areas where tenant_id = $1", [tenant])).n === 1);
+
+  await actAs(db, OWNER_C);
+  const startedC = await rpc("start_trial", { target_tenant_id: tenantC });
+  check("the owner starts the trial after the platform marked it ready", Boolean(startedC.endsAt));
+  await actAs(db, PLATFORM);
+  await expectError("platform_setup_apply_areas", { target_tenant_id: tenantC, target_names: ["Yeni"] }, "assisted_setup_not_open", "platform setup closes once the trial runs");
+
+  // an ended trial keeps all data and turns read-only
+  const counts = async () => one("select (select count(*) from public.dining_areas where tenant_id = $1)::int a, (select count(*) from public.restaurant_tables where tenant_id = $1)::int t, (select count(*) from public.products where tenant_id = $1)::int p", [tenantC]);
+  const countsBefore = await counts();
+  await db.query("update public.subscriptions set ends_at = now() - interval '1 minute' where tenant_id = $1", [tenantC]);
+  const countsAfter = await counts();
+  check("no data is deleted when the trial ends", JSON.stringify(countsBefore) === JSON.stringify(countsAfter) && countsAfter.a === 2 && countsAfter.t === 3 && countsAfter.p === 2, JSON.stringify(countsAfter));
+  await actAs(db, OWNER_C);
+  check("an ended trial is read-only", (await rpc("get_plan_usage", { target_tenant_id: tenantC, target_branch_id: branchC })).writable === false);
+}
 const freshTableB = async (label) => (await one("insert into public.restaurant_tables (tenant_id, branch_id, area_id, label) values ($1,$2,$3,$4) returning id", [tenantB, branchB, areaB, label])).id;
 const tableB2 = await freshTableB("B Masa 2");
 const tableB3 = await freshTableB("B Masa 3");

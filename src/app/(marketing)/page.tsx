@@ -70,12 +70,18 @@ export default function MarketingPage() {
           </p>
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             <Link href="/kayit" className="inline-flex min-h-14 items-center justify-center gap-3 rounded-2xl bg-[color:var(--c-accent-d3)] px-6 text-sm font-black text-white shadow-[0_16px_34px_rgb(181_66_33/0.24)] transition hover:-translate-y-0.5 hover:bg-[color:var(--c-accent-d5)]">
-              7 günlük denemeyi başlat <ArrowRight size={18} aria-hidden="true" />
+              7 Gün Ücretsiz Dene <ArrowRight size={18} aria-hidden="true" />
             </Link>
-            <a href="#platform" className="inline-flex min-h-14 items-center justify-center rounded-2xl border border-[#d6ddd9] bg-white px-6 text-sm font-black text-[color:var(--c-ink)] transition hover:border-[#aeb9b3]">
-              Platformu keşfet
-            </a>
+            <Link href="/kayit?kurulum=destek" className="inline-flex min-h-14 items-center justify-center rounded-2xl border border-[#d6ddd9] bg-white px-6 text-sm font-black text-[color:var(--c-ink)] transition hover:border-[#aeb9b3]">
+              Kurulum Desteği Al
+            </Link>
           </div>
+          <p className="mt-5 max-w-lg text-sm font-semibold leading-6 text-[#2f3a35]">
+            Adisyon Web&apos;i 7 gün ücretsiz deneyin. Salonlarınızı, masalarınızı, mutfak istasyonlarınızı ve menünüzü kendiniz oluşturabilir veya ilk kurulumu MK Digital Systems ekibine bırakabilirsiniz.
+          </p>
+          <p className="mt-2 max-w-lg text-xs leading-5 text-[#4f5a55]">
+            Deneme süreniz, işletmenizin ilk kurulumu tamamlanıp kullanıma hazır hâle gelmesinden sonra başlar.
+          </p>
           <div className="mt-10 flex flex-wrap gap-x-6 gap-y-3 text-xs font-bold text-[#4f5a55]">
             {trustItems.map((item) => (
               <span key={item} className="inline-flex items-center gap-2">

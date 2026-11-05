@@ -68,7 +68,7 @@ export function PricingSection() {
             </li>
           )}
           <li>İlk 12 aydan sonraki yenilemeler güncel tarife üzerinden yapılabilir.</li>
-          <li>Hesabınızı oluşturduktan sonra aboneliğiniz ekibimiz tarafından etkinleştirilir. Denemeniz 7 gündür; sorularınız için <a href={`mailto:${contactEmail}`} className="font-bold text-[#a73d21] underline underline-offset-4">{contactEmail}</a> adresine yazabilirsiniz.</li>
+          <li>7 günlük ücretsiz deneme, işletmenizin ilk kurulumu tamamlanıp kullanıma hazır hâle geldikten sonra başlar. Deneme sonunda aboneliğiniz ekibimiz tarafından manuel olarak etkinleştirilir; sorularınız için <a href={`mailto:${contactEmail}`} className="font-bold text-[#a73d21] underline underline-offset-4">{contactEmail}</a> adresine yazabilirsiniz.</li>
         </ul>
       </div>
     </section>
@@ -128,14 +128,14 @@ function PlanCard({ plan, campaign, deadline, wide }: { plan: PricingPlan; campa
       </div>
 
       <Link
-        href="/kayit"
+        href={`/kayit?paket=${plan.id}`}
         className={`mt-7 inline-flex min-h-13 items-center justify-center gap-2 rounded-2xl px-6 text-sm font-black text-white transition focus-visible:outline-2 focus-visible:outline-offset-3 ${
           featured
             ? "bg-[color:var(--c-accent-d3)] hover:bg-[color:var(--c-accent-d5)] focus-visible:outline-white"
             : "bg-[color:var(--c-ink)] hover:bg-[color:var(--c-ink-2)] focus-visible:outline-[color:var(--c-accent-d3)]"
         }`}
       >
-        Hesap oluştur <ArrowRight size={17} aria-hidden="true" />
+        Bu Paketle 7 Gün Ücretsiz Başla <ArrowRight size={17} aria-hidden="true" />
         <span className="sr-only"> — {plan.name} paketi için</span>
       </Link>
 

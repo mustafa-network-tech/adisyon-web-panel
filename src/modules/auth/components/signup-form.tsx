@@ -8,11 +8,13 @@ const wrapper =
   "flex min-h-13 items-center rounded-xl border border-[#dce3df] bg-[#f9faf9] px-4 focus-within:border-[color:var(--c-accent)] focus-within:bg-white";
 const input = "min-w-0 flex-1 bg-transparent text-sm outline-none";
 
-export function SignupForm() {
+export function SignupForm({ plan = "", support = false }: { plan?: string; support?: boolean }) {
   const [state, formAction, pending] = useActionState(signUpAction, initialAuthActionState);
 
   return (
     <form action={formAction} className="mt-7 space-y-4">
+      {plan && <input type="hidden" name="paket" value={plan} />}
+      {support && <input type="hidden" name="kurulum" value="destek" />}
       <label className="block">
         <span className="mb-2 block text-sm font-bold text-[#33413b]">Ad soyad</span>
         <span className={wrapper}><input name="fullName" autoComplete="name" required minLength={2} className={input} /></span>

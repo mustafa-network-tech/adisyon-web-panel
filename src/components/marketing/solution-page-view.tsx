@@ -38,9 +38,9 @@ export function SolutionPageView({ page }: { page: SolutionPage }) {
           <p className="mt-6 text-lg leading-8 text-[#4f5a55]">{page.lead}</p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link href="/kayit" className={primaryCta}>
-              7 günlük denemeyi başlat <ArrowRight size={18} aria-hidden="true" />
+              7 Gün Ücretsiz Dene <ArrowRight size={18} aria-hidden="true" />
             </Link>
-            <Link href="/#fiyatlar" className={secondaryCta}>Fiyatları incele</Link>
+            <Link href="/kayit?kurulum=destek" className={secondaryCta}>Kurulum Desteği Al</Link>
           </div>
         </div>
       </section>
@@ -117,11 +117,14 @@ export function SolutionPageView({ page }: { page: SolutionPage }) {
           <div className="rounded-[32px] bg-[color:var(--c-ink)] p-8 text-white sm:p-12">
             <h2 id="son-cagri-baslik" className="max-w-2xl text-3xl font-black tracking-[-0.04em] sm:text-4xl">Önce deneyin, sonra karar verin.</h2>
             <p className="mt-4 max-w-2xl text-lg leading-8 text-white/75">
-              Hesabınızı oluşturun, 7 günlük deneme süresinde masa, mutfak ve kasa ekranlarını kendi menünüzle deneyin. Sorularınız için bize yazın.
+              Adisyon Web&apos;i 7 gün ücretsiz deneyin. Salonlarınızı, masalarınızı, mutfak istasyonlarınızı ve menünüzü kendiniz oluşturabilir veya ilk kurulumu MK Digital Systems ekibine bırakabilirsiniz. Deneme süreniz, kurulum tamamlanıp işletmeniz kullanıma hazır olduktan sonra başlar.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <Link href="/kayit" className={primaryCta}>
-                7 günlük denemeyi başlat <ArrowRight size={18} aria-hidden="true" />
+                7 Gün Ücretsiz Dene <ArrowRight size={18} aria-hidden="true" />
+              </Link>
+              <Link href="/kayit?kurulum=destek" className="inline-flex min-h-14 items-center justify-center rounded-2xl bg-white px-6 text-sm font-black text-[color:var(--c-ink)] transition hover:bg-[#f3f5f4] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">
+                Kurulum Desteği Al
               </Link>
               <Link href="/#fiyatlar" className="inline-flex min-h-14 items-center justify-center rounded-2xl bg-white px-6 text-sm font-black text-[color:var(--c-ink)] transition hover:bg-[#f3f5f4] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">
                 Fiyatları incele
