@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { resolveTheme } from "@/modules/theme/themes";
 import { ServiceButtons } from "@/modules/qr/components/service-buttons";
 import { PublicMenuView } from "@/modules/qr/components/public-menu";
 import { getPublicMenu } from "@/modules/qr/repository";
@@ -31,13 +32,13 @@ export default async function QrMenuPage({
   }
 
   return (
-    <main className="mx-auto min-h-dvh max-w-2xl px-4 pt-6">
+    <main data-theme={resolveTheme(menu.theme)} className="mx-auto min-h-dvh max-w-2xl px-4 pt-6">
       <header>
-        <p className="text-xs font-black uppercase tracking-[0.16em] text-[#e8623a]">
+        <p className="text-xs font-black uppercase tracking-[0.16em] text-[color:var(--c-accent)]">
           {menu.branchName}
         </p>
         <h1 className="mt-1 text-3xl font-black tracking-[-0.04em]">{menu.brandName}</h1>
-        <p className="mt-2 inline-block rounded-full bg-[#17211d] px-3 py-1 text-xs font-black text-white">
+        <p className="mt-2 inline-block rounded-full bg-[color:var(--c-ink)] px-3 py-1 text-xs font-black text-white">
           {menu.tableLabel}
         </p>
         <ServiceButtons token={token} />

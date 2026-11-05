@@ -27,7 +27,7 @@ type Draft = {
   productIds: string[];
 };
 
-const inputClass = "min-h-11 w-full rounded-xl border border-[#dce3df] bg-[#f9faf9] px-3 text-sm outline-none focus:border-[#e8623a] focus:bg-white";
+const inputClass = "min-h-11 w-full rounded-xl border border-[#dce3df] bg-[#f9faf9] px-3 text-sm outline-none focus:border-[color:var(--c-accent)] focus:bg-white";
 const labelClass = "mb-2 block text-xs font-bold text-[#68736e]";
 let keyCounter = 0;
 const nextKey = () => `new-${(keyCounter += 1)}`;
@@ -140,12 +140,12 @@ export function OptionManager({ tenant, branch, groups, products, canAvailabilit
       <aside className="rounded-[22px] border border-[#dfe5e1] bg-white p-4">
         <div className="flex items-center justify-between px-1">
           <h2 className="flex items-center gap-2 text-sm font-black"><Layers size={16} />Seçenek grupları</h2>
-          <button type="button" onClick={() => { setDraft(emptyDraft()); setFeedback(null); }} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-[#e8623a] px-3 text-xs font-black text-white"><Plus size={14} />Yeni grup</button>
+          <button type="button" onClick={() => { setDraft(emptyDraft()); setFeedback(null); }} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-[color:var(--c-accent)] px-3 text-xs font-black text-white"><Plus size={14} />Yeni grup</button>
         </div>
         <ul className="mt-3 space-y-2">
           {groups.map((group) => (
             <li key={group.id}>
-              <button type="button" onClick={() => { setDraft(toDraft(group)); setFeedback(null); }} className={`w-full rounded-xl p-3 text-left ${draft?.id === group.id ? "bg-[#17211d] text-white" : "bg-[#f6f8f7]"}`}>
+              <button type="button" onClick={() => { setDraft(toDraft(group)); setFeedback(null); }} className={`w-full rounded-xl p-3 text-left ${draft?.id === group.id ? "bg-[color:var(--c-ink)] text-white" : "bg-[#f6f8f7]"}`}>
                 <span className="block text-sm font-black">{group.name}{!group.isActive && " (pasif)"}</span>
                 <span className={`mt-0.5 block text-[11px] font-semibold ${draft?.id === group.id ? "text-white/65" : "text-[#8a948f]"}`}>
                   {optionKindLabels[group.kind]} · {groupRuleText(group)} · {group.choices.length} seçenek · {group.productIds.length} ürün
@@ -224,7 +224,7 @@ export function OptionManager({ tenant, branch, groups, products, canAvailabilit
 
             {feedback && <p role={feedback.type === "error" ? "alert" : "status"} className={`rounded-xl p-3 text-xs font-semibold ${feedback.type === "error" ? "bg-[#fff7f3] text-[#9e4328]" : "bg-[#edf8f3] text-[#176e56]"}`}>{feedback.message}</p>}
             <div className="flex flex-wrap items-center gap-2">
-              <button type="button" onClick={save} disabled={isPending} className="min-h-11 rounded-xl bg-[#e8623a] px-6 text-sm font-black text-white disabled:opacity-50">{isPending ? "Kaydediliyor…" : "Grubu kaydet"}</button>
+              <button type="button" onClick={save} disabled={isPending} className="min-h-11 rounded-xl bg-[color:var(--c-accent)] px-6 text-sm font-black text-white disabled:opacity-50">{isPending ? "Kaydediliyor…" : "Grubu kaydet"}</button>
               <button type="button" onClick={() => { setDraft(null); setFeedback(null); }} className="min-h-11 rounded-xl border border-[#dce3df] px-4 text-sm font-bold">Vazgeç</button>
               {draft.id && <button type="button" onClick={remove} disabled={isPending} className="ml-auto inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#f0c6bb] px-4 text-sm font-black text-[#b63b32] disabled:opacity-50"><Trash2 size={15} />Grubu sil</button>}
             </div>

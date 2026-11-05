@@ -27,7 +27,7 @@ export function AvailabilityPanel({ tenant, branch, products }: { tenant: string
       </button>
       {open && (
         <div className="mt-4">
-          <label className="block"><span className="sr-only">Ürün ara</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Ürün ara…" className="min-h-11 w-full rounded-xl border border-[#dce3df] bg-[#f9faf9] px-3 text-sm outline-none focus:border-[#e8623a]" /></label>
+          <label className="block"><span className="sr-only">Ürün ara</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Ürün ara…" className="min-h-11 w-full rounded-xl border border-[#dce3df] bg-[#f9faf9] px-3 text-sm outline-none focus:border-[color:var(--c-accent)]" /></label>
           <ul className="mt-3 max-h-80 space-y-2 overflow-y-auto">
             {visible.map((product) => (
               <li key={product.id} className={`flex items-center gap-3 rounded-xl p-3 ${product.soldOut ? "bg-[#fff8f6]" : "bg-[#f6f8f7]"}`}>

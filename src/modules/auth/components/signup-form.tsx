@@ -5,7 +5,7 @@ import { signUpAction } from "@/modules/auth/actions";
 import { initialAuthActionState } from "@/modules/auth/state";
 
 const wrapper =
-  "flex min-h-13 items-center rounded-xl border border-[#dce3df] bg-[#f9faf9] px-4 focus-within:border-[#e8623a] focus-within:bg-white";
+  "flex min-h-13 items-center rounded-xl border border-[#dce3df] bg-[#f9faf9] px-4 focus-within:border-[color:var(--c-accent)] focus-within:bg-white";
 const input = "min-w-0 flex-1 bg-transparent text-sm outline-none";
 
 export function SignupForm() {
@@ -30,7 +30,7 @@ export function SignupForm() {
           {state.message}
         </p>
       )}
-      <button type="submit" disabled={pending} className="min-h-13 w-full rounded-xl bg-[#17211d] px-5 text-sm font-black text-white disabled:opacity-55">
+      <button type="submit" disabled={pending} className="min-h-13 w-full rounded-xl bg-[color:var(--c-ink)] px-5 text-sm font-black text-white disabled:opacity-55">
         {pending ? "Oluşturuluyor…" : "Üyelik oluştur"}
       </button>
     </form>

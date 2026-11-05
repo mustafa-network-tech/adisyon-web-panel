@@ -47,7 +47,7 @@ export default async function AuditPage({
     <section className="p-4 sm:p-6 lg:p-8">
       <Link href={`/app/${tenant}/${branch}/ayarlar`} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#dce3df] bg-white px-4 text-sm font-bold"><ArrowLeft size={16} /> Ayarlara dön</Link>
       <div className="mb-6 mt-6">
-        <p className="text-xs font-black uppercase tracking-[0.16em] text-[#e8623a]">Güvenlik</p>
+        <p className="text-xs font-black uppercase tracking-[0.16em] text-[color:var(--c-accent)]">Güvenlik</p>
         <h1 className="mt-2 text-3xl font-black tracking-[-0.04em] sm:text-4xl">Denetim kaydı</h1>
         <p className="mt-2 text-sm font-semibold text-[#7a8580]">Kim, ne zaman, neyi değiştirdi. Kayıtlar silinemez ve değiştirilemez; maaş tutarı ve kart bilgisi içermez.</p>
       </div>
@@ -61,7 +61,7 @@ export default async function AuditPage({
         </label>
         <label className="text-xs font-bold text-[#68736e]">Başlangıç<input type="date" name="from" defaultValue={query.from || ""} className="mt-1 block min-h-10 rounded-xl border border-[#dce3df] bg-[#f9faf9] px-3 text-sm" /></label>
         <label className="text-xs font-bold text-[#68736e]">Bitiş<input type="date" name="to" defaultValue={query.to || ""} className="mt-1 block min-h-10 rounded-xl border border-[#dce3df] bg-[#f9faf9] px-3 text-sm" /></label>
-        <button className="min-h-10 rounded-xl bg-[#17211d] px-5 text-sm font-black text-white">Filtrele</button>
+        <button className="min-h-10 rounded-xl bg-[color:var(--c-ink)] px-5 text-sm font-black text-white">Filtrele</button>
         <Link href={base} className="inline-flex min-h-10 items-center rounded-xl border border-[#dce3df] px-4 text-sm font-bold">Temizle</Link>
       </form>
 

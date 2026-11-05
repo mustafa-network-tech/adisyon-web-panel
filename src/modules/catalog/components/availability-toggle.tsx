@@ -35,7 +35,7 @@ export function AvailabilityToggle({ tenant, branch, productId, productName, sol
         disabled={isPending}
         aria-pressed={soldOut}
         aria-label={soldOut ? `${productName} tekrar satışta` : `${productName} bugün tükendi`}
-        className={`min-h-10 whitespace-nowrap rounded-xl border px-3 text-xs font-black disabled:opacity-50 ${soldOut ? "border-[#f0c6bb] bg-[#fff0ee] text-[#b63b32]" : "border-[#dce3df] bg-white text-[#17211d]"}`}
+        className={`min-h-10 whitespace-nowrap rounded-xl border px-3 text-xs font-black disabled:opacity-50 ${soldOut ? "border-[#f0c6bb] bg-[#fff0ee] text-[#b63b32]" : "border-[#dce3df] bg-white text-[color:var(--c-ink)]"}`}
       >
         {isPending ? "…" : soldOut ? "Tükendi · tekrar aç" : "Bugün tükendi"}
       </button>

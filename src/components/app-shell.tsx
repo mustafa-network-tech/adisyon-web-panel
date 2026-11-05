@@ -19,6 +19,7 @@ import {
   Wifi,
 } from "lucide-react";
 import { contactEmail } from "@/lib/site";
+import type { ThemeId } from "@/modules/theme/themes";
 import { ServiceAlerts } from "@/modules/notifications/components/service-alerts";
 import { signOutAction } from "@/modules/auth/actions";
 import { Brand } from "./brand";
@@ -37,10 +38,12 @@ type AppShellProps = {
   branchId: string;
   /** Days left of the trial; null when the business is not on a trial. */
   trialDaysLeft?: number | null;
+  /** Colour theme chosen by the business. */
+  theme?: ThemeId;
   children: React.ReactNode;
 };
 
-export function AppShell({ tenant, branch, tenantName, branchName, userName, userRole, permissions, supportMode, branches, userId, branchId, trialDaysLeft = null, children }: AppShellProps) {
+export function AppShell({ tenant, branch, tenantName, branchName, userName, userRole, permissions, supportMode, branches, userId, branchId, trialDaysLeft = null, theme = "classic", children }: AppShellProps) {
   const router = useRouter();
   function switchBranch(slug: string) {
     const section = pathname.split("/").slice(4)[0];
@@ -63,18 +66,18 @@ export function AppShell({ tenant, branch, tenantName, branchName, userName, use
   ].filter((item) => hasAnyPermission(permissions, item.required));
 
   return (
-    <div className="min-h-dvh bg-[#f4f6f8] lg:grid lg:grid-cols-[248px_1fr]">
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[248px] flex-col bg-[#17211d] p-5 text-white lg:flex">
+    <div data-theme={theme} className="min-h-dvh bg-[#f4f6f8] lg:grid lg:grid-cols-[248px_1fr]">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[248px] flex-col bg-[color:var(--c-ink)] p-5 text-white lg:flex">
         <Brand inverse />
         <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.055] p-3">
           <div className="flex min-h-12 w-full items-center gap-3 rounded-xl px-2 text-left">
-            <span className="grid size-9 place-items-center rounded-lg bg-[#e8623a] text-xs font-black">MR</span>
+            <span className="grid size-9 place-items-center rounded-lg bg-[color:var(--c-accent)] text-xs font-black">MR</span>
             <span className="min-w-0 flex-1"><span className="block truncate text-sm font-black">{tenantName}</span><span className="mt-1 block truncate text-[11px] font-semibold text-white/45">{branchName}</span></span>
             </div>
           {branches.length > 1 && (
             <label className="mt-2 block">
               <span className="sr-only">Şube seç</span>
-              <select value={branch} onChange={(event) => switchBranch(event.target.value)} className="min-h-10 w-full rounded-lg border border-white/15 bg-[#17211d] px-2 text-xs font-bold text-white">
+              <select value={branch} onChange={(event) => switchBranch(event.target.value)} className="min-h-10 w-full rounded-lg border border-white/15 bg-[color:var(--c-ink)] px-2 text-xs font-bold text-white">
                 {branches.map((item) => <option key={item.slug} value={item.slug}>{item.name}</option>)}
               </select>
             </label>
@@ -84,9 +87,9 @@ export function AppShell({ tenant, branch, tenantName, branchName, userName, use
           {navItems.map(({ href, label, icon: Icon }) => {
             const active = pathname.startsWith(href);
             return (
-              <Link key={href} href={href} className={`flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-bold transition ${active ? "bg-white text-[#17211d] shadow-sm" : "text-white/55 hover:bg-white/5 hover:text-white"}`}>
+              <Link key={href} href={href} className={`flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm font-bold transition ${active ? "bg-white text-[color:var(--c-ink)] shadow-sm" : "text-white/55 hover:bg-white/5 hover:text-white"}`}>
                 <Icon size={19} aria-hidden="true" /> {label}
-                {active && <span className="ml-auto size-2 rounded-full bg-[#e8623a]" />}
+                {active && <span className="ml-auto size-2 rounded-full bg-[color:var(--c-accent)]" />}
               </Link>
             );
           })}
@@ -104,12 +107,12 @@ export function AppShell({ tenant, branch, tenantName, branchName, userName, use
         <header className="sticky top-0 z-30 flex min-h-[76px] items-center justify-between border-b border-[#e0e6e2] bg-white/90 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
           <div className="lg:hidden"><Brand compact /></div>
           <div className="hidden lg:block">
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#e8623a]">{tenantName}</p>
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-[color:var(--c-accent)]">{tenantName}</p>
             <p className="mt-1 text-sm font-bold text-[#68736e]">{branchName}</p>
           </div>
           <div className="flex items-center gap-3">
             <span className="hidden items-center gap-2 rounded-full bg-[#e7f5ef] px-3 py-2 text-xs font-extrabold text-[#176e56] sm:inline-flex"><Wifi size={14} /> Çevrimiçi</span>
-            <span className="grid size-10 place-items-center rounded-xl bg-[#f1b74a] text-xs font-black text-[#17211d]">{initials || "MK"}</span>
+            <span className="grid size-10 place-items-center rounded-xl bg-[#f1b74a] text-xs font-black text-[color:var(--c-ink)]">{initials || "MK"}</span>
             <div className="hidden sm:block"><p className="text-sm font-black">{userName}</p><p className="mt-0.5 text-[11px] font-semibold text-[#8a948f]">{userRole}</p></div>
           </div>
         </header>
@@ -125,7 +128,7 @@ export function AppShell({ tenant, branch, tenantName, branchName, userName, use
       <nav className="fixed inset-x-3 bottom-3 z-40 grid rounded-2xl border border-[#dce3df] bg-white/95 p-2 shadow-[0_16px_45px_rgb(23_33_29/0.18)] backdrop-blur-xl lg:hidden" style={{ gridTemplateColumns: `repeat(${navItems.length}, minmax(0, 1fr))` }} aria-label="Mobil çalışma alanı menüsü">
         {navItems.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href);
-          return <Link key={href} href={href} className={`flex min-h-13 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-black ${active ? "bg-[#17211d] text-white" : "text-[#75807a]"}`}><Icon size={19} /><span>{label}</span></Link>;
+          return <Link key={href} href={href} className={`flex min-h-13 flex-col items-center justify-center gap-1 rounded-xl text-[10px] font-black ${active ? "bg-[color:var(--c-ink)] text-white" : "text-[#75807a]"}`}><Icon size={19} /><span>{label}</span></Link>;
         })}
       </nav>
     </div>

@@ -9,7 +9,7 @@ import { voidOrderItemAction } from "../void-actions";
 import type { VoidMode } from "../void";
 import type { OrderSnapshot } from "../types";
 
-const inputClass = "min-h-11 w-full rounded-xl border border-[#dce3df] bg-[#f9faf9] px-3 text-sm outline-none focus:border-[#e8623a] focus:bg-white";
+const inputClass = "min-h-11 w-full rounded-xl border border-[#dce3df] bg-[#f9faf9] px-3 text-sm outline-none focus:border-[color:var(--c-accent)] focus:bg-white";
 
 /** Take back or give away units that already went to the kitchen; always needs a reason. */
 export function VoidPanel({ tenant, branch, order }: { tenant: string; branch: string; order: OrderSnapshot }) {
@@ -46,7 +46,7 @@ export function VoidPanel({ tenant, branch, order }: { tenant: string; branch: s
 
   return (
     <div className="rounded-[24px] border border-[#dfe5e1] bg-white p-5">
-      <div className="flex items-center gap-2"><Ban size={19} className="text-[#e8623a]" /><h2 className="text-lg font-black">İptal / ikram</h2></div>
+      <div className="flex items-center gap-2"><Ban size={19} className="text-[color:var(--c-accent)]" /><h2 className="text-lg font-black">İptal / ikram</h2></div>
       <p className="mt-2 text-xs font-semibold leading-5 text-[#7a8580]">Mutfağa gitmiş ürünü geri alın ya da ikram edin. Gerekçe zorunludur; yönetici ve mutfak anında haberdar edilir.</p>
       <form onSubmit={submit} className="mt-4 space-y-3">
         <label className="block"><span className="mb-1.5 block text-xs font-bold text-[#68736e]">Ürün</span>
@@ -72,7 +72,7 @@ export function VoidPanel({ tenant, branch, order }: { tenant: string; branch: s
         <label className="block"><span className="mb-1.5 block text-xs font-bold text-[#68736e]">Gerekçe (zorunlu)</span>
           <input name="reason" minLength={3} maxLength={200} required className={inputClass} placeholder={mode === "void" ? "Örn. müşteri vazgeçti, yanlış girildi" : "Örn. müşteri şikayeti, doğum günü"} />
         </label>
-        <button disabled={isPending} className="min-h-11 w-full rounded-xl bg-[#17211d] text-sm font-black text-white disabled:opacity-50">{isPending ? "İşleniyor…" : mode === "void" ? "Ürünü iptal et" : "Ürünü ikram et"}</button>
+        <button disabled={isPending} className="min-h-11 w-full rounded-xl bg-[color:var(--c-ink)] text-sm font-black text-white disabled:opacity-50">{isPending ? "İşleniyor…" : mode === "void" ? "Ürünü iptal et" : "Ürünü ikram et"}</button>
       </form>
       {feedback && <p role={feedback.type === "error" ? "alert" : "status"} className={`mt-3 rounded-xl p-3 text-xs font-semibold ${feedback.type === "error" ? "bg-[#fff7f3] text-[#9e4328]" : "bg-[#edf8f3] text-[#176e56]"}`}>{feedback.message}</p>}
     </div>

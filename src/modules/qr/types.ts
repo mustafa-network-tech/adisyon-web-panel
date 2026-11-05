@@ -19,6 +19,8 @@ export type PublicMenuCategory = {
 
 export type PublicMenu = {
   brandName: string;
+  /** Business colour theme ("classic", "ocean", "burgundy"). */
+  theme?: string;
   branchName: string;
   tableLabel: string;
   orderingEnabled: boolean;

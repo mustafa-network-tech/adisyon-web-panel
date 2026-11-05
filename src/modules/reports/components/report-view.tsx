@@ -5,7 +5,7 @@ import type { SalesReport } from "../types";
 const timeFormatter = new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 
 function Tile({ label, value, hint, tone = "default" }: { label: string; value: string; hint?: string; tone?: "default" | "good" | "warn" }) {
-  const color = tone === "good" ? "text-[#176e56]" : tone === "warn" ? "text-[#b94c2c]" : "text-[#17211d]";
+  const color = tone === "good" ? "text-[#176e56]" : tone === "warn" ? "text-[color:var(--c-accent-d6)]" : "text-[color:var(--c-ink)]";
   return (
     <div className="rounded-[20px] border border-[#dfe5e1] bg-white p-4">
       <p className="text-[11px] font-black uppercase tracking-[0.1em] text-[#8a948f]">{label}</p>
@@ -23,7 +23,7 @@ function Bars({ rows, label }: { rows: { key: string; label: string; value: numb
         <li key={row.key} className="grid grid-cols-[72px_1fr_auto] items-center gap-3 text-xs font-bold">
           <span className="text-[#68736e]">{row.label}</span>
           <span className="h-5 overflow-hidden rounded-md bg-[#eef1ef]" role="img" aria-label={`${row.label}: ${row.sub}`}>
-            <span className="block h-full rounded-md bg-[#e8623a]" style={{ width: `${Math.max(2, (row.value / max) * 100)}%` }} />
+            <span className="block h-full rounded-md bg-[color:var(--c-accent)]" style={{ width: `${Math.max(2, (row.value / max) * 100)}%` }} />
           </span>
           <span className="min-w-28 text-right">{row.sub}</span>
         </li>

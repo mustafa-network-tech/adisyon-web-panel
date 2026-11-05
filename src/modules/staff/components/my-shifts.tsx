@@ -6,7 +6,7 @@ export function MyShifts({ shifts, today }: { shifts: Shift[]; today: string }) 
   return (
     <section className="rounded-[22px] border border-[#dfe5e1] bg-white p-5 sm:p-6">
       <div className="flex items-center gap-3">
-        <span className="grid size-10 place-items-center rounded-xl bg-[#fff0ea] text-[#e8623a]"><CalendarClock size={20} /></span>
+        <span className="grid size-10 place-items-center rounded-xl bg-[color:var(--c-accent-soft)] text-[color:var(--c-accent)]"><CalendarClock size={20} /></span>
         <div>
           <h2 className="text-lg font-black">Vardiyalarım</h2>
           <p className="text-xs font-semibold text-[#8a948f]">Önümüzdeki 4 hafta</p>
@@ -17,7 +17,7 @@ export function MyShifts({ shifts, today }: { shifts: Shift[]; today: string }) 
           const isToday = shift.date === today;
           return (
             <li key={shift.id} className={`flex flex-wrap items-center gap-x-4 gap-y-1 py-3 ${isToday ? "rounded-xl bg-[#fff8f4] px-3" : ""}`}>
-              <span className="w-28 text-sm font-black">{formatDay(shift.date)}{isToday && <span className="ml-2 rounded-md bg-[#e8623a] px-1.5 py-0.5 text-[10px] text-white">Bugün</span>}</span>
+              <span className="w-28 text-sm font-black">{formatDay(shift.date)}{isToday && <span className="ml-2 rounded-md bg-[color:var(--c-accent)] px-1.5 py-0.5 text-[10px] text-white">Bugün</span>}</span>
               {shift.kind === "leave" ? (
                 <span className="inline-flex items-center gap-1.5 text-sm font-bold text-[#285e9f]"><Palmtree size={15} />İzinli</span>
               ) : (

@@ -20,7 +20,7 @@ type Props = {
 
 type Editing = { shift?: Shift; membershipId?: string; date?: string };
 
-const inputClass = "min-h-11 w-full rounded-xl border border-[#dce3df] bg-[#f9faf9] px-3 text-sm outline-none focus:border-[#e8623a] focus:bg-white";
+const inputClass = "min-h-11 w-full rounded-xl border border-[#dce3df] bg-[#f9faf9] px-3 text-sm outline-none focus:border-[color:var(--c-accent)] focus:bg-white";
 const labelClass = "mb-2 block text-xs font-bold text-[#68736e]";
 
 export function ShiftPlanner({ tenant, branch, weekStart, today, members, templates, shifts }: Props) {
@@ -60,7 +60,7 @@ export function ShiftPlanner({ tenant, branch, weekStart, today, members, templa
             <thead>
               <tr>
                 <th className="sticky left-0 bg-white p-2 text-xs font-black uppercase tracking-[0.1em] text-[#8a948f]">Personel</th>
-                {days.map((day) => <th key={day} className={`p-2 text-xs font-black ${day === today ? "text-[#e8623a]" : "text-[#68736e]"}`}>{formatDay(day)}</th>)}
+                {days.map((day) => <th key={day} className={`p-2 text-xs font-black ${day === today ? "text-[color:var(--c-accent)]" : "text-[#68736e]"}`}>{formatDay(day)}</th>)}
                 <th className="p-2 text-xs font-black uppercase tracking-[0.1em] text-[#8a948f]">Toplam</th>
               </tr>
             </thead>
@@ -82,7 +82,7 @@ export function ShiftPlanner({ tenant, branch, weekStart, today, members, templa
                             </button>
                           );
                         })}
-                        <button type="button" onClick={() => setEditing({ membershipId: member.membershipId, date: day })} className="grid h-7 place-items-center rounded-lg border border-dashed border-[#cdd5d1] text-[#8a948f] hover:border-[#e8623a] hover:text-[#e8623a]" aria-label={`${member.fullName} ${formatDay(day)} için ekle`}><Plus size={14} /></button>
+                        <button type="button" onClick={() => setEditing({ membershipId: member.membershipId, date: day })} className="grid h-7 place-items-center rounded-lg border border-dashed border-[#cdd5d1] text-[#8a948f] hover:border-[color:var(--c-accent)] hover:text-[color:var(--c-accent)]" aria-label={`${member.fullName} ${formatDay(day)} için ekle`}><Plus size={14} /></button>
                       </div>
                     </td>
                   ))}
@@ -142,7 +142,7 @@ function ShiftForm({ tenant, branch, editing, members, templates, defaultDate, o
   }
 
   return (
-    <div className="rounded-[22px] border border-[#e8623a]/40 bg-white p-5 sm:p-6">
+    <div className="rounded-[22px] border border-[color:var(--c-accent)]/40 bg-white p-5 sm:p-6">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-black">{shift ? "Kaydı düzenle" : "Yeni kayıt"}</h2>
         <button type="button" onClick={onClose} className="min-h-10 rounded-xl border border-[#dce3df] px-4 text-sm font-bold">Kapat</button>
@@ -161,7 +161,7 @@ function ShiftForm({ tenant, branch, editing, members, templates, defaultDate, o
         )}
         <label className="sm:col-span-2 lg:col-span-3"><span className={labelClass}>Not</span><input name="notes" className={inputClass} maxLength={300} defaultValue={shift?.notes || ""} placeholder="İsteğe bağlı" /></label>
         <div className="flex flex-wrap gap-2 sm:col-span-2 lg:col-span-3">
-          <button disabled={pending} className="min-h-11 rounded-xl bg-[#e8623a] px-6 text-sm font-black text-white disabled:opacity-50">{pending ? "Kaydediliyor…" : "Kaydet"}</button>
+          <button disabled={pending} className="min-h-11 rounded-xl bg-[color:var(--c-accent)] px-6 text-sm font-black text-white disabled:opacity-50">{pending ? "Kaydediliyor…" : "Kaydet"}</button>
         </div>
       </form>
       {shift && (
@@ -198,7 +198,7 @@ function TemplateManager({ tenant, branch, templates }: { tenant: string; branch
         <label><span className={labelClass}>Renk</span><input type="color" name="color" className="min-h-11 w-full rounded-xl border border-[#dce3df] bg-[#f9faf9] p-1" defaultValue={editing?.color || "#e8623a"} /></label>
         {editing && <label><span className={labelClass}>Durum</span><select name="isActive" className={inputClass} defaultValue={String(editing.isActive)}><option value="true">Aktif</option><option value="false">Pasif</option></select></label>}
         <div className="flex gap-2 sm:col-span-2 lg:col-span-5">
-          <button disabled={pending} className="min-h-11 rounded-xl bg-[#17211d] px-5 text-sm font-black text-white disabled:opacity-50">{pending ? "Kaydediliyor…" : editing ? "Şablonu güncelle" : "Şablon ekle"}</button>
+          <button disabled={pending} className="min-h-11 rounded-xl bg-[color:var(--c-ink)] px-5 text-sm font-black text-white disabled:opacity-50">{pending ? "Kaydediliyor…" : editing ? "Şablonu güncelle" : "Şablon ekle"}</button>
           {editing && <button type="button" onClick={() => setEditing(null)} className="min-h-11 rounded-xl border border-[#dce3df] px-4 text-sm font-bold">Vazgeç</button>}
         </div>
       </form>

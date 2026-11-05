@@ -6,7 +6,7 @@ import { initialSettingsActionState } from "@/modules/settings/management-types"
 import { assignMemberAction } from "../actions";
 import type { PlatformMember } from "../types";
 
-const inputClass = "min-h-10 rounded-lg border border-[#dce3df] bg-white px-2 text-xs outline-none focus:border-[#e8623a]";
+const inputClass = "min-h-10 rounded-lg border border-[#dce3df] bg-white px-2 text-xs outline-none focus:border-[color:var(--c-accent)]";
 const roles = [
   ["owner", "İşletme Sahibi"],
   ["tenant_admin", "İşletme Yöneticisi"],
@@ -28,7 +28,7 @@ function AssignForm({ member, tenants }: { member: PlatformMember; tenants: Arra
       <select name="roleCode" defaultValue="owner" className={inputClass} aria-label="Rol">
         {roles.map(([code, label]) => <option key={code} value={code}>{label}</option>)}
       </select>
-      <button disabled={pending || tenants.length === 0} className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-[#17211d] px-3 text-xs font-black text-white disabled:opacity-50"><UserPlus size={14} /> {pending ? "Atanıyor…" : "Ata"}</button>
+      <button disabled={pending || tenants.length === 0} className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-[color:var(--c-ink)] px-3 text-xs font-black text-white disabled:opacity-50"><UserPlus size={14} /> {pending ? "Atanıyor…" : "Ata"}</button>
       {state.message && <span role={state.status === "error" ? "alert" : "status"} className={`w-full text-[11px] font-semibold ${state.status === "error" ? "text-[#9e4328]" : "text-[#176e56]"}`}>{state.message}</span>}
     </form>
   );

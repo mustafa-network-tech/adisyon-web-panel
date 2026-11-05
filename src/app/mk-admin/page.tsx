@@ -62,10 +62,10 @@ export default async function PlatformAdminPage({
 
   return (
     <main className="min-h-dvh bg-[#f4f6f8]">
-      <header className="border-b border-[#dfe5e1] bg-[#17211d] text-white">
+      <header className="border-b border-[#dfe5e1] bg-[color:var(--c-ink)] text-white">
         <div className="mx-auto flex min-h-20 max-w-7xl items-center justify-between gap-4 px-5 sm:px-8">
           <div className="flex items-center gap-4">
-            <span className="grid size-11 place-items-center rounded-xl bg-[#e8623a] text-xs font-black">MK</span>
+            <span className="grid size-11 place-items-center rounded-xl bg-[color:var(--c-accent)] text-xs font-black">MK</span>
             <div><p className="text-sm font-black tracking-wide">DIGITAL SYSTEMS</p><p className="mt-1 text-[10px] font-bold uppercase tracking-[0.15em] text-white/45">Platform yönetimi</p></div>
           </div>
           <div className="flex items-center gap-3">
@@ -77,14 +77,14 @@ export default async function PlatformAdminPage({
 
       <section className="mx-auto max-w-7xl px-5 py-8 sm:px-8 sm:py-10">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-          <div><p className="text-xs font-black uppercase tracking-[0.16em] text-[#e8623a]">Merkezî yönetim</p><h1 className="mt-2 text-3xl font-black tracking-[-0.04em] sm:text-4xl">İşletmeler</h1><p className="mt-2 text-sm font-semibold text-[#7a8580]">Üyeler kendi işletmesini kurar; burada plan, kullanıcı limiti ve atamaları yönetirsiniz.</p></div>
+          <div><p className="text-xs font-black uppercase tracking-[0.16em] text-[color:var(--c-accent)]">Merkezî yönetim</p><h1 className="mt-2 text-3xl font-black tracking-[-0.04em] sm:text-4xl">İşletmeler</h1><p className="mt-2 text-sm font-semibold text-[#7a8580]">Üyeler kendi işletmesini kurar; burada plan, kullanıcı limiti ve atamaları yönetirsiniz.</p></div>
           <PlatformActionsPanel tenants={(overview?.tenants || []).map((tenant) => ({ id: tenant.id, name: tenant.name, planCode: tenant.planCode, subscriptionStatus: tenant.subscriptionStatus, userLimit: tenant.userLimit, branchLimit: tenant.branchLimit }))} />
         </div>
 
         {loadError && <div role="alert" className="mt-6 rounded-2xl border border-[#f3d2c6] bg-[#fff7f3] p-4 text-sm font-semibold text-[#9e4328]">Platform verileri okunamadı. Auth/RLS migration dosyasının uygulandığını ve hesabın platform yöneticisi olduğunu kontrol edin.</div>}
 
         <div className="mt-7 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {metrics.map(([Icon, label, value]) => <article key={label} className="rounded-2xl border border-[#dfe5e1] bg-white p-4 sm:p-5"><Icon size={20} className="text-[#e8623a]" /><p className="mt-5 text-xs font-bold text-[#8a948f]">{label}</p><p className="mt-1 text-2xl font-black">{value}</p></article>)}
+          {metrics.map(([Icon, label, value]) => <article key={label} className="rounded-2xl border border-[#dfe5e1] bg-white p-4 sm:p-5"><Icon size={20} className="text-[color:var(--c-accent)]" /><p className="mt-5 text-xs font-bold text-[#8a948f]">{label}</p><p className="mt-1 text-2xl font-black">{value}</p></article>)}
         </div>
 
         <div className="mt-5 overflow-hidden rounded-[24px] border border-[#dfe5e1] bg-white">

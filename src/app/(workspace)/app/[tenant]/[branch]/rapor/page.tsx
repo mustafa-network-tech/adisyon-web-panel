@@ -38,7 +38,7 @@ export default async function ReportsPage({
     <section className="space-y-6 p-4 sm:p-6 lg:p-8">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-[#e8623a]">{context.branchName} şubesi</p>
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-[color:var(--c-accent)]">{context.branchName} şubesi</p>
           <h1 className="mt-2 text-3xl font-black tracking-[-0.04em] sm:text-4xl">Satış raporları</h1>
           <p className="mt-2 text-sm font-semibold text-[#7a8580]">{from === to ? from : `${from} – ${to}`}{canSeeHistory ? "" : " · yalnızca bugün görüntülenebilir"}</p>
         </div>
@@ -48,12 +48,12 @@ export default async function ReportsPage({
       {canSeeHistory && (
         <div className="flex flex-wrap items-end gap-2">
           {presets.map((preset) => (
-            <Link key={preset.id} href={`${base}?preset=${preset.id}`} className="inline-flex min-h-10 items-center rounded-xl border border-[#dce3df] bg-white px-4 text-sm font-black hover:border-[#e8623a]">{preset.label}</Link>
+            <Link key={preset.id} href={`${base}?preset=${preset.id}`} className="inline-flex min-h-10 items-center rounded-xl border border-[#dce3df] bg-white px-4 text-sm font-black hover:border-[color:var(--c-accent)]">{preset.label}</Link>
           ))}
           <form action={base} className="flex flex-wrap items-end gap-2">
             <label className="text-xs font-bold text-[#68736e]">Başlangıç<input type="date" name="from" defaultValue={from} max={today} className="mt-1 block min-h-10 rounded-xl border border-[#dce3df] bg-white px-3 text-sm" /></label>
             <label className="text-xs font-bold text-[#68736e]">Bitiş<input type="date" name="to" defaultValue={to} max={today} className="mt-1 block min-h-10 rounded-xl border border-[#dce3df] bg-white px-3 text-sm" /></label>
-            <button className="min-h-10 rounded-xl bg-[#17211d] px-4 text-sm font-black text-white">Göster</button>
+            <button className="min-h-10 rounded-xl bg-[color:var(--c-ink)] px-4 text-sm font-black text-white">Göster</button>
           </form>
         </div>
       )}

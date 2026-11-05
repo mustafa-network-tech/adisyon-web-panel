@@ -112,7 +112,7 @@ export function PwaRegistrar() {
         <div role="status" className="pointer-events-auto flex w-full max-w-xl items-center gap-3 rounded-2xl border border-[#e7d49e] bg-[#fff9e8] p-4 text-[#725313] shadow-[0_18px_50px_rgb(23_33_29/0.16)]">
           <RefreshCw className="shrink-0" size={20} aria-hidden="true" />
           <div className="min-w-0 flex-1"><p className="text-sm font-black">Yeni sürüm hazır</p><p className="mt-0.5 text-xs font-semibold">Güncelleme sayfayı bir kez yeniler.</p></div>
-          <button type="button" onClick={applyUpdate} className="min-h-10 rounded-xl bg-[#17211d] px-4 text-xs font-black text-white">Şimdi güncelle</button>
+          <button type="button" onClick={applyUpdate} className="min-h-10 rounded-xl bg-[color:var(--c-ink)] px-4 text-xs font-black text-white">Şimdi güncelle</button>
           <button type="button" onClick={() => setWaitingWorker(null)} aria-label="Güncellemeyi sonra yap" className="grid size-10 shrink-0 place-items-center rounded-xl hover:bg-black/5"><X size={18} /></button>
         </div>
       )}

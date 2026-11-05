@@ -96,7 +96,7 @@ export function PublicMenuView({ token, menu }: Props) {
         <button
           type="button"
           onClick={() => setPlacedOrder(null)}
-          className="mt-6 min-h-12 rounded-2xl bg-[#17211d] px-6 text-sm font-black text-white"
+          className="mt-6 min-h-12 rounded-2xl bg-[color:var(--c-ink)] px-6 text-sm font-black text-white"
         >
           Yeni sipariş ver
         </button>
@@ -156,7 +156,7 @@ export function PublicMenuView({ token, menu }: Props) {
                           {product.description}
                         </p>
                       )}
-                      <p className="mt-2 font-black text-[#c94927]">
+                      <p className="mt-2 font-black text-[color:var(--c-accent-d2)]">
                         {hasOptions && <span className="mr-1 text-xs font-bold text-[#8a948f]">başlangıç</span>}
                         {formatMoney(startingPriceMinor(product.priceMinor, product.optionGroups))}
                       </p>
@@ -180,7 +180,7 @@ export function PublicMenuView({ token, menu }: Props) {
                           type="button"
                           onClick={() => plus(product)}
                           aria-label={hasOptions ? `${product.name} seçenekleri` : `${product.name} ekle`}
-                          className="grid size-11 shrink-0 place-items-center rounded-xl bg-[#e8623a] text-white"
+                          className="grid size-11 shrink-0 place-items-center rounded-xl bg-[color:var(--c-accent)] text-white"
                         >
                           <Plus size={20} />
                         </button>
@@ -199,7 +199,7 @@ export function PublicMenuView({ token, menu }: Props) {
                             type="button"
                             onClick={() => change(simpleLine.key, 1)}
                             aria-label={`${product.name} artır`}
-                            className="grid size-9 place-items-center rounded-lg bg-[#e8623a] text-white"
+                            className="grid size-9 place-items-center rounded-lg bg-[color:var(--c-accent)] text-white"
                           >
                             <Plus size={16} />
                           </button>
@@ -228,7 +228,7 @@ export function PublicMenuView({ token, menu }: Props) {
                     <span className="flex shrink-0 items-center gap-1 rounded-lg border border-[#dfe5e1] p-0.5">
                       <button type="button" onClick={() => change(line.key, -1)} aria-label={`${line.product.name} azalt`} className="grid size-8 place-items-center rounded-md bg-[#eef1ef]"><Minus size={14} /></button>
                       <span className="w-6 text-center text-xs font-black">{line.quantity}</span>
-                      <button type="button" onClick={() => change(line.key, 1)} aria-label={`${line.product.name} artır`} className="grid size-8 place-items-center rounded-md bg-[#e8623a] text-white"><Plus size={14} /></button>
+                      <button type="button" onClick={() => change(line.key, 1)} aria-label={`${line.product.name} artır`} className="grid size-8 place-items-center rounded-md bg-[color:var(--c-accent)] text-white"><Plus size={14} /></button>
                     </span>
                     <span className="w-20 shrink-0 text-right text-xs font-black">{formatMoney(unitPriceMinor(line) * line.quantity)}</span>
                   </li>
@@ -244,7 +244,7 @@ export function PublicMenuView({ token, menu }: Props) {
               type="button"
               onClick={submit}
               disabled={pending}
-              className="flex min-h-14 w-full items-center justify-between rounded-2xl bg-[#17211d] px-5 text-white disabled:opacity-60"
+              className="flex min-h-14 w-full items-center justify-between rounded-2xl bg-[color:var(--c-ink)] px-5 text-white disabled:opacity-60"
             >
               <span className="flex items-center gap-2 font-black">
                 <ShoppingBag size={19} />

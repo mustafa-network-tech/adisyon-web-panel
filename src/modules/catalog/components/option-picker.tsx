@@ -75,8 +75,8 @@ export function OptionPicker({ productName, basePriceMinor, groups, onConfirm, o
                   const inputType = group.kind === "variant" ? "radio" : "checkbox";
                   return (
                     <li key={choice.id}>
-                      <label className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border px-3 text-sm font-bold ${choice.soldOut ? "cursor-not-allowed border-[#edf0ee] bg-[#f6f8f7] text-[#a7afab]" : checked ? "border-[#e8623a] bg-[#fff7f3]" : "border-[#dfe5e1] bg-white"}`}>
-                        <input type={inputType} name={`group-${group.id}`} checked={checked} disabled={choice.soldOut} onChange={() => toggle(group, choice.id)} className="size-5 accent-[#e8623a]" />
+                      <label className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border px-3 text-sm font-bold ${choice.soldOut ? "cursor-not-allowed border-[#edf0ee] bg-[#f6f8f7] text-[#a7afab]" : checked ? "border-[color:var(--c-accent)] bg-[#fff7f3]" : "border-[#dfe5e1] bg-white"}`}>
+                        <input type={inputType} name={`group-${group.id}`} checked={checked} disabled={choice.soldOut} onChange={() => toggle(group, choice.id)} className="size-5 accent-[color:var(--c-accent)]" />
                         <span className="flex-1">{choice.name}</span>
                         {choice.soldOut ? <span className="text-[11px] font-black text-[#b63b32]">Tükendi</span> : <span className="text-xs font-black text-[#68736e]">{formatDelta(choice.priceDeltaMinor)}</span>}
                       </label>
@@ -90,7 +90,7 @@ export function OptionPicker({ productName, basePriceMinor, groups, onConfirm, o
 
         <div className="border-t border-[#edf0ee] p-5">
           {showError && error && <p role="alert" className="mb-3 rounded-xl bg-[#fff7f3] p-3 text-sm font-bold text-[#9e4328]">{error}</p>}
-          <button type="button" onClick={confirm} className="flex min-h-14 w-full items-center justify-between rounded-2xl bg-[#17211d] px-5 text-white">
+          <button type="button" onClick={confirm} className="flex min-h-14 w-full items-center justify-between rounded-2xl bg-[color:var(--c-ink)] px-5 text-white">
             <span className="font-black">{confirmLabel}</span>
             <span className="font-black">{formatMoney(totalMinor)}</span>
           </button>

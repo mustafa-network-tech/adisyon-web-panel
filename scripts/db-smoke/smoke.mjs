@@ -532,8 +532,43 @@ await expectError("save_kitchen_station", stationArgs({ target_station_id: stati
 await expectError("set_tenant_theme", { target_tenant_id: tenant, target_branch_id: branch, target_theme: "neon" }, "invalid_theme", "unknown themes are refused");
 await rpc("set_tenant_theme", { target_tenant_id: tenant, target_branch_id: branch, target_theme: "ocean" });
 check("the owner can choose a theme", (await one("select theme from public.tenant_settings where tenant_id = $1", [tenant])).theme === "ocean");
+await actAs(db, null);
+check("the QR menu carries the business theme", (await rpc("get_public_menu", { target_token: t5Token })).theme === "ocean");
+await actAs(db, OWNER);
 await actAs(db, WAITER);
 await expectError("set_tenant_theme", { target_tenant_id: tenant, target_branch_id: branch, target_theme: "classic" }, "settings_manage_denied", "waiters cannot change the theme");
+
+// --- two businesses never see each other's QR menu or orders -----------------------------
+const OWNER_B = "20000000-0000-4000-8000-0000000000b1";
+await db.query("insert into auth.users (id, email, raw_user_meta_data) values ($1, $2, $3)", [OWNER_B, "b@t.test", JSON.stringify({ full_name: "Bora Sahip" })]);
+await db.query("insert into public.profiles (id, full_name) values ($1, 'Bora Sahip') on conflict do nothing", [OWNER_B]);
+await actAs(db, OWNER_B);
+await rpc("create_my_tenant", { target_name: "Ikinci Lokanta", target_branch_name: "Sube" });
+const tenantB = (await one("select id from public.tenants where id <> $1", [tenant])).id;
+const branchB = (await one("select id from public.branches where tenant_id = $1", [tenantB])).id;
+const categoryB = (await one("insert into public.menu_categories (tenant_id, branch_id, name) values ($1,$2,'B Yemek') returning id", [tenantB, branchB])).id;
+const productB = (await one("insert into public.products (tenant_id, branch_id, category_id, name, price_minor, tax_rate) values ($1,$2,$3,'B Corba',5000,10) returning id", [tenantB, branchB, categoryB])).id;
+const areaB = (await one("insert into public.dining_areas (tenant_id, branch_id, name) values ($1,$2,'B Salon') returning id", [tenantB, branchB])).id;
+const tableB = (await one("insert into public.restaurant_tables (tenant_id, branch_id, area_id, label) values ($1,$2,$3,'B Masa 1') returning id", [tenantB, branchB, areaB])).id;
+await rpc("set_branch_qr_settings", { target_tenant_id: tenantB, target_branch_id: branchB, target_ordering_enabled: true });
+const tokenB = (await one("select qr_token from public.restaurant_tables where id = $1", [tableB])).qr_token;
+const tokenA = (await one("select qr_token from public.restaurant_tables where id = $1", [t5])).qr_token;
+
+check("every table of every business has its own QR token", (await one("select count(*)::int n, count(distinct qr_token)::int d from public.restaurant_tables")).n === (await one("select count(distinct qr_token)::int d from public.restaurant_tables")).d && tokenA !== tokenB);
+await actAs(db, null);
+const menuA = await rpc("get_public_menu", { target_token: tokenA });
+const menuB = await rpc("get_public_menu", { target_token: tokenB });
+const namesA = menuA.categories.flatMap((c) => c.products).map((p) => p.name);
+const namesB = menuB.categories.flatMap((c) => c.products).map((p) => p.name);
+check("the QR menu of business A shows only A's products", namesA.includes("Kebap") && !namesA.includes("B Corba"), JSON.stringify(namesA));
+check("the QR menu of business B shows only B's products", namesB.length === 1 && namesB[0] === "B Corba", JSON.stringify(namesB));
+check("each menu belongs to its own business and table", menuA.brandName !== menuB.brandName && menuB.tableLabel === "B Masa 1");
+await expectError("place_customer_order", { target_token: tokenA, target_items: [{ productId: productB, quantity: 1 }], target_idempotency_key: key() }, "product_not_available", "a QR code of A cannot order B's product");
+await expectError("place_customer_order", { target_token: tokenB, target_items: [{ productId: kebab, quantity: 1, options: [full] }], target_idempotency_key: key() }, "product_not_available", "a QR code of B cannot order A's product");
+const orderB = await rpc("place_customer_order", { target_token: tokenB, target_items: [{ productId: productB, quantity: 2 }], target_idempotency_key: key() });
+check("B's own QR order works", orderB.ticketCount === 1);
+check("the order landed in B's tenant only", (await one("select count(*)::int n from public.orders where tenant_id = $1 and table_id = $2", [tenantB, tableB])).n === 1 && (await one("select count(*)::int n from public.orders where tenant_id = $1 and id in (select order_id from public.order_items where product_name = 'B Corba')", [tenant])).n === 0);
+check("waiter calls of B do not reach A", (await rpc("call_waiter", { target_token: tokenB, target_kind: "waiter" })).status === "sent" && (await one("select count(*)::int n from public.waiter_calls where tenant_id = $1 and table_id = $2", [tenant, tableB])).n === 0);
 
 // --- result ------------------------------------------------------------------
 console.log(`passed: ${passed}`);

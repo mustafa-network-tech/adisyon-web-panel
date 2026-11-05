@@ -19,7 +19,7 @@ type Props = {
 
 type Draft = { id: string; name: string; color: string; isActive: boolean; productIds: string[] };
 
-const inputClass = "min-h-11 w-full rounded-xl border border-[#dce3df] bg-[#f9faf9] px-3 text-sm outline-none focus:border-[#e8623a] focus:bg-white";
+const inputClass = "min-h-11 w-full rounded-xl border border-[#dce3df] bg-[#f9faf9] px-3 text-sm outline-none focus:border-[color:var(--c-accent)] focus:bg-white";
 const labelClass = "mb-2 block text-xs font-bold text-[#68736e]";
 
 export function StationManager({ tenant, branch, stations, products, categories, usage }: Props) {
@@ -77,14 +77,14 @@ export function StationManager({ tenant, branch, stations, products, categories,
         <aside className="rounded-[22px] border border-[#dfe5e1] bg-white p-4">
           <div className="flex items-center justify-between px-1">
             <h2 className="flex items-center gap-2 text-sm font-black"><ChefHat size={16} />İstasyonlar</h2>
-            <button type="button" onClick={() => open(null)} disabled={limitHit} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-[#e8623a] px-3 text-xs font-black text-white disabled:opacity-45"><Plus size={14} />Yeni</button>
+            <button type="button" onClick={() => open(null)} disabled={limitHit} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-[color:var(--c-accent)] px-3 text-xs font-black text-white disabled:opacity-45"><Plus size={14} />Yeni</button>
           </div>
           <ul className="mt-3 space-y-2">
             {stations.map((station) => {
               const count = routedProducts.filter((product) => product.kitchenStationId === station.id).length;
               return (
                 <li key={station.id}>
-                  <button type="button" onClick={() => open(station)} className={`flex w-full items-center gap-3 rounded-xl p-3 text-left ${draft?.id === station.id ? "bg-[#17211d] text-white" : "bg-[#f6f8f7]"}`}>
+                  <button type="button" onClick={() => open(station)} className={`flex w-full items-center gap-3 rounded-xl p-3 text-left ${draft?.id === station.id ? "bg-[color:var(--c-ink)] text-white" : "bg-[#f6f8f7]"}`}>
                     <span className="size-3.5 shrink-0 rounded-full" style={{ backgroundColor: station.color }} />
                     <span className="min-w-0 flex-1"><span className="block truncate text-sm font-black">{station.name}{!station.isActive && " (pasif)"}</span><span className={`block text-[11px] font-semibold ${draft?.id === station.id ? "text-white/65" : "text-[#8a948f]"}`}>{count} ürün</span></span>
                   </button>
@@ -108,7 +108,7 @@ export function StationManager({ tenant, branch, stations, products, categories,
                 <fieldset>
                   <legend className={labelClass}>Renk</legend>
                   <div className="flex flex-wrap gap-2">
-                    {stationColors.map((color) => <button key={color} type="button" onClick={() => setDraft({ ...draft, color })} aria-pressed={draft.color === color} aria-label={`Renk ${color}`} className={`size-9 rounded-full border-2 ${draft.color === color ? "border-[#17211d]" : "border-transparent"}`} style={{ backgroundColor: color }} />)}
+                    {stationColors.map((color) => <button key={color} type="button" onClick={() => setDraft({ ...draft, color })} aria-pressed={draft.color === color} aria-label={`Renk ${color}`} className={`size-9 rounded-full border-2 ${draft.color === color ? "border-[color:var(--c-ink)]" : "border-transparent"}`} style={{ backgroundColor: color }} />)}
                   </div>
                 </fieldset>
                 <label className="flex items-center gap-3 rounded-xl bg-[#f6f8f7] p-3 text-sm font-bold sm:col-span-2"><input type="checkbox" checked={draft.isActive} onChange={(event) => setDraft({ ...draft, isActive: event.target.checked })} className="size-5" />İstasyon aktif<span className="text-xs font-semibold text-[#8a948f]">(kapatırsanız ürünleri başka bir istasyona geçer)</span></label>
@@ -137,7 +137,7 @@ export function StationManager({ tenant, branch, stations, products, categories,
 
               {feedback && <p role={feedback.type === "error" ? "alert" : "status"} className={`rounded-xl p-3 text-xs font-semibold ${feedback.type === "error" ? "bg-[#fff7f3] text-[#9e4328]" : "bg-[#edf8f3] text-[#176e56]"}`}>{feedback.message}</p>}
               <div className="flex gap-2">
-                <button type="button" onClick={save} disabled={isPending} className="min-h-11 rounded-xl bg-[#e8623a] px-6 text-sm font-black text-white disabled:opacity-50">{isPending ? "Kaydediliyor…" : "İstasyonu kaydet"}</button>
+                <button type="button" onClick={save} disabled={isPending} className="min-h-11 rounded-xl bg-[color:var(--c-accent)] px-6 text-sm font-black text-white disabled:opacity-50">{isPending ? "Kaydediliyor…" : "İstasyonu kaydet"}</button>
                 <button type="button" onClick={() => { setDraft(null); setFeedback(null); }} className="min-h-11 rounded-xl border border-[#dce3df] px-4 text-sm font-bold">Vazgeç</button>
               </div>
             </div>

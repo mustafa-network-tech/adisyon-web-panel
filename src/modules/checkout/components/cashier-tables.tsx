@@ -40,8 +40,8 @@ export function CashierTables({ areas, tables, orders, selectedOrderId, onSelect
         <h2 className="text-xl font-black">Masalar</h2>
         <div className="flex flex-wrap gap-2 text-xs font-black">
           <span className="rounded-lg bg-[#e7f5ef] px-3 py-2 text-[#176e56]">Boş {visibleTables.length - occupied}</span>
-          <span className="rounded-lg bg-[#fff0ea] px-3 py-2 text-[#b94c2c]">Dolu {occupied}</span>
-          <span className="rounded-lg bg-[#17211d] px-3 py-2 text-white">Ödeme bekleyen {waiting}</span>
+          <span className="rounded-lg bg-[color:var(--c-accent-soft)] px-3 py-2 text-[color:var(--c-accent-d6)]">Dolu {occupied}</span>
+          <span className="rounded-lg bg-[color:var(--c-ink)] px-3 py-2 text-white">Ödeme bekleyen {waiting}</span>
         </div>
       </div>
 
@@ -65,8 +65,8 @@ export function CashierTables({ areas, tables, orders, selectedOrderId, onSelect
                   else if (table.status === "dirty") { style = "border-[#f0dca8] bg-[#fff9e9]"; label = "Temizlenecek"; labelStyle = "text-[#9a6811]"; }
                   else if (table.status === "reserved" && !table.activeOrderId) { style = "border-[#c9dcef] bg-[#f1f6fb]"; label = "Rezerve"; labelStyle = "text-[#285e9f]"; }
                   if (table.activeOrderId) {
-                    if (order) { style = "border-[#17211d] bg-[#17211d]"; label = formatMoney(order.outstandingMinor); labelStyle = "text-white"; }
-                    else { style = "border-[#f3c9b9] bg-[#fff7f3]"; label = "Sipariş açık"; labelStyle = "text-[#b94c2c]"; }
+                    if (order) { style = "border-[color:var(--c-ink)] bg-[color:var(--c-ink)]"; label = formatMoney(order.outstandingMinor); labelStyle = "text-white"; }
+                    else { style = "border-[#f3c9b9] bg-[#fff7f3]"; label = "Sipariş açık"; labelStyle = "text-[color:var(--c-accent-d6)]"; }
                   }
                   const dark = Boolean(order);
                   return (
@@ -75,9 +75,9 @@ export function CashierTables({ areas, tables, orders, selectedOrderId, onSelect
                       type="button"
                       onClick={() => press(table)}
                       aria-pressed={isSelected}
-                      className={`flex min-h-24 flex-col justify-between rounded-2xl border p-3 text-left transition ${style} ${isSelected ? "ring-4 ring-[#e8623a]/40" : ""} ${table.activeOrderId ? "cursor-pointer" : "cursor-default"}`}
+                      className={`flex min-h-24 flex-col justify-between rounded-2xl border p-3 text-left transition ${style} ${isSelected ? "ring-4 ring-[color:var(--c-accent)]/40" : ""} ${table.activeOrderId ? "cursor-pointer" : "cursor-default"}`}
                     >
-                      <span className={`text-lg font-black ${dark ? "text-white" : "text-[#17211d]"}`}>{table.label}</span>
+                      <span className={`text-lg font-black ${dark ? "text-white" : "text-[color:var(--c-ink)]"}`}>{table.label}</span>
                       <span>
                         <span className={`block text-xs font-black ${labelStyle}`}>{label}</span>
                         {table.activeOrderNumber !== null && (

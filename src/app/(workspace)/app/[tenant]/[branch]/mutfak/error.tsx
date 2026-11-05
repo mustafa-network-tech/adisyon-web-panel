@@ -11,7 +11,7 @@ export default function KitchenError({ reset }: { reset: () => void }) {
         <button
           type="button"
           onClick={reset}
-          className="mt-5 min-h-11 rounded-xl bg-[#17211d] px-5 text-sm font-black text-white"
+          className="mt-5 min-h-11 rounded-xl bg-[color:var(--c-ink)] px-5 text-sm font-black text-white"
         >
           Yeniden dene
         </button>

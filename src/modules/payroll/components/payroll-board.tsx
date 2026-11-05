@@ -16,7 +16,7 @@ import {
 import { plannedShiftMinutes, shiftPeriod, type EntryKind } from "../calc";
 import type { PayrollMember, PayrollSnapshot } from "../repository";
 
-const inputClass = "min-h-11 w-full rounded-xl border border-[#dce3df] bg-[#f9faf9] px-3 text-sm outline-none focus:border-[#e8623a] focus:bg-white";
+const inputClass = "min-h-11 w-full rounded-xl border border-[#dce3df] bg-[#f9faf9] px-3 text-sm outline-none focus:border-[color:var(--c-accent)] focus:bg-white";
 const labelClass = "mb-2 block text-xs font-bold text-[#68736e]";
 const kindLabel: Record<EntryKind, string> = { bonus: "Prim", deduction: "Kesinti", advance: "Avans" };
 
@@ -70,7 +70,7 @@ export function PayrollBoard({ tenant, branch, snapshot }: { tenant: string; bra
           <div className="flex flex-wrap items-center gap-2">
             {canApprove && <form action={bulkAction}>
               <input type="hidden" name="tenant" value={tenant} /><input type="hidden" name="branch" value={branch} /><input type="hidden" name="period" value={period} />
-              <button disabled={bulkPending || pendingTotal === 0} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#17211d] px-4 text-sm font-black text-white disabled:opacity-45"><CheckCheck size={16} />{bulkPending ? "Onaylanıyor…" : `Bekleyen ${pendingTotal} vardiyayı planlandığı gibi onayla`}</button>
+              <button disabled={bulkPending || pendingTotal === 0} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[color:var(--c-ink)] px-4 text-sm font-black text-white disabled:opacity-45"><CheckCheck size={16} />{bulkPending ? "Onaylanıyor…" : `Bekleyen ${pendingTotal} vardiyayı planlandığı gibi onayla`}</button>
             </form>}
             <button type="button" onClick={exportCsv} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#dce3df] px-4 text-sm font-black"><Download size={16} />Excel (CSV)</button>
           </div>
@@ -151,7 +151,7 @@ function ShiftApprovalRow({ tenant, branch, shift, future, canApprove }: { tenan
         {!future && canApprove && (
           <>
             <label className="w-28"><span className="sr-only">Çalışılan süre</span><input name="duration" className="min-h-10 w-full rounded-xl border border-[#dce3df] bg-[#f9faf9] px-3 text-xs" placeholder={`${Math.floor(planned / 60)}:${String(planned % 60).padStart(2, "0")}`} defaultValue={attendance?.status === "worked" && attendance.approvedMinutes !== planned ? `${Math.floor(attendance.approvedMinutes / 60)}:${String(attendance.approvedMinutes % 60).padStart(2, "0")}` : ""} /></label>
-            <button name="status" value="worked" disabled={pending} className="min-h-10 rounded-xl bg-[#17211d] px-3 text-xs font-black text-white disabled:opacity-50">Onayla</button>
+            <button name="status" value="worked" disabled={pending} className="min-h-10 rounded-xl bg-[color:var(--c-ink)] px-3 text-xs font-black text-white disabled:opacity-50">Onayla</button>
             <button name="status" value="absent" disabled={pending} className="min-h-10 rounded-xl border border-[#f0c6bb] px-3 text-xs font-black text-[#b63b32] disabled:opacity-50">Gelmedi</button>
           </>
         )}
@@ -176,7 +176,7 @@ function PayrollPanel({ tenant, branch, period, member }: { tenant: string; bran
           <label><span className={labelClass}>Tutar (₺)</span><input name="amount" inputMode="decimal" className={inputClass} defaultValue={member.pay ? (member.pay.amountMinor / 100).toFixed(2).replace(".", ",") : ""} placeholder="30000" required /></label>
         </div>
         <p className="mt-2 text-[11px] font-semibold leading-5 text-[#8a948f]">Aylık maaşta devamsızlık kesintisini siz “Kesinti” olarak girersiniz. Saatlik ücret, onaylanan çalışma süresiyle çarpılır.</p>
-        <button disabled={payPending} className="mt-4 min-h-11 rounded-xl bg-[#17211d] px-5 text-sm font-black text-white disabled:opacity-50">{payPending ? "Kaydediliyor…" : "Ücreti kaydet"}</button>
+        <button disabled={payPending} className="mt-4 min-h-11 rounded-xl bg-[color:var(--c-ink)] px-5 text-sm font-black text-white disabled:opacity-50">{payPending ? "Kaydediliyor…" : "Ücreti kaydet"}</button>
         <Message state={payState} />
       </form>
 
@@ -201,7 +201,7 @@ function PayrollPanel({ tenant, branch, period, member }: { tenant: string; bran
           <label><span className="sr-only">Tür</span><select name="kind" className={inputClass} defaultValue="deduction"><option value="bonus">Prim (isteğe bağlı)</option><option value="deduction">Kesinti</option><option value="advance">Avans</option></select></label>
           <label><span className="sr-only">Tutar</span><input name="amount" inputMode="decimal" className={inputClass} placeholder="Tutar ₺" required /></label>
           <label><span className="sr-only">Açıklama</span><input name="note" maxLength={200} className={inputClass} placeholder="Açıklama" /></label>
-          <button disabled={entryPending} className="min-h-11 rounded-xl bg-[#e8623a] px-4 text-sm font-black text-white disabled:opacity-50">Ekle</button>
+          <button disabled={entryPending} className="min-h-11 rounded-xl bg-[color:var(--c-accent)] px-4 text-sm font-black text-white disabled:opacity-50">Ekle</button>
         </form>
         <Message state={entryState} />
       </div>

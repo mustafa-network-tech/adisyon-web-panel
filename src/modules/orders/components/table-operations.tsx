@@ -17,7 +17,7 @@ type Props = {
   mergeTargets: MergeTarget[];
 };
 
-const selectClass = "min-h-11 w-full rounded-xl border border-[#dce3df] bg-[#f9faf9] px-3 text-sm outline-none focus:border-[#e8623a] focus:bg-white";
+const selectClass = "min-h-11 w-full rounded-xl border border-[#dce3df] bg-[#f9faf9] px-3 text-sm outline-none focus:border-[color:var(--c-accent)] focus:bg-white";
 
 export function TableOperations({ tenant, branch, orderId, version, moveTargets, mergeTargets }: Props) {
   const router = useRouter();
@@ -54,7 +54,7 @@ export function TableOperations({ tenant, branch, orderId, version, moveTargets,
 
   return (
     <div className="rounded-[24px] border border-[#dfe5e1] bg-white p-5">
-      <div className="flex items-center gap-2"><ArrowRightLeft size={20} className="text-[#e8623a]" /><h2 className="text-lg font-black">Masa işlemleri</h2></div>
+      <div className="flex items-center gap-2"><ArrowRightLeft size={20} className="text-[color:var(--c-accent)]" /><h2 className="text-lg font-black">Masa işlemleri</h2></div>
 
       <div className="mt-4 space-y-2">
         <p className="text-xs font-bold text-[#68736e]">Başka bir masaya taşı</p>

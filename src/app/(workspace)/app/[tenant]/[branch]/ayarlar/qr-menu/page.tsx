@@ -53,7 +53,7 @@ export default async function QrMenuSettingsPage({
         <ArrowLeft size={16} /> Ayarlara dön
       </Link>
       <div className="mb-7 mt-6 print:hidden">
-        <p className="text-xs font-black uppercase tracking-[0.16em] text-[#e8623a]">Dijital menü</p>
+        <p className="text-xs font-black uppercase tracking-[0.16em] text-[color:var(--c-accent)]">Dijital menü</p>
         <h1 className="mt-2 text-3xl font-black tracking-[-0.04em] sm:text-4xl">QR menü</h1>
         <p className="mt-2 text-sm font-semibold text-[#7a8580]">
           {context.branchName} için masalara özel QR kodları oluşturun ve müşteri sipariş modunu seçin.

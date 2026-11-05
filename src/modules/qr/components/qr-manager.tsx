@@ -91,11 +91,11 @@ export function QrManager({ tenant, branch, orderingEnabled, tables }: Props) {
               aria-pressed={ordering === value}
               className={`flex items-start gap-3 rounded-2xl border p-4 text-left transition ${
                 ordering === value
-                  ? "border-[#e8623a] bg-[#fff0ea]"
+                  ? "border-[color:var(--c-accent)] bg-[color:var(--c-accent-soft)]"
                   : "border-[#dfe5e1] hover:border-[#e8b29f]"
               }`}
             >
-              <Icon className="mt-0.5 shrink-0 text-[#c94927]" size={20} />
+              <Icon className="mt-0.5 shrink-0 text-[color:var(--c-accent-d2)]" size={20} />
               <span>
                 <span className="block font-black">{title}</span>
                 <span className="mt-1 block text-sm text-[#68736e]">{text}</span>
@@ -121,7 +121,7 @@ export function QrManager({ tenant, branch, orderingEnabled, tables }: Props) {
           type="button"
           onClick={() => window.print()}
           disabled={!tables.length}
-          className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#17211d] px-4 text-sm font-black text-white disabled:opacity-50"
+          className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[color:var(--c-ink)] px-4 text-sm font-black text-white disabled:opacity-50"
         >
           <Printer size={16} /> Tümünü yazdır
         </button>
@@ -137,11 +137,11 @@ export function QrManager({ tenant, branch, orderingEnabled, tables }: Props) {
         {tables.map((table) => (
           <article
             key={table.id}
-            className={`rounded-[22px] border border-[#dfe5e1] bg-white p-5 text-center print:break-inside-avoid print:rounded-none print:border-[#17211d] ${
+            className={`rounded-[22px] border border-[#dfe5e1] bg-white p-5 text-center print:break-inside-avoid print:rounded-none print:border-[color:var(--c-ink)] ${
               printId && printId !== table.id ? "print:hidden" : ""
             }`}
           >
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#e8623a]">{table.areaName}</p>
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-[color:var(--c-accent)]">{table.areaName}</p>
             <h3 className="mt-1 text-2xl font-black">{table.label}</h3>
             <div
               className="mx-auto mt-3 aspect-square w-full max-w-[220px] [&>svg]:size-full"
@@ -154,14 +154,14 @@ export function QrManager({ tenant, branch, orderingEnabled, tables }: Props) {
               <button
                 type="button"
                 onClick={() => download(table)}
-                className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-[#e8623a] px-3 text-xs font-black text-white"
+                className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-[color:var(--c-accent)] px-3 text-xs font-black text-white"
               >
                 <Download size={14} /> İndir
               </button>
               <button
                 type="button"
                 onClick={() => printOne(table.id)}
-                className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-[#17211d] px-3 text-xs font-black text-white"
+                className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-[color:var(--c-ink)] px-3 text-xs font-black text-white"
               >
                 <Printer size={14} /> Yazdır
               </button>

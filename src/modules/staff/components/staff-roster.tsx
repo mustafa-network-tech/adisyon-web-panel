@@ -6,7 +6,7 @@ import { initialCrudActionState } from "@/modules/settings/action-state";
 import { saveStaffProfileAction } from "../actions";
 import type { EmploymentStatus, StaffMember } from "../types";
 
-const inputClass = "min-h-11 w-full rounded-xl border border-[#dce3df] bg-[#f9faf9] px-3 text-sm outline-none focus:border-[#e8623a] focus:bg-white";
+const inputClass = "min-h-11 w-full rounded-xl border border-[#dce3df] bg-[#f9faf9] px-3 text-sm outline-none focus:border-[color:var(--c-accent)] focus:bg-white";
 const labelClass = "mb-2 block text-xs font-bold text-[#68736e]";
 
 const statusLabel: Record<EmploymentStatus, string> = {
@@ -32,7 +32,7 @@ export function StaffRoster({ tenant, branch, members }: { tenant: string; branc
         <ul className="mt-3 space-y-2">
           {members.map((member) => (
             <li key={member.membershipId}>
-              <button type="button" onClick={() => setSelectedId(member.membershipId)} className={`flex w-full items-center gap-3 rounded-xl p-3 text-left ${member.membershipId === selectedId ? "bg-[#17211d] text-white" : "bg-[#f6f8f7]"}`}>
+              <button type="button" onClick={() => setSelectedId(member.membershipId)} className={`flex w-full items-center gap-3 rounded-xl p-3 text-left ${member.membershipId === selectedId ? "bg-[color:var(--c-ink)] text-white" : "bg-[#f6f8f7]"}`}>
                 <UserRound size={18} className="shrink-0 opacity-70" />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-black">{member.fullName}</span>
@@ -79,7 +79,7 @@ function StaffCardForm({ tenant, branch, member }: { tenant: string; branch: str
         <p className="mt-4 flex items-start gap-2 rounded-xl bg-[#fff8e7] p-3 text-xs font-bold leading-5 text-[#8a6415]"><ShieldAlert size={16} className="mt-0.5 shrink-0" />“İşten ayrıldı” olarak kaydedince personelin sisteme erişimi hemen askıya alınır. Geçmiş siparişleri ve vardiyaları korunur.</p>
       )}
       {state.message && <p role={state.status === "error" ? "alert" : "status"} className={`mt-4 rounded-xl p-3 text-xs font-semibold ${state.status === "error" ? "bg-[#fff7f3] text-[#9e4328]" : "bg-[#edf8f3] text-[#176e56]"}`}>{state.message}</p>}
-      <button disabled={pending} className="mt-5 min-h-11 rounded-xl bg-[#17211d] px-6 text-sm font-black text-white disabled:opacity-50">{pending ? "Kaydediliyor…" : "Kartı kaydet"}</button>
+      <button disabled={pending} className="mt-5 min-h-11 rounded-xl bg-[color:var(--c-ink)] px-6 text-sm font-black text-white disabled:opacity-50">{pending ? "Kaydediliyor…" : "Kartı kaydet"}</button>
     </form>
   );
 }

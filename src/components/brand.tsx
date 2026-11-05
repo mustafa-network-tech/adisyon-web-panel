@@ -29,7 +29,7 @@ export function Brand({ compact = false, href = "/", inverse = false }: BrandPro
       </span>
       {!compact && (
         <span className="leading-none">
-          <span className={`block text-[15px] font-black tracking-[0.14em] ${inverse ? "text-white" : "text-[#17211d]"}`}>
+          <span className={`block text-[15px] font-black tracking-[0.14em] ${inverse ? "text-white" : "text-[color:var(--c-ink)]"}`}>
             ADİSYON
           </span>
           <span className={`mt-1 block text-[10px] font-semibold tracking-[0.12em] ${inverse ? "text-white/60" : "text-[#68736e]"}`}>

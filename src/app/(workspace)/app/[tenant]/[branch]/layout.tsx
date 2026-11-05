@@ -1,6 +1,8 @@
 import { AppShell } from "@/components/app-shell";
 import { requireWorkspaceAccess } from "@/lib/auth/access";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getPlanUsage } from "@/modules/plan/repository";
+import { resolveTheme } from "@/modules/theme/themes";
 import { daysLeft } from "@/modules/plan/usage";
 
 export const dynamic = "force-dynamic";
@@ -8,7 +10,12 @@ export const dynamic = "force-dynamic";
 export default async function WorkspaceLayout({ children, params }: { children: React.ReactNode; params: Promise<{ tenant: string; branch: string }> }) {
   const { tenant, branch } = await params;
   const context = await requireWorkspaceAccess(tenant, branch);
-  const usage = await getPlanUsage(context.tenantId, context.branchId);
+  const supabase = await createSupabaseServerClient();
+  const [usage, settings] = await Promise.all([
+    getPlanUsage(context.tenantId, context.branchId),
+    supabase.from("tenant_settings").select("theme").eq("tenant_id", context.tenantId).maybeSingle(),
+  ]);
+  const theme = resolveTheme(settings.data?.theme);
   const trialDaysLeft = usage?.status === "trial" ? daysLeft(usage.endsAt) : null;
 
   return (
@@ -25,6 +32,7 @@ export default async function WorkspaceLayout({ children, params }: { children: 
       userId={context.userId}
       branchId={context.branchId}
       trialDaysLeft={trialDaysLeft}
+      theme={theme}
     >
       {children}
     </AppShell>

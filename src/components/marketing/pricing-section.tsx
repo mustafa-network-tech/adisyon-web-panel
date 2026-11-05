@@ -23,8 +23,8 @@ export function PricingSection() {
     <section id="fiyatlar" aria-labelledby="fiyatlar-baslik" className="bg-[#f7f8f7] py-24 sm:py-28">
       <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
         <div className="max-w-3xl">
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-[#a73d21]">Fiyatlar</p>
-          <h2 id="fiyatlar-baslik" className="mt-4 text-4xl font-black tracking-[-0.045em] text-[#17211d] sm:text-5xl">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-[color:var(--c-accent-d4)]">Fiyatlar</p>
+          <h2 id="fiyatlar-baslik" className="mt-4 text-4xl font-black tracking-[-0.045em] text-[color:var(--c-ink)] sm:text-5xl">
             Net fiyat. Her pakette QR menü dahil.
           </h2>
           <p className="mt-5 text-lg leading-8 text-[#4f5a55]">
@@ -33,7 +33,7 @@ export function PricingSection() {
         </div>
 
         {campaign && (
-          <p className="mt-8 flex items-start gap-3 rounded-2xl border border-[#f1c8b9] bg-[#fff0ea] p-4 text-sm font-bold leading-6 text-[#7d2f17] sm:items-center sm:p-5">
+          <p className="mt-8 flex items-start gap-3 rounded-2xl border border-[#f1c8b9] bg-[color:var(--c-accent-soft)] p-4 text-sm font-bold leading-6 text-[#7d2f17] sm:items-center sm:p-5">
             <CalendarClock size={20} className="mt-0.5 shrink-0 sm:mt-0" aria-hidden="true" />
             <span>
               Lansman kampanyası: <strong className="font-black">{deadline}</strong> tarihine kadar aboneliği başlayan işletmeler, başlangıç tarihinden itibaren ilk {LAUNCH_MONTHS} ay lansman fiyatından yararlanır.
@@ -48,7 +48,7 @@ export function PricingSection() {
         </div>
 
         <div className="mt-8 rounded-[28px] border border-[#e1e6e3] bg-white p-6 sm:p-8">
-          <h3 className="text-xl font-black tracking-tight text-[#17211d]">Tüm paketlerde standart</h3>
+          <h3 className="text-xl font-black tracking-tight text-[color:var(--c-ink)]">Tüm paketlerde standart</h3>
           <ul className="mt-5 grid gap-x-8 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
             {includedInAllPlans.map((item) => (
               <li key={item} className="flex items-start gap-3 text-sm font-semibold leading-6 text-[#2f3a35]">
@@ -70,11 +70,11 @@ export function PricingSection() {
           <li>Hesabınızı oluşturduktan sonra aboneliğiniz ekibimiz tarafından etkinleştirilir.</li>
         </ul>
 
-        <p className="mt-8 text-sm font-bold text-[#17211d]">
+        <p className="mt-8 text-sm font-bold text-[color:var(--c-ink)]">
           Önce görmek ister misiniz?{" "}
           <Link
             href="/app/demo-restoran/merkez/masalar"
-            className="inline-flex items-center gap-1.5 rounded-sm font-black text-[#a73d21] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#b54221]"
+            className="inline-flex items-center gap-1.5 rounded-sm font-black text-[color:var(--c-accent-d4)] underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[color:var(--c-accent-d3)]"
           >
             Demo çalışma alanını inceleyin <ArrowRight size={15} aria-hidden="true" />
           </Link>
@@ -94,12 +94,12 @@ function PlanCard({ plan, campaign, deadline, wide }: { plan: PricingPlan; campa
       aria-labelledby={headingId}
       className={`relative flex flex-col rounded-[28px] border p-7 sm:p-8 ${wide ? "md:col-span-2 lg:col-span-1" : ""} ${
         featured
-          ? "border-[#b54221] bg-[#17211d] text-white shadow-[0_28px_70px_rgb(23_33_29/0.28)] ring-2 ring-[#b54221] lg:-my-4 lg:py-12"
-          : "border-[#e1e6e3] bg-white text-[#17211d]"
+          ? "border-[color:var(--c-accent-d3)] bg-[color:var(--c-ink)] text-white shadow-[0_28px_70px_rgb(23_33_29/0.28)] ring-2 ring-[color:var(--c-accent-d3)] lg:-my-4 lg:py-12"
+          : "border-[#e1e6e3] bg-white text-[color:var(--c-ink)]"
       }`}
     >
       {featured && (
-        <p className="absolute -top-4 left-7 inline-flex items-center gap-1.5 rounded-full bg-[#b54221] px-4 py-1.5 text-xs font-black uppercase tracking-[0.1em] text-white sm:left-8">
+        <p className="absolute -top-4 left-7 inline-flex items-center gap-1.5 rounded-full bg-[color:var(--c-accent-d3)] px-4 py-1.5 text-xs font-black uppercase tracking-[0.1em] text-white sm:left-8">
           <Star size={13} aria-hidden="true" /> En çok tercih edilen
         </p>
       )}
@@ -122,7 +122,7 @@ function PlanCard({ plan, campaign, deadline, wide }: { plan: PricingPlan; campa
               <span className={`text-base font-bold ${muted}`}>/ay</span>
               <span className="sr-only"> lansman fiyatı, ilk {LAUNCH_MONTHS} ay</span>
             </p>
-            <p className={`mt-3 text-sm font-black ${featured ? "text-[#ff9878]" : "text-[#a73d21]"}`}>İlk {LAUNCH_MONTHS} ay lansman fiyatı</p>
+            <p className={`mt-3 text-sm font-black ${featured ? "text-[color:var(--c-accent-light)]" : "text-[color:var(--c-accent-d4)]"}`}>İlk {LAUNCH_MONTHS} ay lansman fiyatı</p>
             <p className={`mt-1 text-sm font-semibold ${muted}`}>Sonrasında {formatTl(plan.regularPrice)}/ay</p>
           </>
         ) : (
@@ -140,8 +140,8 @@ function PlanCard({ plan, campaign, deadline, wide }: { plan: PricingPlan; campa
         href="/kayit"
         className={`mt-7 inline-flex min-h-13 items-center justify-center gap-2 rounded-2xl px-6 text-sm font-black text-white transition focus-visible:outline-2 focus-visible:outline-offset-3 ${
           featured
-            ? "bg-[#b54221] hover:bg-[#943619] focus-visible:outline-white"
-            : "bg-[#17211d] hover:bg-[#2a3832] focus-visible:outline-[#b54221]"
+            ? "bg-[color:var(--c-accent-d3)] hover:bg-[color:var(--c-accent-d5)] focus-visible:outline-white"
+            : "bg-[color:var(--c-ink)] hover:bg-[color:var(--c-ink-2)] focus-visible:outline-[color:var(--c-accent-d3)]"
         }`}
       >
         Hesap oluştur <ArrowRight size={17} aria-hidden="true" />

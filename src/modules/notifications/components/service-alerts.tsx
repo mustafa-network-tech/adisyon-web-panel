@@ -80,7 +80,7 @@ function beep() {
 
 const styles = {
   ready: { box: "border-[#bddfcf] bg-[#edf8f3]", icon: "bg-[#23866b]", Icon: ChefHat },
-  waiter: { box: "border-[#f2cdbd] bg-[#fff4ee]", icon: "bg-[#e8623a]", Icon: BellRing },
+  waiter: { box: "border-[#f2cdbd] bg-[#fff4ee]", icon: "bg-[color:var(--c-accent)]", Icon: BellRing },
   bill: { box: "border-[#c5d9ef] bg-[#eef5fc]", icon: "bg-[#285e9f]", Icon: Receipt },
   void: { box: "border-[#f0c6bb] bg-[#fff1ee]", icon: "bg-[#b63b32]", Icon: Ban },
 } as const;

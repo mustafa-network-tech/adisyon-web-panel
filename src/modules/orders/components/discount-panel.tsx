@@ -8,7 +8,7 @@ import { applyItemDiscountAction, applyOrderDiscountAction } from "../discount-a
 import { describeDiscount, parseDiscountValue, type DiscountKind } from "../discount";
 import type { OrderSnapshot } from "../types";
 
-const inputClass = "min-h-11 w-full rounded-xl border border-[#dce3df] bg-[#f9faf9] px-3 text-sm outline-none focus:border-[#e8623a] focus:bg-white";
+const inputClass = "min-h-11 w-full rounded-xl border border-[#dce3df] bg-[#f9faf9] px-3 text-sm outline-none focus:border-[color:var(--c-accent)] focus:bg-white";
 
 export function DiscountPanel({ tenant, branch, order }: { tenant: string; branch: string; order: OrderSnapshot }) {
   const router = useRouter();
@@ -52,7 +52,7 @@ export function DiscountPanel({ tenant, branch, order }: { tenant: string; branc
 
   return (
     <div className="rounded-[24px] border border-[#dfe5e1] bg-white p-5">
-      <div className="flex items-center gap-2"><BadgePercent size={20} className="text-[#e8623a]" /><h2 className="text-lg font-black">İndirim</h2></div>
+      <div className="flex items-center gap-2"><BadgePercent size={20} className="text-[color:var(--c-accent)]" /><h2 className="text-lg font-black">İndirim</h2></div>
 
       {(order.discountType || discountedItems.length > 0) && (
         <ul className="mt-3 space-y-2">
@@ -89,7 +89,7 @@ export function DiscountPanel({ tenant, branch, order }: { tenant: string; branc
             <label className="block"><span className="mb-1.5 block text-xs font-bold text-[#68736e]">Değer</span><input name="value" inputMode="decimal" className={inputClass} placeholder={kind === "percent" ? "10" : "50"} required /></label>
           </div>
           <label className="block"><span className="mb-1.5 block text-xs font-bold text-[#68736e]">Gerekçe (zorunlu)</span><input name="reason" minLength={3} maxLength={200} className={inputClass} placeholder="Örn. müşteri memnuniyeti, ikram" required /></label>
-          <button disabled={isPending} className="min-h-11 w-full rounded-xl bg-[#17211d] text-sm font-black text-white disabled:opacity-50">{isPending ? "Uygulanıyor…" : "İndirimi uygula"}</button>
+          <button disabled={isPending} className="min-h-11 w-full rounded-xl bg-[color:var(--c-ink)] text-sm font-black text-white disabled:opacity-50">{isPending ? "Uygulanıyor…" : "İndirimi uygula"}</button>
           <p className="text-[11px] font-semibold leading-5 text-[#8a948f]">Her indirim gerekçesiyle denetim kaydına yazılır. Adisyon indirimi varsa ödemede ürün bazlı tahsilat yapılamaz.</p>
         </form>
       )}

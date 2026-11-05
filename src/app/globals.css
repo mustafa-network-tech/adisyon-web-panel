@@ -149,3 +149,53 @@ a {
   .receipt-option { padding-left: 4mm; font-weight: 700; }
   .receipt-grand { font-size: 1.15em; font-weight: 700; margin-top: 1mm; }
 }
+
+/* ---------------------------------------------------------------------------
+   Themes. The brand colours are CSS variables; "classic" is the default and
+   what the public site always uses. A business picks one in Ayarlar -> Tema and
+   the workspace and QR menu set data-theme on their root element.
+   --------------------------------------------------------------------------- */
+:root {
+  --c-accent: #e8623a;
+  --c-accent-d1: #d8542f;
+  --c-accent-d2: #c94927;
+  --c-accent-d3: #b54221;
+  --c-accent-d4: #a73d21;
+  --c-accent-d5: #943619;
+  --c-accent-d6: #b94c2c;
+  --c-accent-soft: #fff0ea;
+  --c-accent-light: #ff9878;
+  --c-ink: #17211d;
+  --c-ink-2: #2a3832;
+  --c-ink-deep: #0f1713;
+}
+
+[data-theme="ocean"] {
+  --c-accent: #1f78c8;
+  --c-accent-d1: #1b6db6;
+  --c-accent-d2: #1763a8;
+  --c-accent-d3: #135496;
+  --c-accent-d4: #114a86;
+  --c-accent-d5: #0e3d6e;
+  --c-accent-d6: #174e88;
+  --c-accent-soft: #e8f2fc;
+  --c-accent-light: #8fc3f2;
+  --c-ink: #14263a;
+  --c-ink-2: #213a55;
+  --c-ink-deep: #0c1a29;
+}
+
+[data-theme="burgundy"] {
+  --c-accent: #b3263f;
+  --c-accent-d1: #a32138;
+  --c-accent-d2: #931d32;
+  --c-accent-d3: #82192c;
+  --c-accent-d4: #721527;
+  --c-accent-d5: #5e1120;
+  --c-accent-d6: #7d1a2d;
+  --c-accent-soft: #fdecef;
+  --c-accent-light: #f59aaa;
+  --c-ink: #2a1620;
+  --c-ink-2: #3d2230;
+  --c-ink-deep: #1b0e15;
+}

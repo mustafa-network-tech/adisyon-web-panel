@@ -35,11 +35,11 @@ export default async function StaffPage({
   return (
     <section className="space-y-6 p-4 sm:p-6 lg:p-8">
       <div>
-        <p className="text-xs font-black uppercase tracking-[0.16em] text-[#e8623a]">Personel</p>
+        <p className="text-xs font-black uppercase tracking-[0.16em] text-[color:var(--c-accent)]">Personel</p>
         <h1 className="mt-2 text-3xl font-black tracking-[-0.04em] sm:text-4xl">Vardiyalar ve personel</h1>
         <p className="mt-2 text-sm font-semibold text-[#7a8580]">{context.branchName} şubesi</p>
       </div>
-      {canPayrollPage && <Link href={`/app/${tenant}/${branch}/personel/puantaj`} className="flex items-center gap-4 rounded-[22px] border border-[#dfe5e1] bg-white p-5 hover:border-[#e8623a]"><span className="grid size-11 place-items-center rounded-xl bg-[#e7f5ef] text-[#176e56]"><Wallet size={21} /></span><span><span className="block text-base font-black">Puantaj ve maaş</span><span className="mt-0.5 block text-xs font-semibold text-[#7a8580]">Çalışma saatlerini onaylayın, maaş ve isteğe bağlı prim kayıtlarını yönetin.</span></span></Link>}
+      {canPayrollPage && <Link href={`/app/${tenant}/${branch}/personel/puantaj`} className="flex items-center gap-4 rounded-[22px] border border-[#dfe5e1] bg-white p-5 hover:border-[color:var(--c-accent)]"><span className="grid size-11 place-items-center rounded-xl bg-[#e7f5ef] text-[#176e56]"><Wallet size={21} /></span><span><span className="block text-base font-black">Puantaj ve maaş</span><span className="mt-0.5 block text-xs font-semibold text-[#7a8580]">Çalışma saatlerini onaylayın, maaş ve isteğe bağlı prim kayıtlarını yönetin.</span></span></Link>}
       <MyShifts shifts={snapshot.myShifts} today={snapshot.today} />
       {canPlan && (
         <ShiftPlanner
