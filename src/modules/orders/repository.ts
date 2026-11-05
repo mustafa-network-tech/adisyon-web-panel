@@ -18,6 +18,10 @@ type OrderRow = {
   subtotal_minor: number;
   tax_minor: number;
   total_minor: number;
+  discount_minor: number;
+  discount_type: "amount" | "percent" | null;
+  discount_value: number;
+  discount_reason: string | null;
   version: number;
   opened_at: string;
 };
@@ -32,6 +36,8 @@ type OrderItemRow = {
   quantity: number;
   sent_quantity: number;
   unit_price_minor: number;
+  list_unit_price_minor: number | null;
+  discount_reason: string | null;
   tax_rate: number | string;
   line_total_minor: number;
   notes: string | null;
@@ -53,7 +59,7 @@ export async function getOrderSnapshot(
   const { data: orderData, error: orderError } = await supabase
     .from("orders")
     .select(
-      "id, table_id, created_by, order_number, status, guest_count, subtotal_minor, tax_minor, total_minor, version, opened_at",
+      "id, table_id, created_by, order_number, status, guest_count, subtotal_minor, tax_minor, total_minor, discount_minor, discount_type, discount_value, discount_reason, version, opened_at",
     )
     .eq("id", orderId)
     .eq("tenant_id", tenantId)
@@ -68,7 +74,7 @@ export async function getOrderSnapshot(
     supabase
       .from("order_items")
       .select(
-        "id, product_id, kitchen_station_id, fulfillment, source, product_name, quantity, sent_quantity, unit_price_minor, tax_rate, line_total_minor, notes",
+        "id, product_id, kitchen_station_id, fulfillment, source, product_name, quantity, sent_quantity, unit_price_minor, list_unit_price_minor, discount_reason, tax_rate, line_total_minor, notes",
       )
       .eq("tenant_id", tenantId)
       .eq("branch_id", branchId)
@@ -111,6 +117,8 @@ export async function getOrderSnapshot(
     quantity: item.quantity,
     sentQuantity: item.sent_quantity,
     unitPriceMinor: Number(item.unit_price_minor),
+    listUnitPriceMinor: item.list_unit_price_minor === null ? null : Number(item.list_unit_price_minor),
+    discountReason: item.discount_reason,
     taxRate: Number(item.tax_rate),
     lineTotalMinor: Number(item.line_total_minor),
     notes: item.notes,
@@ -135,6 +143,10 @@ export async function getOrderSnapshot(
     subtotalMinor: Number(order.subtotal_minor),
     taxMinor: Number(order.tax_minor),
     totalMinor: Number(order.total_minor),
+    discountMinor: Number(order.discount_minor),
+    discountType: order.discount_type,
+    discountValue: Number(order.discount_value),
+    discountReason: order.discount_reason,
     version: order.version,
     openedAt: order.opened_at,
     items,

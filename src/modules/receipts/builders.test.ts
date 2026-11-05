@@ -64,6 +64,38 @@ describe("receipt builders", () => {
     expect(bill.meta).toContainEqual({ label: "Müşteri (QR)", value: "Masa 2" });
   });
 
+  it("computes VAT on the discounted amount, matching the database", () => {
+    // Same order as the database smoke test: 10% adisyon discount on 81 100.
+    const bill = buildBillReceipt({
+      orderNumber: 1,
+      tableLabel: "Masa 1",
+      openedAt: "2026-11-05T10:00:00Z",
+      items: [
+        { name: "Kebap", quantity: 2, unitPriceMinor: 36550, taxRate: 10 },
+        { name: "Kola", quantity: 2, unitPriceMinor: 4000, taxRate: 20 },
+      ],
+      discountMinor: 8110,
+      discountReason: "ikram",
+      branding,
+    });
+    expect(bill.totals?.discountMinor).toBe(8110);
+    expect(bill.totals?.totalMinor).toBe(81100 - 8110);
+    expect(bill.totals?.taxMinor).toBe(7181);
+    expect((bill.totals?.subtotalMinor ?? 0) + (bill.totals?.taxMinor ?? 0)).toBe(bill.totals?.totalMinor);
+  });
+
+  it("marks discounted items with their list price", () => {
+    const bill = buildBillReceipt({
+      orderNumber: 2,
+      tableLabel: "Masa 2",
+      openedAt: "2026-11-05T10:00:00Z",
+      items: [{ name: "Kebap", quantity: 1, unitPriceMinor: 18275, taxRate: 10, listUnitPriceMinor: 36550 }],
+      branding,
+    });
+    expect(bill.lines[0].note).toMatch(/İndirimli \(liste/);
+    expect(bill.totals?.discountMinor).toBe(0);
+  });
+
   it("builds a kitchen receipt without prices", () => {
     const ticket: KitchenTicket = {
       id: "t1", orderId: "o1", orderNumber: 7, tableLabel: "Bahçe 2",

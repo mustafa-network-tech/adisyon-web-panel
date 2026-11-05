@@ -19,6 +19,7 @@ export const permissions = [
   "staff.manage",
   "payroll.manage",
   "attendance.manage",
+  "discounts.apply",
 ] as const;
 
 export type Permission = (typeof permissions)[number];

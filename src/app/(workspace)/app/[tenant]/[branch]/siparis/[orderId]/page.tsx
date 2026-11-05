@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { requireWorkspacePermission } from "@/lib/auth/access";
-import { workspaceSections } from "@/lib/permissions";
+import { hasAnyPermission, workspaceSections } from "@/lib/permissions";
 import { getCatalogSnapshot } from "@/modules/catalog/repository";
 import { OrderEditor } from "@/modules/orders/components/order-editor";
 import { getOrderSnapshot } from "@/modules/orders/repository";
@@ -54,6 +54,7 @@ export default async function OrderPage({
         order={order}
         products={products}
         branding={branding}
+        canDiscount={hasAnyPermission(context.permissions, ["discounts.apply"])}
       />
     </section>
   );

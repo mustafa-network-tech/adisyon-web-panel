@@ -23,6 +23,7 @@ export type CheckoutOrderItem = {
   unitPriceMinor: number;
   taxRate: number;
   source: "staff" | "qr";
+  listUnitPriceMinor: number | null;
 };
 
 export type CheckoutOrder = {
@@ -34,6 +35,9 @@ export type CheckoutOrder = {
   staffName: string | null;
   openedAt: string;
   totalMinor: number;
+  /** Adisyon discount already deducted from totalMinor. */
+  discountMinor: number;
+  discountReason: string | null;
   paidMinor: number;
   outstandingMinor: number;
   items: CheckoutOrderItem[];

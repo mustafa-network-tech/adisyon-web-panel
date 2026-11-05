@@ -26,6 +26,9 @@ export type OrderItemSnapshot = {
   quantity: number;
   sentQuantity: number;
   unitPriceMinor: number;
+  /** Set when an item discount lowered the unit price. */
+  listUnitPriceMinor: number | null;
+  discountReason: string | null;
   taxRate: number;
   lineTotalMinor: number;
   notes: string | null;
@@ -50,6 +53,12 @@ export type OrderSnapshot = {
   subtotalMinor: number;
   taxMinor: number;
   totalMinor: number;
+  /** Adisyon discount actually applied, in minor units. */
+  discountMinor: number;
+  discountType: "amount" | "percent" | null;
+  /** Minor units for "amount", basis points (1000 = 10%) for "percent". */
+  discountValue: number;
+  discountReason: string | null;
   version: number;
   openedAt: string;
   items: OrderItemSnapshot[];

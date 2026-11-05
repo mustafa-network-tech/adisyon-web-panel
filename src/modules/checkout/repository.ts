@@ -17,7 +17,7 @@ export async function getCheckoutSnapshot(
   const [registersResult, sessionsResult, ordersResult, paymentsResult, refundsResult, allocationsResult] = await Promise.all([
     supabase.from("cash_registers").select("id, name").eq("tenant_id", tenantId).eq("branch_id", branchId).eq("is_active", true).order("name"),
     supabase.from("cash_sessions").select("id, cash_register_id, opening_minor, opened_by, opened_at").eq("tenant_id", tenantId).eq("branch_id", branchId).eq("status", "open").order("opened_at"),
-    supabase.from("orders").select("id, order_number, table_id, created_by, opened_at, total_minor").eq("tenant_id", tenantId).eq("branch_id", branchId).in("status", ["ready", "served"]).order("opened_at"),
+    supabase.from("orders").select("id, order_number, table_id, created_by, opened_at, total_minor, discount_minor, discount_reason").eq("tenant_id", tenantId).eq("branch_id", branchId).in("status", ["ready", "served"]).order("opened_at"),
     supabase.from("payments").select("id, order_id, cash_session_id, method, amount_minor, paid_at").eq("tenant_id", tenantId).eq("branch_id", branchId).eq("status", "completed").order("paid_at", { ascending: false }),
     supabase.from("payment_refunds").select("id, payment_id, cash_session_id, amount_minor").eq("tenant_id", tenantId).eq("branch_id", branchId),
     supabase.from("payment_allocations").select("payment_id, order_id, order_item_id, quantity").eq("tenant_id", tenantId).eq("branch_id", branchId),
@@ -43,7 +43,7 @@ export async function getCheckoutSnapshot(
   const sessionIds = sessions.map((session) => session.id);
 
   const [itemsResult, tablesResult, profilesResult, movementsResult, recentOrdersResult] = await Promise.all([
-    orderIds.length ? supabase.from("order_items").select("id, order_id, product_name, quantity, unit_price_minor, tax_rate, source").eq("tenant_id", tenantId).eq("branch_id", branchId).in("order_id", orderIds).order("created_at") : Promise.resolve({ data: [], error: null }),
+    orderIds.length ? supabase.from("order_items").select("id, order_id, product_name, quantity, unit_price_minor, list_unit_price_minor, tax_rate, source").eq("tenant_id", tenantId).eq("branch_id", branchId).in("order_id", orderIds).order("created_at") : Promise.resolve({ data: [], error: null }),
     tableIds.length ? supabase.from("restaurant_tables").select("id, label").eq("tenant_id", tenantId).eq("branch_id", branchId).in("id", tableIds) : Promise.resolve({ data: [], error: null }),
     userIds.length ? supabase.from("profiles").select("id, full_name").in("id", userIds) : Promise.resolve({ data: [], error: null }),
     sessionIds.length ? supabase.from("cash_movements").select("cash_session_id, movement_type, amount_minor").eq("tenant_id", tenantId).in("cash_session_id", sessionIds) : Promise.resolve({ data: [], error: null }),
@@ -74,9 +74,11 @@ export async function getCheckoutSnapshot(
       staffName: order.created_by ? profileMap.get(order.created_by) || "Ekip üyesi" : null,
       openedAt: order.opened_at,
       totalMinor: Number(order.total_minor),
+      discountMinor: Number(order.discount_minor),
+      discountReason: order.discount_reason,
       paidMinor,
       outstandingMinor,
-      items: (itemsByOrder.get(order.id) || []).map((item) => ({ id: item.id, name: item.product_name, quantity: item.quantity, allocatedQuantity: allocatedByItem.get(item.id) || 0, unitPriceMinor: Number(item.unit_price_minor), taxRate: Number(item.tax_rate), source: item.source as "staff" | "qr" })),
+      items: (itemsByOrder.get(order.id) || []).map((item) => ({ id: item.id, name: item.product_name, quantity: item.quantity, allocatedQuantity: allocatedByItem.get(item.id) || 0, unitPriceMinor: Number(item.unit_price_minor), taxRate: Number(item.tax_rate), source: item.source as "staff" | "qr", listUnitPriceMinor: item.list_unit_price_minor === null ? null : Number(item.list_unit_price_minor) })),
     }];
   });
 

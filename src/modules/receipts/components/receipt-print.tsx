@@ -117,6 +117,12 @@ function ReceiptPrintArea({ document, width }: { document: ReceiptDocument; widt
         <>
           <hr />
           <div className="receipt-totals">
+            {document.totals.discountMinor > 0 && (
+              <>
+                <div><span>Ürün toplamı</span><span>{formatMoney(document.totals.totalMinor + document.totals.discountMinor)}</span></div>
+                <div><span>İndirim{document.totals.discountReason ? ` (${document.totals.discountReason})` : ""}</span><span>−{formatMoney(document.totals.discountMinor)}</span></div>
+              </>
+            )}
             {document.totals.vat.map((row) => (
               <div key={row.rate}><span>KDV %{row.rate} (matrah {formatMoney(row.netMinor)})</span><span>{formatMoney(row.vatMinor)}</span></div>
             ))}

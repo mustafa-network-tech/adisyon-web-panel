@@ -27,6 +27,9 @@ export type ReceiptTotals = {
   vat: VatRow[];
   subtotalMinor: number;
   taxMinor: number;
+  /** Adisyon discount (already deducted from totalMinor). */
+  discountMinor: number;
+  discountReason: string | null;
   totalMinor: number;
   paidMinor: number;
   outstandingMinor: number;
