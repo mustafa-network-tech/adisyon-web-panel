@@ -60,7 +60,8 @@ Mevcut durum: `submit_order`, `kitchen_station_id` boş ürünü reddeder; 0013 
 
 ## Faz E — Puantaj, maaş ve prim (yalnızca tenant_admin)
 - Dönem sonu puantaj: planlanan vs. onaylanan gün/saat, devamsızlık, fazla mesai.
-- Maaş ve prim kaydı, kesinti/avans girişi; dönem özeti ve dışa aktarma.
+- Maaş kaydı, kesinti/avans girişi; dönem özeti ve dışa aktarma.
+- Prim **zorunlu değil**: istenirse yönetici elle girer (tutar + açıklama). Otomatik prim kuralı (ciro yüzdesi, bahşiş payı) yok.
 - Tüm erişim ve değişiklikler audit kaydına yazılır.
 - KVKK: kimlik/IBAN gibi alanlar eklenecekse ayrı erişim kaydı ile tutulur.
 - Kabul: tenant_admin dışındaki hiçbir rol maaş/prim verisini okuyamaz.
@@ -78,4 +79,4 @@ Mevcut durum: `submit_order`, `kitchen_station_id` boş ürünü reddeder; 0013 
 ## Açık noktalar
 - Yazarkasa marka/modeli (Faz G öncesi gerekli).
 - Termal yazıcı modeli ve bağlantı türü (USB/ağ).
-- Prim türü (sabit, ciro yüzdesi, bahşiş payı) — Faz E başında netleşecek.
+- Prim: karar verildi, yalnızca isteğe bağlı manuel giriş.
