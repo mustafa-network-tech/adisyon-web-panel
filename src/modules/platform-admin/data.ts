@@ -10,6 +10,8 @@ export type PlatformTenantSummary = TenantSummary & {
   planCode: string;
   userLimit: number;
   branchLimit: number;
+  /** Trial or subscription has ended: the business is read-only. */
+  readOnly: boolean;
 };
 
 export type PlatformOverview = {
@@ -106,6 +108,11 @@ export async function getPlatformOverview(
       planCode: subscription?.plan_code || "Tanımsız",
       userLimit: subscription?.user_limit ?? 5,
       branchLimit: subscription?.branch_limit ?? 1,
+      readOnly:
+        Boolean(subscription) &&
+        (subscription?.status === "trial" || subscription?.status === "active") &&
+        Boolean(subscription?.ends_at) &&
+        new Date(subscription?.ends_at as string).getTime() < Date.now(),
     } satisfies PlatformTenantSummary;
   });
 
