@@ -272,6 +272,58 @@ check("merged customer line keeps its QR mark", (await one("select count(*)::int
 check("the freed table can take a new order", (await one("select count(*)::int n from public.orders where table_id = $1 and status not in ('closed','cancelled')", [t3])).n === 0);
 await expectError("merge_orders", { target_tenant_id: tenant, target_branch_id: branch, target_source_order_id: open1.orderId, target_source_version: await orderVersion(open1.orderId), target_destination_order_id: open1.orderId, target_destination_version: await orderVersion(open1.orderId) }, "same_order", "cannot merge an order into itself");
 
+// --- audit log access (phase F) ----------------------------------------------
+async function auditRowsAs(userId) {
+  await actAs(db, userId);
+  await db.exec("set role authenticated");
+  try {
+    return (await one("select count(*)::int n from public.audit_logs")).n;
+  } finally {
+    await db.exec("reset role");
+  }
+}
+check("company owner reads the audit trail", (await auditRowsAs(OWNER)) > 0);
+check("cashier cannot read the audit trail", (await auditRowsAs(CASHIER)) === 0);
+check("waiter cannot read the audit trail", (await auditRowsAs(WAITER)) === 0);
+check("manager without settings access cannot read the audit trail", (await auditRowsAs(MANAGER)) === 0);
+
+// --- every helper used by an RLS policy must be callable by signed-in users ----
+const policyText = (await all("select coalesce(qual, '') || ' ' || coalesce(with_check, '') as t from pg_policies where schemaname = 'public'")).map((row) => row.t).join(" ");
+const helpers = [...new Set([...policyText.matchAll(/private\.([a-z_]+)\(/g)].map((match) => match[1]))];
+check("policies reference private helpers", helpers.length > 5, String(helpers.length));
+for (const helper of helpers) {
+  const row = await one("select bool_and(has_function_privilege('authenticated', p.oid, 'execute')) as ok from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'private' and p.proname = $1", [helper]);
+  check("authenticated may execute private." + helper, row.ok === true);
+}
+
+// --- row level security on sensitive tables -------------------------------------
+async function countAs(userId, table) {
+  await actAs(db, userId);
+  await db.exec("set role authenticated");
+  try {
+    return (await one("select count(*)::int n from public." + table)).n;
+  } finally {
+    await db.exec("reset role");
+  }
+}
+check("owner sees pay records", (await countAs(OWNER, "staff_pay")) === 1);
+check("the person sees their own pay", (await countAs(WAITER, "staff_pay")) === 1);
+check("manager without payroll access sees no pay", (await countAs(MANAGER, "staff_pay")) === 0);
+check("cashier sees no pay", (await countAs(CASHIER, "staff_pay")) === 0);
+check("owner sees bonus lines", (await countAs(OWNER, "payroll_entries")) === 1);
+check("manager without payroll access sees no bonus lines", (await countAs(MANAGER, "payroll_entries")) === 0);
+check("the person sees their own bonus line", (await countAs(WAITER, "payroll_entries")) === 1);
+check("waiter sees only their own shifts", (await countAs(WAITER, "shifts")) === 3);
+check("cashier sees no shifts", (await countAs(CASHIER, "shifts")) === 0);
+check("manager plans with sight of all shifts", (await countAs(MANAGER, "shifts")) === 3);
+check("manager without attendance access sees no attendance rows", (await countAs(MANAGER, "shift_attendance")) === 0);
+check("owner sees attendance rows", (await countAs(OWNER, "shift_attendance")) >= 1);
+check("waiter sees their own attendance rows", (await countAs(WAITER, "shift_attendance")) >= 1);
+check("cashier sees no attendance rows", (await countAs(CASHIER, "shift_attendance")) === 0);
+check("a planning manager reads the staff cards of the branch", (await countAs(MANAGER, "staff_profiles")) === 4);
+check("the cashier reads only their own staff card", (await countAs(CASHIER, "staff_profiles")) === 1);
+check("only company admins read private staff notes", (await countAs(MANAGER, "staff_private")) === 0);
+
 // --- result ------------------------------------------------------------------
 console.log(`passed: ${passed}`);
 if (failures.length) {
