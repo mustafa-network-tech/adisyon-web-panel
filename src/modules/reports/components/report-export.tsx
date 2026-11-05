@@ -5,7 +5,7 @@ import type { SalesReport } from "../types";
 
 const cell = (value: string | number) => {
   const text = String(value);
-  return /[",\n;]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+  return /[";\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 };
 const money = (minor: number) => (minor / 100).toFixed(2).replace(".", ",");
 

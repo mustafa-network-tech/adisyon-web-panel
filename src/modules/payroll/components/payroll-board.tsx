@@ -30,7 +30,7 @@ function Message({ state }: { state: { status: string; message: string | null } 
 
 function csvCell(value: string | number) {
   const text = String(value);
-  return /[",\n;]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+  return /[";\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
 export function PayrollBoard({ tenant, branch, snapshot }: { tenant: string; branch: string; snapshot: PayrollSnapshot }) {
