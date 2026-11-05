@@ -476,6 +476,65 @@ check("a planning manager reads the staff cards of the branch", (await countAs(M
 check("the cashier reads only their own staff card", (await countAs(CASHIER, "staff_profiles")) === 1);
 check("only company admins read private staff notes", (await countAs(MANAGER, "staff_private")) === 0);
 
+// --- plan limits, kitchen stations, themes, 7 day trial ------------------------------
+await actAs(db, OWNER);
+const trial = await one("select plan_code, status, ends_at - starts_at as span, user_limit, branch_limit, table_limit, station_limit from public.subscriptions where tenant_id = $1", [tenant]);
+check("the self-service trial lasts 7 days", String(trial.span).startsWith("7 days"), JSON.stringify(trial));
+check("the trial starts with small plan limits", trial.table_limit === 15 && trial.station_limit === 3 && trial.user_limit === 5 && trial.branch_limit === 1, JSON.stringify(trial));
+
+const usage = await rpc("get_plan_usage", { target_tenant_id: tenant, target_branch_id: branch });
+check("any member can read the plan usage", usage.tableLimit === 15 && usage.tablesUsed === 11 && usage.stationsUsed === 1 && usage.status === "trial", JSON.stringify(usage));
+await actAs(db, "99999999-9999-4999-8999-999999999999");
+await expectError("get_plan_usage", { target_tenant_id: tenant, target_branch_id: branch }, "plan_usage_denied", "outsiders cannot read the plan usage");
+await actAs(db, OWNER);
+
+// table limit: the 15th table works, the 16th is refused
+for (let i = 12; i <= 15; i += 1) await table("Masa " + i);
+let tableLimitHit = false;
+try {
+  await table("Masa 16");
+} catch (error) {
+  tableLimitHit = String(error.message).includes("table_limit_reached");
+}
+check("the table limit of the plan is enforced", tableLimitHit);
+await db.query("insert into public.subscriptions (tenant_id, plan_code, status, starts_at, user_limit, branch_limit, table_limit, station_limit) values ($1, 'PRO', 'active', now(), 15, 1, null, null)", [tenant]);
+await table("Masa 16");
+check("an unlimited plan has no table limit", (await one("select count(*)::int n from public.restaurant_tables where tenant_id = $1", [tenant])).n === 16);
+await db.query("insert into public.subscriptions (tenant_id, plan_code, status, starts_at, user_limit, branch_limit, table_limit, station_limit) values ($1, 'START', 'active', now(), 5, 1, 16, 1)", [tenant]);
+
+// kitchen stations
+const stationArgs = (over = {}) => ({ target_tenant_id: tenant, target_branch_id: branch, target_station_id: null, target_name: "Izgara", target_color: "#e8623a", target_is_active: true, target_product_ids: [], ...over });
+await actAs(db, WAITER);
+await expectError("save_kitchen_station", stationArgs(), "catalog_manage_denied", "waiters cannot manage stations");
+await actAs(db, OWNER);
+await expectError("save_kitchen_station", stationArgs(), "station_limit_reached", "a one-station plan cannot add a second station");
+await db.query("insert into public.subscriptions (tenant_id, plan_code, status, starts_at, user_limit, branch_limit, table_limit, station_limit) values ($1, 'PRO', 'active', now(), 15, 1, null, null)", [tenant]);
+const grill = await rpc("save_kitchen_station", stationArgs({ target_product_ids: [kebab] }));
+check("a business can add a station and send products to it", (await one("select kitchen_station_id from public.products where id = $1", [kebab])).kitchen_station_id === grill.id);
+const oven = await rpc("save_kitchen_station", stationArgs({ target_name: "Fırın", target_color: "#285e9f" }));
+await expectError("save_kitchen_station", stationArgs({ target_name: "izgara" }), "station_name_taken", "station names are unique per branch");
+
+// an order routes each product to its own station
+await actAs(db, WAITER);
+const t17 = await table("Masa 17");
+const stationOrder = await openOn(t17, [{ productId: kebab, quantity: 1, options: [full] }]);
+await rpc("submit_order", { target_tenant_id: tenant, target_branch_id: branch, target_order_id: stationOrder.orderId, target_expected_version: stationOrder.version, target_idempotency_key: key() });
+check("the ticket goes to the grill station", (await one("select kitchen_station_id from public.kitchen_tickets where order_id = $1", [stationOrder.orderId])).kitchen_station_id === grill.id);
+
+// switching a station off moves its products to another one; the last one cannot be switched off
+await actAs(db, OWNER);
+await rpc("save_kitchen_station", stationArgs({ target_station_id: grill.id, target_is_active: false }));
+check("products move off a station that is switched off", (await one("select kitchen_station_id from public.products where id = $1", [kebab])).kitchen_station_id === station);
+await rpc("save_kitchen_station", stationArgs({ target_station_id: oven.id, target_name: "Fırın", target_color: "#285e9f", target_is_active: false }));
+await expectError("save_kitchen_station", stationArgs({ target_station_id: station, target_name: "Mutfak", target_is_active: false }), "last_station", "the last active station cannot be switched off");
+
+// themes
+await expectError("set_tenant_theme", { target_tenant_id: tenant, target_branch_id: branch, target_theme: "neon" }, "invalid_theme", "unknown themes are refused");
+await rpc("set_tenant_theme", { target_tenant_id: tenant, target_branch_id: branch, target_theme: "ocean" });
+check("the owner can choose a theme", (await one("select theme from public.tenant_settings where tenant_id = $1", [tenant])).theme === "ocean");
+await actAs(db, WAITER);
+await expectError("set_tenant_theme", { target_tenant_id: tenant, target_branch_id: branch, target_theme: "classic" }, "settings_manage_denied", "waiters cannot change the theme");
+
 // --- result ------------------------------------------------------------------
 console.log(`passed: ${passed}`);
 if (failures.length) {

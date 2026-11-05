@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   Wifi,
 } from "lucide-react";
+import { contactEmail } from "@/lib/site";
 import { ServiceAlerts } from "@/modules/notifications/components/service-alerts";
 import { signOutAction } from "@/modules/auth/actions";
 import { Brand } from "./brand";
@@ -34,10 +35,12 @@ type AppShellProps = {
   branches: Array<{ slug: string; name: string }>;
   userId: string;
   branchId: string;
+  /** Days left of the trial; null when the business is not on a trial. */
+  trialDaysLeft?: number | null;
   children: React.ReactNode;
 };
 
-export function AppShell({ tenant, branch, tenantName, branchName, userName, userRole, permissions, supportMode, branches, userId, branchId, children }: AppShellProps) {
+export function AppShell({ tenant, branch, tenantName, branchName, userName, userRole, permissions, supportMode, branches, userId, branchId, trialDaysLeft = null, children }: AppShellProps) {
   const router = useRouter();
   function switchBranch(slug: string) {
     const section = pathname.split("/").slice(4)[0];
@@ -110,6 +113,11 @@ export function AppShell({ tenant, branch, tenantName, branchName, userName, use
             <div className="hidden sm:block"><p className="text-sm font-black">{userName}</p><p className="mt-0.5 text-[11px] font-semibold text-[#8a948f]">{userRole}</p></div>
           </div>
         </header>
+        {trialDaysLeft !== null && (
+          <p role="status" className={`px-4 py-2.5 text-center text-xs font-bold sm:text-sm ${trialDaysLeft <= 2 ? "bg-[#fff2ed] text-[#9e4328]" : "bg-[#fff8e7] text-[#8a6415]"}`}>
+            {trialDaysLeft === 0 ? "Deneme süreniz doldu." : `Deneme sürümü: ${trialDaysLeft} gün kaldı.`} Paket seçmek için <a href={`mailto:${contactEmail}?subject=${encodeURIComponent("MK Adisyon paket talebi")}`} className="font-black underline">{contactEmail}</a> adresine yazın.
+          </p>
+        )}
         <main className="min-h-[calc(100dvh-76px)] pb-24 lg:pb-0">{children}</main>
         {hasAnyPermission(permissions, ["tables.read", "kitchen.read"]) && <ServiceAlerts tenant={tenant} branch={branch} branchId={branchId} userId={userId} overseesFloor={hasAnyPermission(permissions, ["shifts.manage"])} receivesCalls={hasAnyPermission(permissions, ["tables.read"])} watchesKitchen={hasAnyPermission(permissions, ["kitchen.read"])} />}
       </div>

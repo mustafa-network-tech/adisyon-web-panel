@@ -11,6 +11,10 @@ import {
   Users,
 } from "lucide-react";
 import { Brand } from "@/components/brand";
+import { PricingSection } from "@/components/marketing/pricing-section";
+
+// Regenerated hourly so the launch prices disappear by themselves after the campaign deadline.
+export const revalidate = 3600;
 
 const features = [
   {
@@ -43,6 +47,7 @@ export default function MarketingPage() {
         <Brand />
         <nav className="hidden items-center gap-8 text-sm font-semibold text-[#5e6a65] md:flex" aria-label="Ana menü">
           <a href="#platform" className="transition-colors hover:text-[#17211d]">Platform</a>
+          <a href="#fiyatlar" className="transition-colors hover:text-[#17211d]">Fiyatlar</a>
           <a href="#guvenlik" className="transition-colors hover:text-[#17211d]">Güvenlik</a>
           <a href="#iletisim" className="transition-colors hover:text-[#17211d]">İletişim</a>
         </nav>
@@ -151,6 +156,8 @@ export default function MarketingPage() {
           </div>
         </div>
       </section>
+
+      <PricingSection />
 
       <section id="guvenlik" className="bg-[#17211d] py-24 text-white sm:py-28">
         <div className="mx-auto grid max-w-7xl gap-14 px-5 sm:px-8 lg:grid-cols-2 lg:items-center lg:px-10">

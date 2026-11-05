@@ -12,7 +12,7 @@ const groups = [
   { icon: BookOpen, title: "Menü & ürünler", text: "Kategoriler, fiyatlar ve ürün durumu", required: ["catalog.manage"], href: "menu" },
   { icon: Layers, title: "Ürün seçenekleri", text: "Porsiyon, ekstra ve çıkarılacak malzeme", required: ["catalog.manage"], href: "secenekler" },
   { icon: QrCode, title: "QR menü", text: "Masa QR kodları ve müşteri sipariş modu", required: ["settings.manage"], href: "qr-menu" },
-  { icon: ChefHat, title: "Mutfak istasyonları", text: "Ürün yönlendirme ve istasyon kuralları", required: ["settings.manage"], href: null },
+  { icon: ChefHat, title: "Mutfak istasyonları", text: "Mutfak, ızgara, fırın gibi hazırlık bölümleri", required: ["catalog.manage"], href: "istasyonlar" },
   { icon: ScrollText, title: "Denetim kaydı", text: "Kim, ne zaman, neyi değiştirdi", required: ["settings.manage"], href: "denetim" },
   { icon: Users, title: "Kullanıcılar & roller", text: "Ekip, şube erişimi ve yetkiler", required: ["users.manage"], href: "kullanicilar" },
   { icon: Palette, title: "Tema", text: "Logo, kurumsal renk ve görünüm", required: ["settings.manage"], href: null },

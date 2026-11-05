@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { requireWorkspacePermission } from "@/lib/auth/access";
+import { getPlanUsage } from "@/modules/plan/repository";
+import { limitReachedMessage } from "@/modules/plan/usage";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { CrudActionState } from "@/modules/settings/action-state";
 import { parseDiningAreaInput, parseRestaurantTableInput } from "./validation";
@@ -129,6 +131,10 @@ export async function upsertRestaurantTableAction(
         .select("id")
         .single();
 
+  if (result.error?.message.includes("table_limit_reached")) {
+    const usage = await getPlanUsage(context.tenantId, context.branchId);
+    return errorState(limitReachedMessage("table", usage?.tableLimit ?? null));
+  }
   if (result.error || !result.data) {
     return errorState("Masa kaydedilemedi. Masa etiketi benzersiz olmalıdır.");
   }

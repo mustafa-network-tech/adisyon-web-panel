@@ -19,6 +19,7 @@ export async function updateSubscriptionAction(
     status: formData.get("status"), startsAt: formData.get("startsAt"),
     endsAt: formData.get("endsAt") || "", notes: formData.get("notes") || "",
     userLimit: formData.get("userLimit"), branchLimit: formData.get("branchLimit"),
+    tableLimit: formData.get("tableLimit") ?? "", stationLimit: formData.get("stationLimit") ?? "",
   });
   if (!values.success) return errorState("Abonelik alanlarını ve tarih sırasını kontrol edin.");
   const supabase = await createSupabaseServerClient();
@@ -28,6 +29,7 @@ export async function updateSubscriptionAction(
     target_ends_at: values.data.endsAt ? new Date(values.data.endsAt).toISOString() : null,
     target_notes: values.data.notes,
     target_user_limit: values.data.userLimit, target_branch_limit: values.data.branchLimit,
+    target_table_limit: values.data.tableLimit, target_station_limit: values.data.stationLimit,
   });
   if (error) return errorState("Abonelik güncellenemedi. Platform yetkisini ve tarihleri kontrol edin.");
   revalidatePath("/mk-admin");

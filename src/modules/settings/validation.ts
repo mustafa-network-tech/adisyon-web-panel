@@ -40,6 +40,9 @@ export const subscriptionSchema = z
     notes: z.string().trim().max(500),
     userLimit: z.coerce.number().int().min(1).max(10000),
     branchLimit: z.coerce.number().int().min(1).max(1000),
+    // Empty = unlimited.
+    tableLimit: z.preprocess((value) => (value === "" || value == null ? null : Number(value)), z.number().int().min(1).max(100000).nullable()),
+    stationLimit: z.preprocess((value) => (value === "" || value == null ? null : Number(value)), z.number().int().min(1).max(1000).nullable()),
   })
   .refine(
     (value) => value.endsAt === null || Date.parse(value.endsAt) > Date.parse(value.startsAt),

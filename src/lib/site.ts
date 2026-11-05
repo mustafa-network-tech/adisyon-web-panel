@@ -16,3 +16,6 @@ export const shareImage = {
   height: 512,
   alt: "MK Adisyon logosu",
 };
+
+/** Contact and support address (the same mailbox for both). */
+export const contactEmail = "iletisim@mk-digitalsystems.com";
