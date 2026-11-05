@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Bell, BookOpen, Layers, ScrollText, Building2, ChefHat, ChevronRight, LifeBuoy, Palette, QrCode, ShieldCheck, TableProperties, Users } from "lucide-react";
+import { Bell, BookOpen, Layers, ScrollText, Building2, ChefHat, ChevronRight, LifeBuoy, Palette, Store, QrCode, ShieldCheck, TableProperties, Users } from "lucide-react";
 import { requireWorkspacePermission } from "@/lib/auth/access";
 import { hasAnyPermission, workspaceSections, type Permission } from "@/lib/permissions";
 
 export const metadata: Metadata = { title: "Ayarlar" };
 
 const groups = [
+  { icon: Store, title: "Şubeler", text: "Paketiniz, şube sayınız ve yeni şube ekleme", required: ["settings.manage"], href: "subeler" },
   { icon: Building2, title: "İşletme profili", text: "Unvan, iletişim ve şube bilgileri", required: ["settings.manage"], href: "isletme" },
   { icon: TableProperties, title: "Salon & masalar", text: "Alanlar, masa düzeni ve kapasiteler", required: ["settings.manage"], href: "salonlar" },
   { icon: BookOpen, title: "Menü & ürünler", text: "Kategoriler, fiyatlar ve ürün durumu", required: ["catalog.manage"], href: "menu" },

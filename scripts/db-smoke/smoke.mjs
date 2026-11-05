@@ -739,6 +739,32 @@ await db.query("insert into public.platform_admins (user_id) values ($1)", [PLAT
   check("it lands in that business only", (await one("select count(*)::int n from public.dining_areas where tenant_id = $1", [tenant])).n === areasBefore + 1 && (await one("select count(*)::int n from public.dining_areas where tenant_id = $1 and name = 'Bahce'", [tenantB])).n === 0);
   await expectError("platform_setup_apply_areas", { target_tenant_id: "00000000-0000-4000-8000-000000000000", target_names: ["X"] }, "tenant_not_found", "unknown business refused");
 }
+
+// --- extra branches (Cok Subeli) ---------------------------------------------------------------
+{
+  await actAs(db, OWNER);
+  await expectError("create_branch", { target_tenant_id: tenant, target_name: "Ikinci Sube" }, "branch_limit_reached", "a one-branch plan cannot open a second branch");
+  await actAs(db, WAITER);
+  await expectError("create_branch", { target_tenant_id: tenant, target_name: "Garson Subesi" }, "branch_manage_denied", "a waiter cannot open branches");
+  await actAs(db, OWNER_B);
+  await expectError("create_branch", { target_tenant_id: tenant, target_name: "Yabanci" }, "branch_manage_denied", "another business owner cannot open branches here");
+  // the platform assigns the Cok Subeli plan
+  await actAs(db, PLATFORM);
+  await rpc("update_tenant_subscription", { target_tenant_id: tenant, target_plan_code: "MULTI", target_status: "active", target_starts_at: new Date().toISOString(), target_ends_at: null, target_notes: null, target_user_limit: 40, target_branch_limit: 3, target_table_limit: null, target_station_limit: null });
+  await actAs(db, OWNER);
+  await expectError("create_branch", { target_tenant_id: tenant, target_name: "x" }, "invalid_branch_name", "a one-letter branch name is refused");
+  const second = await rpc("create_branch", { target_tenant_id: tenant, target_name: "Kadıköy Şube" });
+  check("the owner opens a second branch on the Cok Subeli plan", second.branchSlug === "kadikoy-sube", JSON.stringify(second));
+  const third = await rpc("create_branch", { target_tenant_id: tenant, target_name: "Kadıköy Şube" });
+  check("a repeated name gets its own slug", third.branchSlug.startsWith("kadikoy-sube-") && third.branchSlug !== second.branchSlug, JSON.stringify(third));
+  await expectError("create_branch", { target_tenant_id: tenant, target_name: "Dorduncu Sube" }, "branch_limit_reached", "the third branch is the last one");
+  check("the new branch gets its default kitchen station", (await one("select count(*)::int n from public.kitchen_stations where branch_id = $1", [second.branchId])).n === 1);
+  const usageSecond = await rpc("get_plan_usage", { target_tenant_id: tenant, target_branch_id: second.branchId });
+  check("the owner reaches the new branch", usageSecond.branchLimit === 3, JSON.stringify(usageSecond));
+  await actAs(db, WAITER);
+  await expectError("get_plan_usage", { target_tenant_id: tenant, target_branch_id: second.branchId }, "plan_usage_denied", "branch staff do not reach a branch they were not assigned to");
+  check("branch creation is audited with the tenant", (await one("select count(*)::int n from public.audit_logs where tenant_id = $1 and action = 'tenant.branch_created'", [tenant])).n === 2);
+}
 const freshTableB = async (label) => (await one("insert into public.restaurant_tables (tenant_id, branch_id, area_id, label) values ($1,$2,$3,$4) returning id", [tenantB, branchB, areaB, label])).id;
 const tableB2 = await freshTableB("B Masa 2");
 const tableB3 = await freshTableB("B Masa 3");

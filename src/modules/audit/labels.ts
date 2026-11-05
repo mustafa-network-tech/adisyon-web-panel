@@ -6,7 +6,7 @@ export const auditCategories: { id: AuditCategory; label: string; prefixes: stri
   { id: "people", label: "Kullanıcılar ve yetkiler", prefixes: ["tenant.member", "tenant.invitation", "tenant.self_created"] },
   { id: "staff", label: "Personel ve vardiya", prefixes: ["staff.", "shift", "attendance."] },
   { id: "payroll", label: "Maaş ve prim", prefixes: ["payroll."] },
-  { id: "settings", label: "Ayarlar, menü ve QR", prefixes: ["tenant.settings", "qr.", "tenant.context", "platform.", "onboarding.", "product.", "option_group.", "option_choice."] },
+  { id: "settings", label: "Ayarlar, menü ve QR", prefixes: ["tenant.settings", "tenant.branch", "qr.", "tenant.context", "platform.", "onboarding.", "product.", "option_group.", "option_choice."] },
 ];
 
 const actionLabels: Record<string, string> = {
@@ -38,6 +38,7 @@ const actionLabels: Record<string, string> = {
   "tenant.member_access.updated": "Kullanıcı rolü/erişimi değişti",
   "tenant.member_extras.updated": "Ek yetkiler değişti",
   "tenant.self_created": "İşletme oluşturuldu",
+  "tenant.branch_created": "Şube eklendi",
   "onboarding.method_set": "Kurulum yöntemi seçildi",
   "onboarding.step_completed": "Kurulum adımı tamamlandı",
   "onboarding.trial_started": "7 günlük deneme başlatıldı",
