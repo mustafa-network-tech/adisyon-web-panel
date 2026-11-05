@@ -7,6 +7,7 @@ import { workspaceSections } from "@/lib/permissions";
 import { getCatalogSnapshot } from "@/modules/catalog/repository";
 import { OrderEditor } from "@/modules/orders/components/order-editor";
 import { getOrderSnapshot } from "@/modules/orders/repository";
+import { getReceiptBranding } from "@/modules/receipts/repository";
 
 export const metadata: Metadata = { title: "Sipariş" };
 export const dynamic = "force-dynamic";
@@ -22,9 +23,10 @@ export default async function OrderPage({
     branch,
     workspaceSections.orders,
   );
-  const [order, catalog] = await Promise.all([
+  const [order, catalog, branding] = await Promise.all([
     getOrderSnapshot(context.tenantId, context.branchId, orderId),
     getCatalogSnapshot(context.tenantId, context.branchId),
+    getReceiptBranding(context),
   ]);
   if (!order) notFound();
 
@@ -51,6 +53,7 @@ export default async function OrderPage({
         branchId={context.branchId}
         order={order}
         products={products}
+        branding={branding}
       />
     </section>
   );

@@ -21,6 +21,7 @@ export type CheckoutOrderItem = {
   quantity: number;
   allocatedQuantity: number;
   unitPriceMinor: number;
+  taxRate: number;
 };
 
 export type CheckoutOrder = {

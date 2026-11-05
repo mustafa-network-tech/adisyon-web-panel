@@ -101,3 +101,50 @@ a {
     width: 100%;
   }
 }
+
+/* Thermal receipts (kitchen ticket / bill). Hidden on screen, printed alone. */
+.receipt {
+  display: none;
+}
+
+@media print {
+  body:has(#receipt-print-area) * {
+    visibility: hidden;
+  }
+  #receipt-print-area,
+  #receipt-print-area * {
+    visibility: visible;
+  }
+  .receipt {
+    display: block;
+    position: absolute;
+    left: 0;
+    top: 0;
+    box-sizing: border-box;
+    padding: 3mm;
+    color: #000;
+    background: #fff;
+    font-family: "Courier New", ui-monospace, monospace;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+  .receipt-80 { width: 80mm; }
+  .receipt-58 { width: 58mm; font-size: 11px; }
+  .receipt p, .receipt dl, .receipt ul { margin: 0; padding: 0; }
+  .receipt hr { border: 0; border-top: 1px dashed #000; margin: 2mm 0; }
+  .receipt ul { list-style: none; }
+  .receipt-center { text-align: center; }
+  .receipt-brand { font-size: 1.3em; font-weight: 700; }
+  .receipt-title { margin-top: 1.5mm; font-weight: 700; letter-spacing: 0.08em; }
+  .receipt-station { font-weight: 700; }
+  .receipt-small { font-size: 0.85em; margin-top: 1mm; }
+  .receipt-meta div, .receipt-totals div, .receipt-line { display: flex; justify-content: space-between; gap: 2mm; }
+  .receipt-meta dt::after { content: ":"; }
+  .receipt-meta dd { margin: 0; text-align: right; }
+  .receipt-lines li { margin-bottom: 1.5mm; break-inside: avoid; }
+  .receipt-qty { flex: none; font-weight: 700; }
+  .receipt-name { flex: 1; font-weight: 700; }
+  .receipt-amount { flex: none; }
+  .receipt-note { padding-left: 4mm; font-style: italic; }
+  .receipt-grand { font-size: 1.15em; font-weight: 700; margin-top: 1mm; }
+}

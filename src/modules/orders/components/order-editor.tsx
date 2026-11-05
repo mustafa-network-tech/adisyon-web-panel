@@ -2,10 +2,13 @@
 
 import { FormEvent, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ChefHat, Clock3, Minus, Plus, RefreshCw, Send, Users } from "lucide-react";
+import { ChefHat, Clock3, Minus, Plus, Printer, RefreshCw, Send, Users } from "lucide-react";
 import { formatMoney } from "@/lib/money";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { MenuProduct } from "@/modules/catalog/types";
+import { buildBillReceipt } from "@/modules/receipts/builders";
+import { PaperWidthSelect, useReceiptPrinter } from "@/modules/receipts/components/receipt-print";
+import type { ReceiptBranding } from "@/modules/receipts/types";
 import { appendOrderItemsAction, submitOrderAction, updateOrderItemAction } from "../actions";
 import type { OrderLine, OrderSnapshot, OrderStatus } from "../types";
 
@@ -26,9 +29,11 @@ type OrderEditorProps = {
   branchId: string;
   order: OrderSnapshot;
   products: MenuProduct[];
+  branding: ReceiptBranding;
 };
 
-export function OrderEditor({ tenant, branch, branchId, order, products }: OrderEditorProps) {
+export function OrderEditor({ tenant, branch, branchId, order, products, branding }: OrderEditorProps) {
+  const { print, receiptArea } = useReceiptPrinter();
   const router = useRouter();
   const [draft, setDraft] = useState<OrderLine[]>([]);
   const [feedback, setFeedback] = useState<{ type: "error" | "success"; message: string } | null>(null);
@@ -120,7 +125,8 @@ export function OrderEditor({ tenant, branch, branchId, order, products }: Order
 
   return <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
     <section className="space-y-5">
-      <div className="rounded-[24px] border border-[#dfe5e1] bg-white p-5 sm:p-6"><div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><span className="rounded-lg bg-[#fff0ea] px-3 py-1 text-xs font-black text-[#b94c2c]">{statusLabels[order.status]}</span><span className="rounded-lg bg-[#eef1ef] px-3 py-1 text-xs font-black text-[#68736e]">Sürüm {order.version}</span></div><h1 className="mt-4 text-3xl font-black tracking-[-0.04em]">Sipariş #{order.orderNumber}</h1><p className="mt-2 text-sm font-semibold text-[#7a8580]">{order.tableLabel} · {order.guestCount} kişi</p></div><div className="rounded-2xl bg-[#17211d] px-5 py-4 text-white"><p className="text-xs font-bold text-white/60">Genel toplam</p><p className="mt-1 text-3xl font-black">{formatMoney(order.totalMinor)}</p></div></div></div>
+      {receiptArea}
+      <div className="rounded-[24px] border border-[#dfe5e1] bg-white p-5 sm:p-6"><div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><span className="rounded-lg bg-[#fff0ea] px-3 py-1 text-xs font-black text-[#b94c2c]">{statusLabels[order.status]}</span><span className="rounded-lg bg-[#eef1ef] px-3 py-1 text-xs font-black text-[#68736e]">Sürüm {order.version}</span></div><h1 className="mt-4 text-3xl font-black tracking-[-0.04em]">Sipariş #{order.orderNumber}</h1><p className="mt-2 text-sm font-semibold text-[#7a8580]">{order.tableLabel} · {order.guestCount} kişi</p></div><div className="rounded-2xl bg-[#17211d] px-5 py-4 text-white"><p className="text-xs font-bold text-white/60">Genel toplam</p><p className="mt-1 text-3xl font-black">{formatMoney(order.totalMinor)}</p></div></div><div className="mt-5 flex flex-wrap items-center gap-3 border-t border-[#edf0ee] pt-4"><button type="button" disabled={order.items.length === 0} onClick={() => print(buildBillReceipt({ orderNumber: order.orderNumber, tableLabel: order.tableLabel, openedAt: order.openedAt, items: order.items.map((item) => ({ name: item.productName, quantity: item.quantity, unitPriceMinor: item.unitPriceMinor, taxRate: item.taxRate, notes: item.notes })), branding }))} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#dce3df] px-4 text-sm font-black disabled:opacity-45"><Printer size={16} />Adisyon yazdır</button><PaperWidthSelect /></div></div>
 
       <div className="overflow-hidden rounded-[24px] border border-[#dfe5e1] bg-white"><div className="border-b border-[#e8ecea] p-5"><h2 className="text-lg font-black">Sipariş ürünleri</h2><p className="mt-1 text-xs font-semibold text-[#8a948f]">Fiyat, KDV ve ürün adı sipariş anındaki snapshot olarak saklanır.</p></div><div className="divide-y divide-[#edf0ee]">{order.items.map((item) => <form key={`${item.id}:${order.version}`} onSubmit={(event) => updateItem(event, item.id)} className="grid gap-3 p-4 sm:grid-cols-[1fr_100px_1fr_auto] sm:items-end"><div><p className="text-sm font-black">{item.productName}</p><p className="mt-1 text-xs font-bold text-[#8a948f]">{formatMoney(item.unitPriceMinor)} · KDV %{item.taxRate}{item.sentQuantity > 0 ? (item.fulfillment === "direct" ? " · doğrudan servis" : ` · ${item.sentQuantity} mutfağa gitti`) : ""}</p></div><label><span className="mb-1 block text-[10px] font-black uppercase tracking-[0.1em] text-[#8a948f]">Adet</span><input name="quantity" type="number" min={Math.max(1, item.sentQuantity)} max="99" defaultValue={item.quantity} disabled={!editable || isPending} className="min-h-11 w-full rounded-xl border border-[#dce3df] px-3 text-sm font-bold" /></label><label><span className="mb-1 block text-[10px] font-black uppercase tracking-[0.1em] text-[#8a948f]">Not</span><input name="notes" maxLength={500} defaultValue={item.notes || ""} disabled={!editable || isPending} placeholder="Ürün notu" className="min-h-11 w-full rounded-xl border border-[#dce3df] px-3 text-sm" /></label><button disabled={!editable || isPending} className="min-h-11 rounded-xl border border-[#dce3df] px-4 text-xs font-black disabled:opacity-45">Güncelle</button></form>)}{order.items.length === 0 && <p className="p-10 text-center text-sm font-semibold text-[#8a948f]">Siparişte ürün bulunmuyor.</p>}</div></div>
 
