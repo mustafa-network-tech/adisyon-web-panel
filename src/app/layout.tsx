@@ -1,15 +1,31 @@
 import type { Metadata } from "next";
 import { PwaRegistrar } from "@/components/pwa-registrar";
+import { shareImage, siteDescription, siteName, siteTitle, siteUrl } from "@/lib/site";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
-    default: "MK Adisyon | Yeni nesil restoran yönetimi",
+    default: siteTitle,
     template: "%s | MK Adisyon",
   },
-  description:
-    "Masa, sipariş, mutfak ve kasa operasyonlarını tek merkezde buluşturan yeni nesil restoran yönetim platformu.",
-  applicationName: "MK Adisyon",
+  description: siteDescription,
+  applicationName: siteName,
+  openGraph: {
+    type: "website",
+    locale: "tr_TR",
+    siteName,
+    url: "/",
+    title: siteTitle,
+    description: siteDescription,
+    images: [shareImage],
+  },
+  twitter: {
+    card: "summary",
+    title: siteTitle,
+    description: siteDescription,
+    images: [shareImage],
+  },
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 type BrandProps = {
@@ -13,11 +14,18 @@ export function Brand({ compact = false, href = "/", inverse = false }: BrandPro
       className="inline-flex min-h-11 items-center gap-3 rounded-xl focus-visible:outline-offset-4"
     >
       <span
-        className={`grid size-10 shrink-0 place-items-center rounded-xl text-sm font-black tracking-tight shadow-sm ${
-          inverse ? "bg-white text-[#17211d]" : "bg-[#17211d] text-white"
+        className={`grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-white shadow-sm ${
+          inverse ? "" : "ring-1 ring-[#dfe5e1]"
         }`}
       >
-        MK
+        {/* The 192 px app icon is sharp at 48 px on normal and high-density screens. */}
+        <Image
+          src="/icons/app-icon-192.png"
+          alt={compact ? "MK Adisyon" : ""}
+          width={48}
+          height={48}
+          priority
+        />
       </span>
       {!compact && (
         <span className="leading-none">
