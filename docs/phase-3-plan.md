@@ -58,7 +58,9 @@ Mevcut durum: `submit_order`, `kitchen_station_id` boş ürünü reddeder; 0013 
   - Her rol değişikliği audit kaydına yazılır.
 - Kabul: yetkisiz atama RLS/RPC düzeyinde reddedilir (pgTAP testleri).
 
-## Faz E — Puantaj, maaş ve prim (yalnızca tenant_admin)
+## Faz E — Puantaj, maaş ve prim
+
+Görünürlük: puantaj onayını müdür ve şirket yöneticisi yapar (`shifts.manage`). Maaş ve prim tutarları `payroll.manage` yetkisiyle görülür; varsayılan olarak yalnızca şirket yöneticisi ve işletme sahibi, isteğe bağlı olarak müdüre "ek yetki" ile verilebilir. Tutarlar denetim kaydına yazılmaz.
 - Dönem sonu puantaj: planlanan vs. onaylanan gün/saat, devamsızlık, fazla mesai.
 - Maaş kaydı, kesinti/avans girişi; dönem özeti ve dışa aktarma.
 - Prim **zorunlu değil**: istenirse yönetici elle girer (tutar + açıklama). Otomatik prim kuralı (ciro yüzdesi, bahşiş payı) yok.
