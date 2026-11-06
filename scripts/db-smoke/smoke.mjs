@@ -3,6 +3,7 @@
  * kitchen, QR, staff, payroll, discount and payment flows end to end.
  * Usage: pnpm db:smoke
  */
+import fs from "node:fs";
 import { createDatabase, actAs } from "./harness.mjs";
 
 const db = await createDatabase();
@@ -610,6 +611,215 @@ const PLATFORM = "90000000-0000-4000-8000-0000000000a1";
 await db.query("insert into auth.users (id, email, raw_user_meta_data) values ($1, 'platform@t.test', '{}'::jsonb)", [PLATFORM]);
 await db.query("insert into public.profiles (id, full_name) values ($1, 'Platform') on conflict do nothing", [PLATFORM]);
 await db.query("insert into public.platform_admins (user_id) values ($1)", [PLATFORM]);
+
+// --- finance tables: reading needs a finance permission (migration 0035) ---------
+{
+  const KITCHEN = "10000000-0000-4000-8000-000000000009";
+  await db.query("insert into auth.users (id, email, raw_user_meta_data) values ($1, 'kitchen@t.test', '{}'::jsonb)", [KITCHEN]);
+  await db.query("insert into public.profiles (id, full_name) values ($1, 'Mutfak Kullanici') on conflict do nothing", [KITCHEN]);
+  await actAs(db, OWNER);
+  const kitchenMembership = await addMember(KITCHEN, "kitchen");
+
+  // Seed one complete set of finance rows per business (superuser, triggers off).
+  const financeTables = ["cash_sessions", "payments", "payment_refunds", "payment_allocations", "cash_movements"];
+  async function seedFinance(tenantId, branchId, userId, orderNo) {
+    await db.exec("set session_replication_role = replica");
+    const existing = await one("select id from public.cash_sessions where tenant_id = $1 and branch_id = $2 limit 1", [tenantId, branchId]);
+    let sessionId = existing?.id;
+    if (!sessionId) {
+      const reg = (await one("select id from public.cash_registers where tenant_id = $1 and branch_id = $2", [tenantId, branchId])).id;
+      sessionId = (await one("insert into public.cash_sessions (tenant_id, branch_id, cash_register_id, opened_by) values ($1,$2,$3,$4) returning id", [tenantId, branchId, reg, userId])).id;
+    }
+    const orderId = (await one("insert into public.orders (tenant_id, branch_id, order_number, status, created_by) values ($1,$2,$3,'served',$4) returning id", [tenantId, branchId, orderNo, userId])).id;
+    const itemId = (await one("insert into public.order_items (tenant_id, branch_id, order_id, product_name, quantity, unit_price_minor, tax_rate, line_total_minor) values ($1,$2,$3,'Test',1,1000,10,1000) returning id", [tenantId, branchId, orderId])).id;
+    const paymentId = (await one("insert into public.payments (tenant_id, branch_id, order_id, cash_session_id, method, amount_minor, idempotency_key, created_by) values ($1,$2,$3,$4,'cash',1000,$5,$6) returning id", [tenantId, branchId, orderId, sessionId, `f1-${orderNo}-0000000000`, userId])).id;
+    await db.query("insert into public.payment_allocations (tenant_id, branch_id, payment_id, order_id, order_item_id, quantity, amount_minor) values ($1,$2,$3,$4,$5,1,1000)", [tenantId, branchId, paymentId, orderId, itemId]);
+    await db.query("insert into public.payment_refunds (tenant_id, branch_id, payment_id, cash_session_id, amount_minor, reason, idempotency_key, created_by) values ($1,$2,$3,$4,100,'f1 test',$5,$6)", [tenantId, branchId, paymentId, sessionId, `f1r-${orderNo}-000000000`, userId]);
+    await db.query("insert into public.cash_movements (tenant_id, cash_session_id, movement_type, amount_minor, reason, created_by) values ($1,$2,'expense',100,'f1 test',$3)", [tenantId, sessionId, userId]);
+    await db.exec("set session_replication_role = origin");
+  }
+  await seedFinance(tenant, branch, OWNER, 910001);
+  await seedFinance(tenantB, branchB, OWNER_B, 910002);
+
+  const total = async (table, tenantId) => (await one(`select count(*)::int n from public.${table} where tenant_id = $1`, [tenantId])).n;
+  const expectA = {};
+  const expectB = {};
+  for (const table of financeTables) { expectA[table] = await total(table, tenant); expectB[table] = await total(table, tenantB); }
+  check("finance test data exists in both businesses", financeTables.every((table) => expectA[table] > 0 && expectB[table] > 0), JSON.stringify({ expectA, expectB }));
+
+  // Plain authenticated SELECTs, exactly what a REST call with the user's JWT does.
+  for (const table of financeTables) {
+    check(`waiter reads no ${table}`, (await countAs(WAITER, table)) === 0);
+    check(`kitchen user reads no ${table}`, (await countAs(KITCHEN, table)) === 0);
+    check(`manager reads ${table}`, (await countAs(MANAGER, table)) === expectA[table], `${await countAs(MANAGER, table)} vs ${expectA[table]}`);
+    check(`cashier reads ${table}`, (await countAs(CASHIER, table)) === expectA[table], `${await countAs(CASHIER, table)} vs ${expectA[table]}`);
+    check(`owner A reads only A's ${table}`, (await countAs(OWNER, table)) === expectA[table], `${await countAs(OWNER, table)} vs ${expectA[table]}`);
+    check(`owner B reads only B's ${table}`, (await countAs(OWNER_B, table)) === expectB[table], `${await countAs(OWNER_B, table)} vs ${expectB[table]}`);
+  }
+
+  // Tenant isolation: the other business's rows never show up.
+  async function foreignRows(userId, table, otherTenant) {
+    await actAs(db, userId);
+    await db.exec("set role authenticated");
+    try { return (await one(`select count(*)::int n from public.${table} where tenant_id = $1`, [otherTenant])).n; } finally { await db.exec("reset role"); }
+  }
+  for (const table of financeTables) {
+    check(`A's owner sees none of B's ${table}`, (await foreignRows(OWNER, table, tenantB)) === 0);
+    check(`B's owner sees none of A's ${table}`, (await foreignRows(OWNER_B, table, tenant)) === 0);
+  }
+
+  // Narrow roles: cash.open alone sees the shift but not the sales inside it.
+  async function withRolePermissions(codes, userId, table) {
+    const role = (await one("insert into public.roles (tenant_id, code, name, scope) values ($1, $2, 'F1 test', 'branch') returning id", [tenant, `f1_${codes.join("_").replace(/\./g, "")}`])).id;
+    for (const code of codes) {
+      await db.query("insert into public.role_permissions (tenant_id, role_id, permission_id) select $1, $2, id from public.permissions where code = $3", [tenant, role, code]);
+    }
+    const membership = (await one("select id from public.tenant_memberships where tenant_id = $1 and user_id = $2", [tenant, userId])).id;
+    await db.query("delete from public.membership_roles where tenant_id = $1 and membership_id = $2", [tenant, membership]);
+    await db.query("insert into public.membership_roles (tenant_id, membership_id, role_id) values ($1,$2,$3)", [tenant, membership, role]);
+    return countAs(userId, table);
+  }
+  const keepKitchenRole = await roleId("kitchen");
+  check("cash.open alone reads the cash session", (await withRolePermissions(["cash.open"], KITCHEN, "cash_sessions")) === expectA.cash_sessions);
+  check("cash.open alone reads no payments", (await countAs(KITCHEN, "payments")) === 0);
+  check("cash.open alone reads the cash movements", (await countAs(KITCHEN, "cash_movements")) === expectA.cash_movements);
+  check("cash.close reads payments", (await withRolePermissions(["cash.close"], KITCHEN, "payments")) === expectA.payments);
+  check("reports.read alone reads no payments directly", (await withRolePermissions(["reports.read"], KITCHEN, "payments")) === 0);
+  await db.query("delete from public.membership_roles where tenant_id = $1 and membership_id = $2", [tenant, kitchenMembership]);
+  await db.query("insert into public.membership_roles (tenant_id, membership_id, role_id) values ($1,$2,$3)", [tenant, kitchenMembership, keepKitchenRole]);
+
+  // Security definer paths are unaffected by the new policies.
+  await actAs(db, CASHIER);
+  const reportDay = new Date().toISOString().slice(0, 10);
+  const reportResult = await rpc("sales_report", { target_tenant_id: tenant, target_branch_id: branch, range_start: reportDay, range_end: reportDay });
+  check("the sales report still works for the cashier", reportResult !== null && typeof reportResult === "object");
+
+  // Platform support session keeps its read access; without a session there is none.
+  check("platform admin without a support session reads no payments", (await countAs(PLATFORM, "payments")) === 0);
+  await actAs(db, PLATFORM);
+  const supportSession = await rpc("open_platform_support_session", { target_tenant_id: tenant, target_branch_id: branch, support_reason: "finance read regression", duration_minutes: 15 });
+  for (const table of financeTables) check(`support session still reads ${table}`, (await countAs(PLATFORM, table)) === expectA[table], `${await countAs(PLATFORM, table)} vs ${expectA[table]}`);
+  await rpc("close_platform_support_session", { target_session_id: supportSession });
+  check("closed support session reads no payments again", (await countAs(PLATFORM, "payments")) === 0);
+
+  // ---- second branch of the same business: finance data stays separated per branch ----
+  const CASHIER2 = "10000000-0000-4000-8000-000000000011";
+  await db.query("insert into auth.users (id, email, raw_user_meta_data) values ($1, 'cashier2@t.test', '{}'::jsonb)", [CASHIER2]);
+  await db.query("insert into public.profiles (id, full_name) values ($1, 'Kasiyer Teras') on conflict do nothing", [CASHIER2]);
+  await db.exec("set session_replication_role = replica");
+  const branch2 = (await one("insert into public.branches (tenant_id, name, slug, timezone, currency_code) values ($1, 'Teras Test', 'teras-test', 'Europe/Istanbul', 'TRY') returning id", [tenant])).id;
+  await db.query("insert into public.cash_registers (tenant_id, branch_id, name) values ($1, $2, 'Kasa Teras')", [tenant, branch2]);
+  const cashier2Membership = (await one("insert into public.tenant_memberships (tenant_id, user_id, status) values ($1, $2, 'active') returning id", [tenant, CASHIER2])).id;
+  await db.query("insert into public.membership_roles (tenant_id, membership_id, role_id) values ($1, $2, $3)", [tenant, cashier2Membership, await roleId("cashier")]);
+  await db.query("insert into public.membership_branches (tenant_id, membership_id, branch_id) values ($1, $2, $3)", [tenant, cashier2Membership, branch2]);
+  await db.exec("set session_replication_role = origin");
+  await seedFinance(tenant, branch2, OWNER, 910003);
+
+  const branchFilter = (table, branchId) => table === "cash_movements"
+    ? { sql: "cash_session_id in (select id from public.cash_sessions where branch_id = $1)", params: [branchId] }
+    : { sql: "branch_id = $1", params: [branchId] };
+  const seededIn = async (table, branchId) => { const f = branchFilter(table, branchId); return (await one(`select count(*)::int n from public.${table} where ${f.sql}`, f.params)).n; };
+  async function visibleIn(userId, table, branchId) {
+    await actAs(db, userId);
+    await db.exec("set role authenticated");
+    try {
+      // cash_movements has no branch column: return the sessions of the rows the user sees
+      if (table === "cash_movements") return (await all("select cash_session_id from public.cash_movements where tenant_id = $1", [tenant])).map((row) => row.cash_session_id);
+      const f = branchFilter(table, branchId);
+      return (await one(`select count(*)::int n from public.${table} where ${f.sql}`, f.params)).n;
+    } finally { await db.exec("reset role"); }
+  }
+  // Superuser view of which session belongs to which branch, to judge cash_movements rows seen by a user.
+  const sessionBranch = Object.fromEntries((await all("select id, branch_id from public.cash_sessions where tenant_id = $1", [tenant])).map((row) => [row.id, row.branch_id]));
+  async function seenCount(userId, table, branchId) {
+    const result = await visibleIn(userId, table, branchId);
+    if (table === "cash_movements") return result.filter((sessionId) => sessionBranch[sessionId] === branchId).length;
+    return result;
+  }
+  const ownSeeded = {};
+  for (const table of financeTables) ownSeeded[table] = { b1: await seededIn(table, branch), b2: await seededIn(table, branch2) };
+  check("both branches of the business have finance rows", financeTables.every((table) => ownSeeded[table].b1 > 0 && ownSeeded[table].b2 > 0), JSON.stringify(ownSeeded));
+
+  for (const table of financeTables) {
+    check(`branch 1 cashier reads branch 1 ${table}`, (await seenCount(CASHIER, table, branch)) === ownSeeded[table].b1);
+    check(`branch 1 cashier reads no branch 2 ${table}`, (await seenCount(CASHIER, table, branch2)) === 0);
+    check(`branch 2 cashier reads branch 2 ${table}`, (await seenCount(CASHIER2, table, branch2)) === ownSeeded[table].b2);
+    check(`branch 2 cashier reads no branch 1 ${table}`, (await seenCount(CASHIER2, table, branch)) === 0);
+    check(`branch 1 manager reads no branch 2 ${table}`, (await seenCount(MANAGER, table, branch2)) === 0);
+    check(`business owner reads both branches of ${table}`, (await seenCount(OWNER, table, branch)) === ownSeeded[table].b1 && (await seenCount(OWNER, table, branch2)) === ownSeeded[table].b2);
+    check(`branch 1 waiter reads nothing of ${table} in either branch`, (await seenCount(WAITER, table, branch)) === 0 && (await seenCount(WAITER, table, branch2)) === 0);
+  }
+  // the support session of branch 1 does not open branch 2
+  await actAs(db, PLATFORM);
+  const supportBranch1 = await rpc("open_platform_support_session", { target_tenant_id: tenant, target_branch_id: branch, support_reason: "branch scope regression", duration_minutes: 15 });
+  for (const table of financeTables) check(`support session of branch 1 reads no branch 2 ${table}`, (await seenCount(PLATFORM, table, branch2)) === 0);
+  check("support session of branch 1 still reads branch 1 payments", (await seenCount(PLATFORM, "payments", branch)) === ownSeeded.payments.b1);
+  await rpc("close_platform_support_session", { target_session_id: supportBranch1 });
+
+  // ---- single-permission roles, one by one (each plays the kitchen user's seat in branch 1) ----
+  let narrowCounter = 0;
+  async function narrowRoleView(codes) {
+    narrowCounter += 1;
+    const role = (await one("insert into public.roles (tenant_id, code, name, scope) values ($1, $2, 'F1 narrow', 'branch') returning id", [tenant, `f1_narrow_${narrowCounter}`])).id;
+    for (const code of codes) await db.query("insert into public.role_permissions (tenant_id, role_id, permission_id) select $1, $2, id from public.permissions where code = $3", [tenant, role, code]);
+    await db.query("delete from public.membership_roles where tenant_id = $1 and membership_id = $2", [tenant, kitchenMembership]);
+    await db.query("insert into public.membership_roles (tenant_id, membership_id, role_id) values ($1,$2,$3)", [tenant, kitchenMembership, role]);
+    const view = {};
+    for (const table of financeTables) view[table] = (await seenCount(KITCHEN, table, branch)) > 0;
+    return view;
+  }
+  const narrowCases = [
+    ["payments.refund", { cash_sessions: true, payments: true, payment_refunds: true, payment_allocations: true, cash_movements: false }],
+    ["payments.create", { cash_sessions: true, payments: true, payment_refunds: true, payment_allocations: true, cash_movements: true }],
+    ["cash.open", { cash_sessions: true, payments: false, payment_refunds: false, payment_allocations: false, cash_movements: true }],
+    ["cash.close", { cash_sessions: true, payments: true, payment_refunds: true, payment_allocations: true, cash_movements: true }],
+    ["reports.read", { cash_sessions: false, payments: false, payment_refunds: false, payment_allocations: false, cash_movements: false }],
+  ];
+  for (const [code, expected] of narrowCases) {
+    const view = await narrowRoleView([code]);
+    for (const table of financeTables) check(`${code}-only role: ${table} ${expected[table] ? "readable" : "hidden"}`, view[table] === expected[table], JSON.stringify(view));
+  }
+  await db.query("delete from public.membership_roles where tenant_id = $1 and membership_id = $2", [tenant, kitchenMembership]);
+  await db.query("insert into public.membership_roles (tenant_id, membership_id, role_id) values ($1,$2,$3)", [tenant, kitchenMembership, keepKitchenRole]);
+
+  // ---- the manual rollback script restores the old behaviour and 0035 can be re-applied ----
+  const migrationsDir = new URL("../../supabase/migrations/", import.meta.url);
+  const rollbackSql = fs.readFileSync(new URL("../../supabase/rollback/0035_finance_read_permissions_down.sql", import.meta.url), "utf8");
+  const migrationSql = fs.readFileSync(new URL("0035_finance_read_permissions.sql", migrationsDir), "utf8");
+  const policyCount = async () => (await one("select count(*)::int n from pg_policies where schemaname = 'public' and policyname like '%_finance_read_restrict'")).n;
+  check("five finance read policies exist before the rollback", (await policyCount()) === 5);
+  await db.exec(rollbackSql);
+  check("rollback removes all five policies", (await policyCount()) === 0);
+  check("after the rollback the waiter reads payments again (old behaviour)", (await countAs(WAITER, "payments")) > 0);
+  await db.exec(rollbackSql);
+  check("the rollback script can run twice", (await policyCount()) === 0);
+  check("the rollback keeps the branch access policies", (await countAs(OWNER_B, "payments")) === expectB.payments);
+  await db.exec(migrationSql);
+  check("0035 can be applied again after a rollback", (await policyCount()) === 5);
+  check("and the waiter is locked out again", (await countAs(WAITER, "payments")) === 0);
+
+  // ---- clean up the extra branch so the following tests see the same business as before ----
+  await db.exec("set session_replication_role = replica");
+  await db.query("delete from public.cash_movements where cash_session_id in (select id from public.cash_sessions where branch_id = $1)", [branch2]);
+  for (const table of ["payment_refunds", "payment_allocations", "payments", "order_items", "orders", "cash_sessions", "cash_registers"]) {
+    await db.query(`delete from public.${table} where branch_id = $1`, [branch2]);
+  }
+  await db.exec("set session_replication_role = origin");
+  await db.query("delete from public.tenant_memberships where id = $1", [cashier2Membership]);
+  await db.query("delete from public.branches where id = $1", [branch2]);
+
+  // Direct writes stay closed.
+  await actAs(db, CASHIER);
+  await db.exec("set role authenticated");
+  try {
+    await db.query("insert into public.payments (tenant_id, branch_id, order_id, cash_session_id, method, amount_minor, idempotency_key, created_by) values ($1,$2,$3,$4,'cash',1,'direct-write-forbidden-1',$5)", [tenant, branch, open2.orderId, cashSession, CASHIER]);
+    failures.push("direct payment insert should stay closed");
+  } catch (error) {
+    if (String(error.message).includes("permission denied")) passed += 1;
+    else failures.push(`direct payment insert: ${error.message}`);
+  }
+  await db.exec("reset role");
+}
 
 
 // --- assisted setup by MK Digital Systems (tenant C) and isolation ---------------------------
