@@ -1,22 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { headers } from "next/headers";
 import QRCode from "qrcode";
 import { ArrowLeft } from "lucide-react";
 import { requireWorkspacePermission } from "@/lib/auth/access";
+import { siteUrl } from "@/lib/site";
 import { QrManager } from "@/modules/qr/components/qr-manager";
 import { getQrAdminSnapshot } from "@/modules/qr/repository";
 
 export const metadata: Metadata = { title: "QR menü" };
 export const dynamic = "force-dynamic";
 
+// QR codes carry the trusted site address (NEXT_PUBLIC_SITE_URL), never a request header.
 async function resolveOrigin() {
-  const configured = process.env.NEXT_PUBLIC_SITE_URL;
-  if (configured) return configured.replace(/\/+$/, "");
-  const requestHeaders = await headers();
-  const host = requestHeaders.get("x-forwarded-host") || requestHeaders.get("host");
-  const proto = requestHeaders.get("x-forwarded-proto") || "https";
-  return `${proto}://${host}`;
+  return siteUrl;
 }
 
 export default async function QrMenuSettingsPage({

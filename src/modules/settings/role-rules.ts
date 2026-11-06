@@ -9,6 +9,7 @@ export const roleAssignmentRules = [
   "İşletme Sahibi ve İşletme Yöneticisi rollerini yalnızca şirket (işletme) düzeyindeki yöneticiler verebilir; şube yöneticileri veremez.",
   "İşletme Sahibi rolünü yalnızca İşletme Sahibi verebilir veya değiştirebilir. Son işletme sahibi kaldırılamaz ya da askıya alınamaz.",
   "Şube düzeyindeki yetkililer yalnızca kendi şubelerindeki personele ve yalnızca şube düzeyindeki rollere (Müdür, Kasa, Mutfak, Garson) atama yapabilir.",
+  "Askıdaki bir kullanıcıyı yalnızca şirket düzeyindeki yöneticiler yeniden etkinleştirebilir; şube yöneticileri bunu yapamaz. Davet bağlantısı da askıdaki kullanıcıyı yeniden etkinleştirmez.",
   "Hiç kimse kendi rolünü değiştiremez ve kendi hesabını askıya alamaz; bu işlem için ikinci bir yetkili gerekir.",
   "Ek yetkiler (ayarlar, menü, geçmiş raporlar vb.) yalnızca şirket düzeyindeki yöneticiler tarafından verilir.",
   "Puantaj (günlük çalışma süresi) onayı varsayılan olarak yalnızca şirket yöneticisinde ve işletme sahibindedir; müdür ancak şirket yöneticisi “Puantaj onayı” ek yetkisini verirse onaylayabilir.",
@@ -29,9 +30,37 @@ const accessErrors: Record<string, string> = {
   owner_role_assignment_denied: "İşletme Sahibi rolünü yalnızca işletme sahibi verebilir.",
   owner_membership_change_denied: "İşletme sahibinin erişimini yalnızca başka bir işletme sahibi değiştirebilir.",
   last_owner_required: "Son işletme sahibi kaldırılamaz veya askıya alınamaz.",
+  reactivation_requires_tenant_scope: "Askıdaki bir kullanıcıyı yalnızca şirket yöneticisi yeniden etkinleştirebilir. Lütfen işletme yöneticinizden isteyin.",
+  member_outside_actor_branches: "Yalnızca kendi şubelerinizdeki personelin erişimini değiştirebilirsiniz.",
+  role_exceeds_actor_permissions: "Kendi yetkilerinizi aşan bir rol veremezsiniz.",
 };
 
 export function memberAccessErrorMessage(message: string | undefined) {
   const code = message ? Object.keys(accessErrors).find((item) => message.includes(item)) : undefined;
   return code ? accessErrors[code] : "Kullanıcı erişimi güncellenemedi. Rol kurallarını kontrol edin.";
+}
+
+const invitationAcceptErrors: Record<string, string> = {
+  membership_suspended: "Bu işletmedeki hesabınız askıya alınmış. Bağlantı hesabı yeniden etkinleştirmez; işletme yöneticinizden hesabınızı açmasını isteyin.",
+  invitation_inviter_inactive: "Bu daveti oluşturan kişi artık işletmede aktif değil. Lütfen işletme yöneticisinden yeni bir davet isteyin.",
+  invitation_not_available: "Davet bağlantısı geçersiz, süresi dolmuş veya iptal edilmiş. Yeni bir davet isteyin.",
+  invitation_email_mismatch: "Bu davet başka bir e-posta adresi için oluşturulmuş. Davet edilen e-postayla oturum açın.",
+  tenant_not_active: "Bu işletme şu anda aktif değil.",
+};
+
+export function invitationAcceptErrorMessage(message: string | undefined) {
+  const code = message ? Object.keys(invitationAcceptErrors).find((item) => message.includes(item)) : undefined;
+  return code ? invitationAcceptErrors[code] : "Davet kabul edilemedi. Oturum e-postası davetle aynı olmalıdır.";
+}
+
+export type MemberStatus = "active" | "invited" | "suspended";
+
+/**
+ * Status choices offered for a member. The database refuses a branch-scope manager who sets a
+ * suspended member back to active (reactivation_requires_tenant_scope); the screen simply does not
+ * offer that choice. This is only a convenience: the database rule is what protects the data.
+ */
+export function statusOptionsFor(current: MemberStatus, isTenantScope: boolean): MemberStatus[] {
+  if (current === "suspended" && !isTenantScope) return ["suspended"];
+  return ["active", "suspended", "invited"];
 }

@@ -1,12 +1,12 @@
 "use server";
 
-import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAuthenticatedUser, requireWorkspacePermission } from "@/lib/auth/access";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { siteUrl } from "@/lib/site";
 import type { SettingsActionState } from "./management-types";
-import { memberAccessErrorMessage } from "./role-rules";
+import { invitationAcceptErrorMessage, memberAccessErrorMessage } from "./role-rules";
 import { invitationSchema, memberAccessSchema, memberExtrasSchema, tenantConfigurationSchema } from "./validation";
 import { isReadOnlyError, readOnlyMessage } from "@/modules/plan/usage";
 
@@ -69,11 +69,8 @@ export async function createInvitationAction(
   if (error || !data || typeof data !== "object" || !("token" in data)) {
     return errorState("Davet oluşturulamadı. Rol ve yetkinizi kontrol edin.");
   }
-  const headerStore = await headers();
-  const host = headerStore.get("x-forwarded-host") || headerStore.get("host");
-  const protocol = headerStore.get("x-forwarded-proto") || "https";
-  const path = `/davet/${String(data.token)}`;
-  const invitationUrl = host ? `${protocol}://${host}${path}` : path;
+  // The address comes from the trusted site setting, never from the request headers (Host / X-Forwarded-Host).
+  const invitationUrl = `${siteUrl}/davet/${String(data.token)}`;
   revalidatePath(`/app/${route.tenant}/${route.branch}/ayarlar/kullanicilar`);
   return successState("Davet oluşturuldu. Bağlantıyı güvenli biçimde paylaşın.", invitationUrl);
 }
@@ -134,7 +131,7 @@ export async function acceptInvitationAction(
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.rpc("accept_tenant_invitation", { target_token: token });
   if (error || !data || typeof data !== "object" || !("tenantSlug" in data) || !("branchSlug" in data)) {
-    return errorState("Davet kabul edilemedi. Oturum e-postası davetle aynı olmalıdır.");
+    return errorState(invitationAcceptErrorMessage(error?.message));
   }
   redirect(`/app/${String(data.tenantSlug)}/${String(data.branchSlug)}/masalar`);
 }

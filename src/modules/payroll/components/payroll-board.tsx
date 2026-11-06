@@ -5,6 +5,7 @@ import Link from "next/link";
 import { CheckCheck, ChevronLeft, ChevronRight, Download, Trash2 } from "lucide-react";
 import { formatMoney } from "@/lib/money";
 import { initialCrudActionState } from "@/modules/settings/action-state";
+import { csvCell } from "@/lib/csv";
 import { formatDay, formatDuration } from "@/modules/staff/dates";
 import {
   addPayrollEntryAction,
@@ -26,11 +27,6 @@ const monthLabel = (period: string) => monthFormatter.format(new Date(`${period}
 function Message({ state }: { state: { status: string; message: string | null } }) {
   if (!state.message) return null;
   return <p role={state.status === "error" ? "alert" : "status"} className={`mt-3 rounded-xl p-3 text-xs font-semibold ${state.status === "error" ? "bg-[#fff7f3] text-[#9e4328]" : "bg-[#edf8f3] text-[#176e56]"}`}>{state.message}</p>;
-}
-
-function csvCell(value: string | number) {
-  const text = String(value);
-  return /[";\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
 export function PayrollBoard({ tenant, branch, snapshot }: { tenant: string; branch: string; snapshot: PayrollSnapshot }) {

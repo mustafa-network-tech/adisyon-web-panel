@@ -39,4 +39,24 @@ describe("report csv", () => {
     expect(csv).toContain("Net satış;100,00");
     expect(csv).toContain('"Ayran; büyük";3;120,00');
   });
+
+  it("does not let user typed names run as spreadsheet formulas", () => {
+    const report = {
+      rangeStart: "2026-11-05",
+      rangeEnd: "2026-11-05",
+      summary: { orderCount: 1, grossMinor: 12000, discountMinor: 0, itemDiscountMinor: 0, netMinor: -500, taxMinor: 0 },
+      payments: { cashMinor: 0, cardMinor: 0, cashRefundMinor: 0, cardRefundMinor: 0 },
+      byDay: [],
+      products: [{ name: '=HYPERLINK("http://x";"a")', quantity: 1, revenueMinor: 100 }, { name: "+1+1", quantity: 1, revenueMinor: 100 }],
+      categories: [{ name: "-2+3", quantity: 1, revenueMinor: 100 }],
+      staff: [{ name: "@SUM(A1)", orderCount: 1, netMinor: 100 }],
+    } as unknown as SalesReport;
+    const csv = buildReportCsv(report);
+    expect(csv).toContain(`"'=HYPERLINK(""http://x"";""a"")";1;1,00`);
+    expect(csv).toContain("'+1+1;1;1,00");
+    expect(csv).toContain("'-2+3;1;1,00");
+    expect(csv).toContain("'@SUM(A1);1;1,00");
+    // real numbers (a negative net figure) stay numbers
+    expect(csv).toContain("Net satış;-5,00");
+  });
 });

@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { Copy, MailPlus, ShieldCheck, UserRoundCog } from "lucide-react";
 import { createInvitationAction, setMemberExtrasAction, updateMemberAccessAction } from "../actions";
+import { statusOptionsFor } from "../role-rules";
 import { grantablePermissions, initialSettingsActionState, type TeamMember, type TeamSnapshot } from "../management-types";
 
 const inputClass = "min-h-11 w-full rounded-xl border border-[#dce3df] bg-[#f9faf9] px-3 text-sm outline-none focus:border-[color:var(--c-accent)] focus:bg-white";
@@ -30,8 +31,9 @@ function MemberAccessForm({ tenant, branch, member, snapshot }: { tenant: string
     <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
       <div className="min-w-44 flex-1"><p className="text-sm font-black">{member.fullName}</p><p className="mt-1 text-[11px] font-semibold text-[#8a948f]">{member.userId.slice(0, 8)} · {statusLabel[member.status]}</p></div>
       <select name="roleId" defaultValue={member.roleIds[0] || ""} className={`${inputClass} lg:w-48`} required><option value="" disabled>Rol seçin</option>{snapshot.roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}</select>
-      <select name="status" defaultValue={member.status} className={`${inputClass} lg:w-32`}><option value="active">Aktif</option><option value="suspended">Askıda</option><option value="invited">Davetli</option></select>
+      <select name="status" defaultValue={member.status} className={`${inputClass} lg:w-32`}>{statusOptionsFor(member.status, snapshot.canGrantExtras).map((value) => <option key={value} value={value}>{statusLabel[value]}</option>)}</select>
     </div>
+    {member.status === "suspended" && !snapshot.canGrantExtras && <p className="mt-3 text-xs font-semibold text-[#8a948f]">Bu kullanıcı askıda. Yeniden etkinleştirmek için işletme yöneticinize başvurun.</p>}
     <fieldset className="mt-3"><legend className="text-[11px] font-black uppercase tracking-[0.1em] text-[#8a948f]">Şube erişimi</legend><div className="mt-2 flex flex-wrap gap-2">{snapshot.branches.map((item) => <label key={item.id} className="flex min-h-9 items-center gap-2 rounded-lg border border-[#dce3df] bg-white px-3 text-xs font-bold"><input type="checkbox" name="branchIds" value={item.id} defaultChecked={member.branchIds.includes(item.id)} />{item.name}</label>)}</div></fieldset>
     {state.message && <p role={state.status === "error" ? "alert" : "status"} className={`mt-3 text-xs font-semibold ${state.status === "error" ? "text-[#9e4328]" : "text-[#176e56]"}`}>{state.message}</p>}
     <button disabled={pending} className="mt-3 min-h-10 rounded-xl bg-[color:var(--c-ink)] px-4 text-xs font-black text-white disabled:opacity-50">{pending ? "Güncelleniyor…" : "Erişimi güncelle"}</button>

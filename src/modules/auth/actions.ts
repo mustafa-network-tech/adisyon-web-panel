@@ -1,10 +1,10 @@
 "use server";
 
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { resolveDefaultDestination } from "@/lib/auth/destination";
 import { getSafeReturnPath } from "@/lib/auth/redirects";
+import { siteUrl } from "@/lib/site";
 import { entryQuery, parseEntry, setupLandingPath } from "@/modules/onboarding/entry";
 import { parsePlanParam } from "@/modules/onboarding/plans";
 import { createBusinessSchema } from "@/modules/settings/validation";
@@ -64,13 +64,12 @@ export async function signOutAction() {
   redirect("/giris");
 }
 
-function getApplicationOrigin(headerStore: Headers) {
-  const origin = headerStore.get("origin");
-  if (origin) return origin;
-
-  const host = headerStore.get("x-forwarded-host") || headerStore.get("host");
-  const protocol = headerStore.get("x-forwarded-proto") || "https";
-  return host ? `${protocol}://${host}` : null;
+/**
+ * Address put into the links of e-mails (password reset, sign-up confirmation). It comes from the trusted
+ * site setting (NEXT_PUBLIC_SITE_URL), never from the Origin / Host / X-Forwarded-Host request headers.
+ */
+function getApplicationOrigin() {
+  return siteUrl;
 }
 
 export async function requestPasswordResetAction(
@@ -83,8 +82,7 @@ export async function requestPasswordResetAction(
     return errorState("Geçerli bir e-posta adresi girin.");
   }
 
-  const origin = getApplicationOrigin(await headers());
-  if (!origin) return errorState("İstek adresi doğrulanamadı.");
+  const origin = getApplicationOrigin();
 
   const supabase = await createSupabaseServerClient();
   await supabase.auth.resetPasswordForEmail(email.data, {
@@ -149,8 +147,7 @@ export async function signUpAction(
     return errorState("Ad soyad, e-posta ve en az 8 karakterli şifre girin.");
   }
 
-  const origin = getApplicationOrigin(await headers());
-  if (!origin) return errorState("İstek adresi doğrulanamadı.");
+  const origin = getApplicationOrigin();
 
   // The package / support hints come from the URL: re-validate, never trust them.
   const entry = parseEntry({ paket: formData.get("paket") as string | undefined, kurulum: formData.get("kurulum") as string | undefined });
