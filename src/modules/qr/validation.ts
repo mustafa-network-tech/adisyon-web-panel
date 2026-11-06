@@ -6,31 +6,9 @@ const uuid = z
 
 export const qrTokenSchema = z.string().regex(/^[0-9a-f]{64}$/);
 
-export const customerOrderInputSchema = z.object({
-  token: qrTokenSchema,
-  idempotencyKey: uuid,
-  items: z
-    .array(
-      z.object({
-        productId: uuid,
-        quantity: z.number().int().min(1).max(20),
-        notes: z.string().trim().max(200).default(""),
-        options: z.array(uuid).max(30).default([]),
-      }),
-    )
-    .min(1)
-    .max(40),
-});
-
 export const callWaiterInputSchema = z.object({
   token: qrTokenSchema,
   kind: z.enum(["waiter", "bill"]),
-});
-
-export const setOrderingInputSchema = z.object({
-  tenant: z.string().trim().min(1).max(100),
-  branch: z.string().trim().min(1).max(100),
-  enabled: z.boolean(),
 });
 
 export const rotateTokenInputSchema = z.object({

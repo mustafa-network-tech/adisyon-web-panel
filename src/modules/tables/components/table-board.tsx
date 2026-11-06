@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Minus, Plus, Search, ShoppingBag, Users, X } from "lucide-react";
 import { formatMoney } from "@/lib/money";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { useRealtimeRefresh } from "@/lib/use-realtime-refresh";
 import type { MenuProduct } from "@/modules/catalog/types";
 import { OptionPicker } from "@/modules/catalog/components/option-picker";
 import { startingPriceMinor } from "@/modules/catalog/options";
@@ -45,14 +45,10 @@ export function TableBoard({ tenant, branch, branchId, areas, tables: allTables,
   const [isOpening, startOpening] = useTransition();
   const idempotencyKey = useRef<string | null>(null);
 
-  useEffect(() => {
-    const supabase = createSupabaseBrowserClient();
-    const channel = supabase
-      .channel(`table-orders:${branchId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `branch_id=eq.${branchId}` }, () => router.refresh())
-      .subscribe();
-    return () => { void supabase.removeChannel(channel); };
-  }, [branchId, router]);
+  useRealtimeRefresh({
+    channel: `table-orders:${branchId}`,
+    listeners: [{ table: "orders", filter: `branch_id=eq.${branchId}` }],
+  });
 
   const currentAreaId = activeAreas.some((area) => area.id === areaId)
     ? areaId

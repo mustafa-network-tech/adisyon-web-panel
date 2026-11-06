@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, ChefHat, Clock3, CloudOff, Printer, RefreshCw, Wifi } from "lucide-react";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { useRealtimeRefresh } from "@/lib/use-realtime-refresh";
 import { buildKitchenReceipt } from "@/modules/receipts/builders";
 import { PaperWidthSelect, useReceiptPrinter } from "@/modules/receipts/components/receipt-print";
 import type { ReceiptBranding } from "@/modules/receipts/types";
@@ -42,7 +42,7 @@ export function KitchenBoard({ tenant, branch, branchId, canUpdate, branding, ti
   }, []);
 
   useEffect(() => {
-    const handleOnline = () => { setOnline(true); router.refresh(); };
+    const handleOnline = () => setOnline(true);
     const handleOffline = () => setOnline(false);
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
@@ -52,17 +52,12 @@ export function KitchenBoard({ tenant, branch, branchId, canUpdate, branding, ti
     };
   }, [router]);
 
-  useEffect(() => {
-    const supabase = createSupabaseBrowserClient();
-    const channel = supabase
-      .channel(`kitchen:${branchId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "kitchen_tickets", filter: `branch_id=eq.${branchId}` }, () => router.refresh())
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") setRealtimeConnected(true);
-        if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) setRealtimeConnected(false);
-      });
-    return () => { void supabase.removeChannel(channel); };
-  }, [branchId, router]);
+  // a dropped connection is caught up from the database as soon as it is back (no order is lost in the kitchen)
+  useRealtimeRefresh({
+    channel: `kitchen:${branchId}`,
+    listeners: [{ table: "kitchen_tickets", filter: `branch_id=eq.${branchId}` }],
+    onConnection: setRealtimeConnected,
+  });
 
   const visibleTickets = useMemo(() => tickets.filter((ticket) => stationId === "all" || ticket.stationId === stationId), [stationId, tickets]);
   const averageAge = visibleTickets.length === 0 ? 0 : Math.round(visibleTickets.reduce((sum, ticket) => sum + Math.max(0, Math.floor((now - new Date(ticket.sentAt).getTime()) / 60_000)), 0) / visibleTickets.length);

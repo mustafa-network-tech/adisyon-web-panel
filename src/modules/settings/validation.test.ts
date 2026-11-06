@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  invitationSchema,
+  joinDecisionSchema,
   subscriptionSchema,
   tenantConfigurationSchema,
 } from "./validation";
@@ -15,18 +15,17 @@ describe("settings and platform validation", () => {
       primaryColor: "#E8623A",
       orderNumberPrefix: "mk1",
       receiptFooter: "Teşekkürler",
-      serviceChargePercent: "12.5",
     });
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.orderNumberPrefix).toBe("MK1");
-      expect(result.data.serviceChargePercent).toBe(12.5);
     }
   });
 
-  it("rejects invalid invitation and tenant slugs", () => {
-    expect(invitationSchema.safeParse({ email: "wrong", roleId: "x", validHours: 999 }).success).toBe(false);
-    expect(invitationSchema.safeParse({ email: "a@b.co", roleId: "not-a-uuid", validHours: 72 }).success).toBe(false);
+  it("rejects invalid join decisions", () => {
+    expect(joinDecisionSchema.safeParse({ requestId: "x", decision: "approve", branchIds: [] }).success).toBe(false);
+    expect(joinDecisionSchema.safeParse({ requestId: "11111111-1111-4111-8111-111111111111", decision: "maybe", branchIds: [] }).success).toBe(false);
+    expect(joinDecisionSchema.safeParse({ requestId: "11111111-1111-4111-8111-111111111111", decision: "reject", branchIds: [] }).success).toBe(true);
   });
 
   it("requires subscription end to follow its start", () => {

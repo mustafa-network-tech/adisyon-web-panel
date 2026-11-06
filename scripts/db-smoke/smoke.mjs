@@ -138,18 +138,19 @@ check("direct-only order creates no ticket", submit2.ticketCount === 0, JSON.str
 check("direct-only order is served at once", submit2.status === "served", JSON.stringify(submit2));
 check("direct items count as sent", (await one("select bool_and(sent_quantity = quantity) ok from public.order_items where order_id = $1", [open2.orderId])).ok === true);
 
-// --- QR ordering ------------------------------------------------------------
+// --- QR menu: view only (0039 removed customer ordering) -----------------------
 await actAs(db, OWNER);
 const t3Token = (await one("select qr_token from public.restaurant_tables where id = $1", [t3])).qr_token;
-await rpc("set_branch_qr_settings", { target_tenant_id: tenant, target_branch_id: branch, target_ordering_enabled: true });
 const publicMenu = await rpc("get_public_menu", { target_token: t3Token });
 const colaMenu = publicMenu.categories.flatMap((c) => c.products).find((p) => p.name === "Kola");
-check("QR menu lists direct product as orderable", colaMenu?.orderable === true);
-const qr = await rpc("place_customer_order", { target_token: t3Token, target_items: [{ productId: cola, quantity: 1 }], target_idempotency_key: key() });
-check("QR direct-only order has no ticket", qr.ticketCount === 0, JSON.stringify(qr));
-const qrOrder = await one("select status, source from public.orders where table_id = $1", [t3]);
-check("QR direct-only order is served", qrOrder.status === "served" && qrOrder.source === "qr", JSON.stringify(qrOrder));
-check("QR lines are marked as customer lines", (await one("select bool_and(oi.source = 'qr') ok from public.order_items oi join public.orders o on o.id = oi.order_id where o.table_id = $1", [t3])).ok === true);
+check("QR menu still lists the products", Boolean(colaMenu));
+await expectError("place_customer_order", { target_token: t3Token, target_items: [{ productId: cola, quantity: 1 }], target_idempotency_key: key() }, "does not exist", "customers cannot create orders through the QR code any more");
+await expectError("set_branch_qr_settings", { target_tenant_id: tenant, target_branch_id: branch, target_ordering_enabled: true }, "does not exist", "the QR ordering switch is gone");
+// the waiter takes the order of table 3 (used by the merge test below)
+await actAs(db, WAITER);
+const open3 = await rpc("open_order", { target_tenant_id: tenant, target_branch_id: branch, target_table_id: t3, target_guest_count: 1, target_items: [{ productId: cola, quantity: 1 }], target_idempotency_key: key() });
+const submit3 = await rpc("submit_order", { target_tenant_id: tenant, target_branch_id: branch, target_order_id: open3.orderId, target_expected_version: open3.version, target_idempotency_key: key() });
+check("a waiter order without kitchen items is served at once", submit3.status === "served" && submit3.ticketCount === 0, JSON.stringify(submit3));
 
 // --- staff, shifts, attendance, payroll (phases D/E) ------------------------
 await actAs(db, MANAGER);
@@ -192,60 +193,57 @@ check("owner adds an optional bonus", Boolean(bonus.id));
 check("audit log keeps amounts out", (await all("select metadata::text m from public.audit_logs where action like 'payroll.%'")).every((r) => !r.m.includes("50000") && !r.m.includes("15000")));
 await expectError("update_tenant_member_access", { target_tenant_id: tenant, target_membership_id: ownerMembership, target_status: "active", target_branch_ids: [branch], target_role_ids: [await roleId("tenant_admin")] }, "cannot_change_own_roles", "nobody changes own roles");
 
-// --- discounts (phase F) -----------------------------------------------------
+// --- prices include KDV; discounts only at the cash desk (0039) ---------------
 await actAs(db, WAITER);
-const o1 = await one("select version, total_minor, tax_minor from public.orders where id = $1", [open1.orderId]);
-check("order without discount: total is gross", Number(o1.total_minor) === 2 * 36550 + 2 * 4000, JSON.stringify(o1));
-await expectError("apply_order_discount", { target_tenant_id: tenant, target_branch_id: branch, target_order_id: open1.orderId, target_expected_version: o1.version, target_type: "percent", target_value: 1000, target_reason: "müşteri memnuniyeti" }, "discount_denied", "waiter cannot discount");
-
-await actAs(db, MANAGER);
-const d1 = await rpc("apply_order_discount", { target_tenant_id: tenant, target_branch_id: branch, target_order_id: open1.orderId, target_expected_version: Number(o1.version), target_type: "percent", target_value: 1000, target_reason: "müşteri memnuniyeti" });
-const o2 = await one("select total_minor, tax_minor, subtotal_minor, discount_minor from public.orders where id = $1", [open1.orderId]);
-const gross = 2 * 36550 + 2 * 4000; // 81100
-check("10% order discount applied", Number(o2.discount_minor) === 8110 && Number(o2.total_minor) === gross - 8110, JSON.stringify(o2));
-check("VAT is computed on the discounted amount (7181)", Number(o2.tax_minor) === 7181, JSON.stringify(o2));
-check("subtotal + tax = total with a discount", Number(o2.subtotal_minor) + Number(o2.tax_minor) === Number(o2.total_minor), JSON.stringify(o2));
-await expectError("apply_order_discount", { target_tenant_id: tenant, target_branch_id: branch, target_order_id: open1.orderId, target_expected_version: d1.version, target_type: "percent", target_value: 1000, target_reason: "x" }, "invalid_discount", "reason is required");
+const o1 = await one("select version, subtotal_minor, total_minor, tax_minor, discount_minor from public.orders where id = $1", [open1.orderId]);
+const gross = 2 * 36550 + 2 * 4000; // 81100: the menu prices are the final prices
+check("the order total is the plain sum of the KDV-included prices", Number(o1.total_minor) === gross && Number(o1.discount_minor) === 0, JSON.stringify(o1));
+check("the KDV is taken out of the price, never added on top", Number(o1.subtotal_minor) + Number(o1.tax_minor) === gross && Number(o1.tax_minor) > 0 && Number(o1.tax_minor) < gross, JSON.stringify(o1));
+await expectError("apply_order_discount", { target_tenant_id: tenant, target_branch_id: branch, target_order_id: open1.orderId, target_expected_version: o1.version, target_type: "percent", target_value: 1000, target_reason: "x" }, "does not exist", "no order level discount");
+await expectError("apply_item_discount", { target_tenant_id: tenant, target_branch_id: branch, target_order_id: open1.orderId, target_order_item_id: open1.orderId, target_expected_version: o1.version, target_type: "percent", target_value: 1000, target_reason: "x" }, "does not exist", "no item level discount");
 const kebabItem = (await one("select id from public.order_items where order_id = $1 and product_name = 'Kebap'", [open1.orderId])).id;
-const d2 = await rpc("apply_item_discount", { target_tenant_id: tenant, target_branch_id: branch, target_order_id: open1.orderId, target_order_item_id: kebabItem, target_expected_version: d1.version, target_type: "percent", target_value: 5000, target_reason: "ikram yarım porsiyon" });
-check("item discount halves the unit price", d2.unitPriceMinor === 18275, JSON.stringify(d2));
-const item = await one("select list_unit_price_minor, unit_price_minor, line_total_minor from public.order_items where id = $1", [kebabItem]);
-check("item keeps list price for reports", Number(item.list_unit_price_minor) === 36550 && Number(item.line_total_minor) === 36550, JSON.stringify(item));
-const o3 = await one("select total_minor, discount_minor from public.orders where id = $1", [open1.orderId]);
-check("order discount recomputes after the item discount", Number(o3.total_minor) + Number(o3.discount_minor) === 36550 + 8000, JSON.stringify(o3));
-const v3 = (await one("select version from public.orders where id = $1", [open1.orderId])).version;
-const d3 = await rpc("apply_order_discount", { target_tenant_id: tenant, target_branch_id: branch, target_order_id: open1.orderId, target_expected_version: v3, target_type: "none", target_value: null, target_reason: null });
-const o4 = await one("select total_minor, discount_minor, discount_type from public.orders where id = $1", [open1.orderId]);
-check("removing the order discount restores totals", Number(o4.discount_minor) === 0 && o4.discount_type === null && Number(o4.total_minor) === 36550 + 8000, JSON.stringify(o4));
-const d4 = await rpc("apply_item_discount", { target_tenant_id: tenant, target_branch_id: branch, target_order_id: open1.orderId, target_order_item_id: kebabItem, target_expected_version: d3.version, target_type: "none", target_value: null, target_reason: null });
-check("removing the item discount restores the price", d4.unitPriceMinor === 36550);
 
-// --- payments with a discount -----------------------------------------------
+// --- payments with a cash-desk discount ------------------------------------------
 await actAs(db, OWNER);
 const register = (await one("select id from public.cash_registers where tenant_id = $1 and branch_id = $2", [tenant, branch])).id;
 const cash = await rpc("open_cash_session", { target_tenant_id: tenant, target_branch_id: branch, target_cash_register_id: register, target_opening_minor: 0, target_idempotency_key: key() });
 const cashSession = cash.sessionId || cash.id || cash.cashSessionId;
 check("cash session opened", Boolean(cashSession), JSON.stringify(cash));
-
-await actAs(db, MANAGER);
-const v2 = Number((await one("select version from public.orders where id = $1", [open2.orderId])).version);
-await rpc("apply_order_discount", { target_tenant_id: tenant, target_branch_id: branch, target_order_id: open2.orderId, target_expected_version: v2, target_type: "amount", target_value: 2000, target_reason: "sadakat indirimi" });
-await actAs(db, OWNER);
-const discounted = await one("select total_minor from public.orders where id = $1", [open2.orderId]);
-check("amount discount reduces the total", Number(discounted.total_minor) === 3 * 4000 - 2000, JSON.stringify(discounted));
 const colaItem = (await one("select id from public.order_items where order_id = $1", [open2.orderId])).id;
-await expectError("record_order_payments", { target_tenant_id: tenant, target_branch_id: branch, target_order_id: open2.orderId, target_cash_session_id: cashSession, target_payments: [{ method: "cash", amountMinor: 4000, allocations: [{ orderItemId: colaItem, quantity: 1 }] }], target_idempotency_key: key() }, "allocation_not_allowed_with_discount", "item split blocked with a discount");
-const paid = await rpc("record_order_payments", { target_tenant_id: tenant, target_branch_id: branch, target_order_id: open2.orderId, target_cash_session_id: cashSession, target_payments: [{ method: "cash", amountMinor: 10000 }], target_idempotency_key: key() });
-check("paying the discounted total closes the order", paid.orderClosed === true, JSON.stringify(paid));
+const payArgs = (over = {}) => ({ target_tenant_id: tenant, target_branch_id: branch, target_order_id: open2.orderId, target_cash_session_id: cashSession, target_payments: [{ method: "cash", amountMinor: 7000 }], target_idempotency_key: key(), ...over });
+await actAs(db, WAITER);
+await expectError("record_order_payments", payArgs(), "payment_create_denied", "a waiter cannot take payments or give discounts");
+await actAs(db, CASHIER);
+await expectError("record_order_payments", payArgs({ target_adjustment: { amountMinor: 5000 } }), "invalid_adjustment", "the cashier must choose discount or promotion explicitly");
+await expectError("record_order_payments", payArgs({ target_adjustment: { kind: "discount", amountMinor: 12001 } }), "discount_exceeds_outstanding", "a discount cannot exceed the remaining debt");
+await expectError("record_order_payments", payArgs({ target_adjustment: { kind: "promotion", amountMinor: 5000 }, target_payments: [{ method: "cash", amountMinor: 7001 }] }), "payment_exceeds_outstanding", "collected money plus adjustment cannot exceed the debt");
+await expectError("record_order_payments", payArgs({ target_adjustment: { kind: "discount", amountMinor: 5000 }, target_payments: [{ method: "cash", amountMinor: 4000, allocations: [{ orderItemId: colaItem, quantity: 1 }] }] }), "allocation_not_allowed_with_discount", "item payments and a discount do not mix");
+const partial = await rpc("record_order_payments", payArgs({ target_payments: [{ method: "cash", amountMinor: 1000 }] }));
+check("a short payment is not a discount: the order stays open", partial.orderClosed === false && partial.outstandingMinor === 11000, JSON.stringify(partial));
+const adjKey = key();
+const paid = await rpc("record_order_payments", payArgs({ target_idempotency_key: adjKey, target_payments: [{ method: "cash", amountMinor: 6000 }], target_adjustment: { kind: "discount", amountMinor: 5000, reason: "müşteri memnuniyeti" } }));
+check("cash + discount settle the order", paid.orderClosed === true && paid.adjustmentMinor === 5000 && paid.outstandingMinor === 0, JSON.stringify(paid));
+const replay = await rpc("record_order_payments", payArgs({ target_idempotency_key: adjKey, target_payments: [{ method: "cash", amountMinor: 6000 }], target_adjustment: { kind: "discount", amountMinor: 5000, reason: "müşteri memnuniyeti" } }));
+check("a repeated request is answered from the stored result", JSON.stringify(replay) === JSON.stringify(paid));
+const adjustments = await all("select kind, amount_minor, reason from public.order_adjustments where order_id = $1", [open2.orderId]);
+check("exactly one adjustment row, never booked as a payment", adjustments.length === 1 && adjustments[0].kind === "discount" && Number(adjustments[0].amount_minor) === 5000 && adjustments[0].reason === "müşteri memnuniyeti", JSON.stringify(adjustments));
+check("the payments hold only the real money (1000 + 6000)", Number((await one("select sum(amount_minor) s from public.payments where order_id = $1", [open2.orderId])).s) === 7000);
+check("the original order total is kept", Number((await one("select total_minor from public.orders where id = $1", [open2.orderId])).total_minor) === 12000);
+let immutable = "";
+try { await db.query("update public.order_adjustments set amount_minor = 1"); } catch (error) { immutable = String(error.message); }
+check("a discount record cannot be changed afterwards", immutable.includes("order_adjustments_are_immutable"), immutable);
+immutable = "";
+try { await db.query("delete from public.order_adjustments"); } catch (error) { immutable = String(error.message); }
+check("a discount record cannot be deleted", immutable.includes("order_adjustments_are_immutable"), immutable);
 
 // --- sales report (phase F) --------------------------------------------------
 const reportArgs = (over = {}) => ({ target_tenant_id: tenant, target_branch_id: branch, range_start: today, range_end: today, ...over });
 await actAs(db, MANAGER);
 const report = await rpc("sales_report", reportArgs());
 check("report counts the closed order", report.summary.orderCount === 1, JSON.stringify(report.summary));
-check("report separates gross, discount and net", report.summary.grossMinor === 12000 && report.summary.discountMinor === 2000 && report.summary.netMinor === 10000, JSON.stringify(report.summary));
+check("report separates gross, discount, promotion, refund and net", report.summary.grossMinor === 12000 && report.summary.discountMinor === 5000 && report.summary.promotionMinor === 0 && report.summary.refundMinor === 0 && report.summary.netMinor === 7000, JSON.stringify(report.summary));
 check("report ignores merged adisyons in cancellations", report.summary.cancelledCount === 0, JSON.stringify(report.summary));
-check("report lists payments by method", report.payments.cashMinor === 10000 && report.payments.cardMinor === 0, JSON.stringify(report.payments));
+check("report lists real payments by method (the discount is not money)", report.payments.cashMinor === 7000 && report.payments.cardMinor === 0, JSON.stringify(report.payments));
 check("report ranks products", report.products[0].name === "Kola" && report.products[0].quantity === 3 && report.products[0].revenueMinor === 12000, JSON.stringify(report.products));
 check("report groups by category and staff", report.categories[0].name === "Soğuk İçecek" && report.staff[0].name === "Ece Garson", JSON.stringify([report.categories, report.staff]));
 check("report shows the open cash session", report.sessions.length === 1 && report.sessions[0].countedMinor === null, JSON.stringify(report.sessions));
@@ -297,11 +295,10 @@ await expectError("open_order", { target_tenant_id: tenant, target_branch_id: br
 await actAs(db, null);
 const soldOutMenu = await rpc("get_public_menu", { target_token: t5Token });
 const soldOutCola = soldOutMenu.categories.flatMap((c) => c.products).find((p) => p.name === "Kola");
-check("QR menu shows the product as sold out and not orderable", soldOutCola.soldOut === true && soldOutCola.orderable === false, JSON.stringify(soldOutCola));
-await expectError("place_customer_order", { target_token: t5Token, target_items: [{ productId: cola, quantity: 1 }], target_idempotency_key: key() }, "product_sold_out", "customers cannot order a sold out product");
+check("QR menu shows the product as sold out", soldOutCola.soldOut === true, JSON.stringify(soldOutCola));
 await db.query("update public.products set sold_out_on = (now() at time zone 'Europe/Istanbul')::date - 1 where id = $1", [cola]);
 const nextDayMenu = await rpc("get_public_menu", { target_token: t5Token });
-check("a sold out mark expires the next day", nextDayMenu.categories.flatMap((c) => c.products).find((p) => p.name === "Kola").orderable === true);
+check("a sold out mark expires the next day", nextDayMenu.categories.flatMap((c) => c.products).find((p) => p.name === "Kola").soldOut === false);
 
 const orderVersion = async (id) => Number((await one("select version from public.orders where id = $1", [id])).version);
 // --- product options ----------------------------------------------------------------
@@ -351,9 +348,6 @@ await actAs(db, WAITER);
 await expectError("append_order_items", { target_tenant_id: tenant, target_branch_id: branch, target_order_id: optionOrder.orderId, target_expected_version: await orderVersion(optionOrder.orderId), target_items: [{ productId: kebab, quantity: 1, options: [full, sauce] }], target_idempotency_key: key() }, "option_sold_out", "a sold out extra cannot be chosen");
 
 await actAs(db, MANAGER);
-const optionVersion = await orderVersion(optionOrder.orderId);
-const discountedOption = await rpc("apply_item_discount", { target_tenant_id: tenant, target_branch_id: branch, target_order_id: optionOrder.orderId, target_order_item_id: optionLines[0].id, target_expected_version: optionVersion, target_type: "percent", target_value: 5000, target_reason: "ikram yarısı" });
-check("an item discount starts from the option price", discountedOption.unitPriceMinor === 23025, JSON.stringify(discountedOption));
 
 await actAs(db, null);
 const optionMenu = await rpc("get_public_menu", { target_token: t5Token });
@@ -362,9 +356,10 @@ check("the public menu lists the option groups", kebabMenu.optionGroups.length =
 const sauceInMenu = kebabMenu.optionGroups.flatMap((g) => g.choices).find((c) => c.name === "Sos");
 check("the public menu marks a sold out choice", sauceInMenu.soldOut === true);
 const t7Token = (await one("select qr_token from public.restaurant_tables where id = $1", [t7])).qr_token;
-await expectError("place_customer_order", { target_token: t7Token, target_items: [{ productId: kebab, quantity: 1 }], target_idempotency_key: key() }, "option_required", "QR orders must choose the required portion");
-const qrOption = await rpc("place_customer_order", { target_token: t7Token, target_items: [{ productId: kebab, quantity: 1, options: [full, cheese] }], target_idempotency_key: key() });
-check("a guest can order with options", qrOption.ticketCount === 1, JSON.stringify(qrOption));
+await actAs(db, WAITER);
+const qrOption = await openOn(t7, [{ productId: kebab, quantity: 1, options: [full, cheese] }]);
+const qrOptionSubmit = await rpc("submit_order", { target_tenant_id: tenant, target_branch_id: branch, target_order_id: qrOption.orderId, target_expected_version: qrOption.version, target_idempotency_key: key() });
+check("a waiter order with options reaches the kitchen", qrOptionSubmit.ticketCount === 1, JSON.stringify(qrOptionSubmit));
 check("the kitchen ticket line keeps its options", (await one("select count(*)::int n from public.order_item_options o join public.order_items i on i.id = o.order_item_id join public.orders ord on ord.id = i.order_id where ord.table_id = $1", [t7])).n === 2);
 
 // --- cancel or comp an item that was already sent ---------------------------------
@@ -453,7 +448,6 @@ check("merge moves the items", mergeResult.movedItems === 1, JSON.stringify(merg
 check("merged source is cancelled and empty", (await one("select status, total_minor from public.orders where id = $1", [qrOrderId])).status === "cancelled");
 const mergedTotals = await one("select total_minor from public.orders where id = $1", [open1.orderId]);
 check("destination total includes the merged items", Number(mergedTotals.total_minor) === 2 * 36550 + 2 * 4000 + 4000, JSON.stringify(mergedTotals));
-check("merged customer line keeps its QR mark", (await one("select count(*)::int n from public.order_items where order_id = $1 and source = 'qr'", [open1.orderId])).n === 1);
 check("the freed table can take a new order", (await one("select count(*)::int n from public.orders where table_id = $1 and status not in ('closed','cancelled')", [t3])).n === 0);
 await expectError("merge_orders", { target_tenant_id: tenant, target_branch_id: branch, target_source_order_id: open1.orderId, target_source_version: await orderVersion(open1.orderId), target_destination_order_id: open1.orderId, target_destination_version: await orderVersion(open1.orderId) }, "same_order", "cannot merge an order into itself");
 
@@ -586,7 +580,6 @@ const tableB = (await one("insert into public.restaurant_tables (tenant_id, bran
 await rpc("set_setup_method", { target_tenant_id: tenantB, target_method: "self" });
 for (const step of ["areas", "tables", "stations", "menu"]) await rpc("complete_setup_step", { target_tenant_id: tenantB, target_step: step });
 await rpc("start_trial", { target_tenant_id: tenantB });
-await rpc("set_branch_qr_settings", { target_tenant_id: tenantB, target_branch_id: branchB, target_ordering_enabled: true });
 const tokenB = (await one("select qr_token from public.restaurant_tables where id = $1", [tableB])).qr_token;
 const tokenA = (await one("select qr_token from public.restaurant_tables where id = $1", [t5])).qr_token;
 
@@ -599,10 +592,10 @@ const namesB = menuB.categories.flatMap((c) => c.products).map((p) => p.name);
 check("the QR menu of business A shows only A's products", namesA.includes("Kebap") && !namesA.includes("B Corba"), JSON.stringify(namesA));
 check("the QR menu of business B shows only B's products", namesB.length === 1 && namesB[0] === "B Corba", JSON.stringify(namesB));
 check("each menu belongs to its own business and table", menuA.brandName !== menuB.brandName && menuB.tableLabel === "B Masa 1");
-await expectError("place_customer_order", { target_token: tokenA, target_items: [{ productId: productB, quantity: 1 }], target_idempotency_key: key() }, "product_not_available", "a QR code of A cannot order B's product");
-await expectError("place_customer_order", { target_token: tokenB, target_items: [{ productId: kebab, quantity: 1, options: [full] }], target_idempotency_key: key() }, "product_not_available", "a QR code of B cannot order A's product");
-const orderB = await rpc("place_customer_order", { target_token: tokenB, target_items: [{ productId: productB, quantity: 2 }], target_idempotency_key: key() });
-check("B's own QR order works", orderB.ticketCount === 1);
+await actAs(db, OWNER_B);
+const orderB = await rpc("open_order", { target_tenant_id: tenantB, target_branch_id: branchB, target_table_id: tableB, target_guest_count: 1, target_items: [{ productId: productB, quantity: 2 }], target_idempotency_key: key() });
+await actAs(db, null);
+check("B's owner can take an order in his own business", Boolean(orderB.orderId));
 check("the order landed in B's tenant only", (await one("select count(*)::int n from public.orders where tenant_id = $1 and table_id = $2", [tenantB, tableB])).n === 1 && (await one("select count(*)::int n from public.orders where tenant_id = $1 and id in (select order_id from public.order_items where product_name = 'B Corba')", [tenant])).n === 0);
 check("waiter calls of B do not reach A", (await rpc("call_waiter", { target_token: tokenB, target_kind: "waiter" })).status === "sent" && (await one("select count(*)::int n from public.waiter_calls where tenant_id = $1 and table_id = $2", [tenant, tableB])).n === 0);
 
@@ -769,7 +762,6 @@ await db.query("insert into public.platform_admins (user_id) values ($1)", [PLAT
     return view;
   }
   const narrowCases = [
-    ["payments.refund", { cash_sessions: true, payments: true, payment_refunds: true, payment_allocations: true, cash_movements: false }],
     ["payments.create", { cash_sessions: true, payments: true, payment_refunds: true, payment_allocations: true, cash_movements: true }],
     ["cash.open", { cash_sessions: true, payments: false, payment_refunds: false, payment_allocations: false, cash_movements: true }],
     ["cash.close", { cash_sessions: true, payments: true, payment_refunds: true, payment_allocations: true, cash_movements: true }],
@@ -901,7 +893,7 @@ await db.query("insert into public.platform_admins (user_id) values ($1)", [PLAT
   // an ended trial keeps all data and turns read-only
   const counts = async () => one("select (select count(*) from public.dining_areas where tenant_id = $1)::int a, (select count(*) from public.restaurant_tables where tenant_id = $1)::int t, (select count(*) from public.products where tenant_id = $1)::int p", [tenantC]);
   const countsBefore = await counts();
-  await db.query("update public.subscriptions set ends_at = now() - interval '1 minute' where tenant_id = $1", [tenantC]);
+  await db.query("update public.subscriptions set ends_at = now() - interval '1 day' where tenant_id = $1", [tenantC]);
   const countsAfter = await counts();
   check("no data is deleted when the trial ends", JSON.stringify(countsBefore) === JSON.stringify(countsAfter) && countsAfter.a === 3 && countsAfter.t === 3 && countsAfter.p === 2, JSON.stringify(countsAfter));
   await actAs(db, OWNER_C);
@@ -981,14 +973,18 @@ const tableB3 = await freshTableB("B Masa 3");
 const tableB4 = await freshTableB("B Masa 4");
 await actAs(db, OWNER_B);
 check("a running trial is writable", (await rpc("get_plan_usage", { target_tenant_id: tenantB, target_branch_id: branchB })).writable === true);
-await db.query("update public.subscriptions set ends_at = now() - interval '1 hour' where tenant_id = $1", [tenantB]);
+// the last day counts until 23:59:59 Istanbul time (0042): early on the end date the business still works
+await db.query("update public.subscriptions set ends_at = ((now() at time zone 'Europe/Istanbul')::date::timestamp at time zone 'Europe/Istanbul') + interval '1 second' where tenant_id = $1", [tenantB]);
+check("on the end date the business is still writable (00:00:01)", (await rpc("get_plan_usage", { target_tenant_id: tenantB, target_branch_id: branchB })).writable === true);
+await db.query("update public.subscriptions set ends_at = ((now() at time zone 'Europe/Istanbul')::date::timestamp at time zone 'Europe/Istanbul') - interval '1 second' where tenant_id = $1", [tenantB]);
+check("from 00:00:00 of the next day it is read-only (end date 23:59:59 passed)", (await rpc("get_plan_usage", { target_tenant_id: tenantB, target_branch_id: branchB })).writable === false);
+await db.query("update public.subscriptions set ends_at = now() - interval '1 day' where tenant_id = $1", [tenantB]);
 const expired = await rpc("get_plan_usage", { target_tenant_id: tenantB, target_branch_id: branchB });
 check("an ended trial is reported as read-only", expired.writable === false && expired.status === "trial", JSON.stringify(expired));
 
 const ordersOf = async (tenantId) => (await one("select count(*)::int n from public.orders where tenant_id = $1", [tenantId])).n;
 const ordersBefore = await ordersOf(tenantB);
 await expectError("open_order", { target_tenant_id: tenantB, target_branch_id: branchB, target_table_id: tableB2, target_guest_count: 1, target_items: [{ productId: productB, quantity: 1 }], target_idempotency_key: key() }, "tenant_read_only", "no new orders in read-only mode");
-await expectError("place_customer_order", { target_token: tokenB, target_items: [{ productId: productB, quantity: 1 }], target_idempotency_key: key() }, "tenant_read_only", "guests cannot order from an expired business");
 let menuWriteBlocked = false;
 try {
   await db.query("insert into public.menu_categories (tenant_id, branch_id, name) values ($1, $2, 'Yeni') ", [tenantB, branchB]);
@@ -1016,7 +1012,7 @@ const reopened = await rpc("open_order", { target_tenant_id: tenantB, target_bra
 check("and orders work again", Boolean(reopened.orderId));
 
 // an activated period that runs out turns read-only by itself; the platform can still help
-await db.query("update public.subscriptions set ends_at = now() - interval '1 minute' where tenant_id = $1 and plan_code = 'START'", [tenantB]);
+await db.query("update public.subscriptions set ends_at = now() - interval '1 day' where tenant_id = $1 and plan_code = 'START'", [tenantB]);
 await expectError("open_order", { target_tenant_id: tenantB, target_branch_id: branchB, target_table_id: tableB4, target_guest_count: 1, target_items: [{ productId: productB, quantity: 1 }], target_idempotency_key: key() }, "tenant_read_only", "an ended paid period is read-only too");
 await actAs(db, PLATFORM);
 await db.query("insert into public.menu_categories (tenant_id, branch_id, name) values ($1, $2, 'Platform duzeltmesi')", [tenantB, branchB]);

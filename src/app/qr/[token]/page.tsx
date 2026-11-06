@@ -42,18 +42,16 @@ export default async function QrMenuPage({
           {menu.tableLabel}
         </p>
         <ServiceButtons token={token} />
-        {!menu.orderingEnabled && (
-          <p className="mt-4 rounded-2xl border border-[#dfe5e1] bg-white p-4 text-sm font-semibold text-[#68736e]">
-            Siparişinizi garsonumuza iletebilirsiniz.
-          </p>
-        )}
+        <p className="mt-4 rounded-2xl border border-[#dfe5e1] bg-white p-4 text-sm font-semibold text-[#68736e]">
+          Siparişinizi garsonumuza iletebilirsiniz. Fiyatlara KDV dahildir.
+        </p>
       </header>
       {menu.categories.length === 0 ? (
         <p className="mt-10 text-center text-sm font-semibold text-[#68736e]">
           Menü henüz hazırlanmadı.
         </p>
       ) : (
-        <PublicMenuView token={token} menu={menu} />
+        <PublicMenuView menu={menu} />
       )}
     </main>
   );

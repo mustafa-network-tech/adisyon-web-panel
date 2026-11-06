@@ -5,7 +5,8 @@ import { hasAnyPermission } from "@/lib/permissions";
 import { ReportExport } from "@/modules/reports/components/report-export";
 import { ReportView } from "@/modules/reports/components/report-view";
 import { resolveRange } from "@/modules/reports/range";
-import { getSalesReport } from "@/modules/reports/repository";
+import { DiscountAudit } from "@/modules/reports/components/discount-audit";
+import { getDiscountAudit, getSalesReport } from "@/modules/reports/repository";
 import { todayInTurkey } from "@/modules/staff/dates";
 
 export const metadata: Metadata = { title: "Raporlar" };
@@ -31,7 +32,10 @@ export default async function ReportsPage({
   const canSeeHistory = hasAnyPermission(context.permissions, ["reports.history"]);
   const today = todayInTurkey();
   const [from, to] = resolveRange(canSeeHistory ? query : {}, today);
-  const { report, error } = await getSalesReport({ tenantId: context.tenantId, branchId: context.branchId, from, to });
+  const [{ report, error }, discountRows] = await Promise.all([
+    getSalesReport({ tenantId: context.tenantId, branchId: context.branchId, from, to }),
+    getDiscountAudit({ tenantId: context.tenantId, branchId: context.branchId, from, to }),
+  ]);
   const base = `/app/${tenant}/${branch}/rapor`;
 
   return (
@@ -60,6 +64,7 @@ export default async function ReportsPage({
 
       {error && <p role="alert" className="rounded-2xl bg-[#fff7f3] p-5 text-sm font-bold text-[#9e4328]">{error}</p>}
       {report && <ReportView report={report} />}
+      {report && <DiscountAudit rows={discountRows} />}
     </section>
   );
 }

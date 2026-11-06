@@ -40,9 +40,9 @@ export const privacyPolicy: LegalDocument = {
       table: {
         head: ["Veri grubu", "Örnekler", "Kaynağı"],
         rows: [
-          ["Hesap ve kimlik", "Ad soyad, e-posta adresi, telefon (isteğe bağlı), parola (yalnızca özetlenmiş/şifrelenmiş hâliyle)", "Üyelik ve davet kabulü"],
+          ["Hesap ve kimlik", "Ad soyad, e-posta adresi, telefon (isteğe bağlı), parola (yalnızca özetlenmiş/şifrelenmiş hâliyle)", "Üyelik ve işletmeye katılma talebi"],
           ["Yetki ve çalışma bilgisi", "Rol, şube atamaları, ek yetkiler, vardiya planı", "İşletme yöneticisi"],
-          ["İşletme operasyonu", "Menü, masa, sipariş, ödeme türü ve tutarı, kasa vardiyaları, indirim/iptal kayıtları, raporlar", "İşletme kullanıcıları ve QR menü müşterileri"],
+          ["İşletme operasyonu", "Menü, masa, sipariş, ödeme türü ve tutarı, kasa vardiyaları, indirim/iptal kayıtları, raporlar", "İşletme kullanıcıları"],
           ["Personel yönetimi", "Pozisyon, işe giriş tarihi, çalışma durumu, puantaj, maaş/prim kayıtları, acil durum kişisi ve yönetici notları", "İşletme yöneticisi"],
           ["QR menü ziyaretçileri", "Sipariş içeriği, masa bilgisi, garson çağırma/hesap isteme kaydı. Ad, telefon veya ödeme kartı bilgisi istenmez.", "Ziyaretçinin kendisi"],
           ["Teknik ve güvenlik", "Oturum bilgisi, işlem/denetim kayıtları, tarayıcı ve cihaz türü, hata kayıtları", "Otomatik"],
@@ -164,7 +164,7 @@ export const kvkkNotice: LegalDocument = {
       id: "yontem",
       heading: "6. Toplama yöntemi",
       paragraphs: [
-        "Verileriniz; üyelik ve giriş formları, işletme yöneticisinin yaptığı davetler, yazılımın kullanımı sırasında girilen bilgiler ve otomatik teknik kayıtlar aracılığıyla, elektronik ortamda toplanır.",
+        "Verileriniz; üyelik ve giriş formları, işletmeye katılma talepleri, yazılımın kullanımı sırasında girilen bilgiler ve otomatik teknik kayıtlar aracılığıyla, elektronik ortamda toplanır.",
       ],
     },
     {

@@ -6,12 +6,26 @@ export type TenantConfiguration = {
   primaryColor: string;
   orderNumberPrefix: string;
   receiptFooter: string;
-  serviceChargeBasisPoints: number;
 };
 
 export type TeamBranch = { id: string; name: string };
 export type TeamRole = { id: string; code: string; name: string; scope: "tenant" | "branch" };
 export type TeamStation = { id: string; name: string; branchName: string };
+/**
+ * The extra permissions a business manager may add on top of a role. ONE list: the screen, the validation schema
+ * (validation.ts) and the database (set_member_extras, migration 0041) all accept exactly these codes.
+ * "İndirim" only works together with the cash desk permission: discounts exist only while taking a payment.
+ */
+export const grantablePermissionCodes = [
+  "settings.manage",
+  "catalog.manage",
+  "users.manage",
+  "reports.history",
+  "attendance.manage",
+  "payroll.manage",
+  "discounts.apply",
+  "catalog.availability",
+] as const;
 export const grantablePermissions = [
   { code: "settings.manage", label: "Ayarlar" },
   { code: "catalog.manage", label: "Menü ve ürünler" },
@@ -19,9 +33,9 @@ export const grantablePermissions = [
   { code: "reports.history", label: "Geçmiş raporlar" },
   { code: "attendance.manage", label: "Puantaj onayı" },
   { code: "payroll.manage", label: "Maaş ve prim" },
-  { code: "discounts.apply", label: "İndirim uygulama" },
+  { code: "discounts.apply", label: "Kasada indirim / promosyon" },
   { code: "catalog.availability", label: "Ürün tükendi işaretleme" },
-] as const;
+] as const satisfies ReadonlyArray<{ code: (typeof grantablePermissionCodes)[number]; label: string }>;
 export type MembershipStatus = "invited" | "active" | "suspended";
 
 export type TeamMember = {
@@ -35,19 +49,21 @@ export type TeamMember = {
   stationIds: string[];
 };
 
-export type PendingInvitation = {
+/** Somebody who typed the business name and code and waits for a manager's decision. */
+export type JoinRequest = {
   id: string;
+  fullName: string;
   email: string;
-  branchName: string;
-  roleName: string;
-  expiresAt: string;
+  createdAt: string;
 };
 
 export type TeamSnapshot = {
   branches: TeamBranch[];
   roles: TeamRole[];
   members: TeamMember[];
-  invitations: PendingInvitation[];
+  joinRequests: JoinRequest[];
+  /** The business code; only business wide managers get it (null for branch managers). */
+  joinCode: string | null;
   stations: TeamStation[];
   canGrantExtras: boolean;
 };
@@ -55,7 +71,8 @@ export type TeamSnapshot = {
 export type SettingsActionState = {
   status: "idle" | "error" | "success";
   message: string | null;
-  invitationUrl?: string;
+  /** Set after the business code was renewed. */
+  joinCode?: string;
 };
 
 export const initialSettingsActionState: SettingsActionState = {

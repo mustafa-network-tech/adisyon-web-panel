@@ -6,7 +6,6 @@ export const permissions = [
   "kitchen.read",
   "kitchen.update",
   "payments.create",
-  "payments.refund",
   "cash.open",
   "cash.close",
   "reports.read",
@@ -48,7 +47,6 @@ export const workspaceSections = {
   kitchen: ["kitchen.read"],
   checkout: [
     "payments.create",
-    "payments.refund",
     "cash.open",
     "cash.close",
     "reports.read",

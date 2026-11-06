@@ -40,7 +40,6 @@ const errors: Record<string, string> = {
   table_not_available: "Seçilen masa şu anda kullanılamıyor.",
   table_has_active_order: "Seçilen masada zaten açık bir adisyon var. Birleştirmeyi kullanın.",
   merge_source_has_payments: "Ödeme alınmış bir adisyon başka bir adisyona birleştirilemez.",
-  merge_source_has_discount: "Birleştirilecek adisyonda indirim var; önce indirimi kaldırın.",
 };
 
 function mapError(message: string): OrderActionResult {

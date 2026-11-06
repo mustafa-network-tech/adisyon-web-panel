@@ -8,6 +8,9 @@ export type SalesReport = {
     grossMinor: number;
     discountMinor: number;
     itemDiscountMinor: number;
+    /** Cash desk promotions (separate from discounts) and refunds made before refunds were removed. */
+    promotionMinor: number;
+    refundMinor: number;
     netMinor: number;
     taxMinor: number;
     averageMinor: number;

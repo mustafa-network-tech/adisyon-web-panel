@@ -17,5 +17,5 @@ export default async function CashRegisterPage({ params }: { params: Promise<{ t
     getDiningSnapshot(context.tenantId, context.branchId),
     getReceiptBranding(context),
   ]);
-  return <CheckoutPanel branding={branding} areas={dining.areas} tables={dining.tables} tenant={tenant} branch={branch} branchId={context.branchId} canOpen={hasAnyPermission(context.permissions, ["cash.open"])} canClose={hasAnyPermission(context.permissions, ["cash.close"])} canPay={hasAnyPermission(context.permissions, ["payments.create"])} canRefund={hasAnyPermission(context.permissions, ["payments.refund"])} {...checkout} />;
+  return <CheckoutPanel branding={branding} areas={dining.areas} tables={dining.tables} tenant={tenant} branch={branch} branchId={context.branchId} canOpen={hasAnyPermission(context.permissions, ["cash.open"])} canClose={hasAnyPermission(context.permissions, ["cash.close"])} canPay={hasAnyPermission(context.permissions, ["payments.create"])} canDiscount={hasAnyPermission(context.permissions, ["discounts.apply"])} {...checkout} />;
 }

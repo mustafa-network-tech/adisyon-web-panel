@@ -17,7 +17,6 @@ export default function robots(): MetadataRoute.Robots {
         "/mk-admin",
         "/api/",
         "/auth/",
-        "/davet/",
         "/qr/",
       ],
     },

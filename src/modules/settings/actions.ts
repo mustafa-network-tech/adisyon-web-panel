@@ -1,17 +1,15 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { requireAuthenticatedUser, requireWorkspacePermission } from "@/lib/auth/access";
+import { requireWorkspacePermission } from "@/lib/auth/access";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { siteUrl } from "@/lib/site";
 import type { SettingsActionState } from "./management-types";
-import { invitationAcceptErrorMessage, memberAccessErrorMessage } from "./role-rules";
-import { invitationSchema, memberAccessSchema, memberExtrasSchema, tenantConfigurationSchema } from "./validation";
+import { joinDecisionErrorMessage, memberAccessErrorMessage } from "./role-rules";
+import { joinDecisionSchema, memberAccessSchema, memberExtrasSchema, tenantConfigurationSchema } from "./validation";
 import { isReadOnlyError, readOnlyMessage } from "@/modules/plan/usage";
 
 const errorState = (message: string): SettingsActionState => ({ status: "error", message });
-const successState = (message: string, invitationUrl?: string): SettingsActionState => ({ status: "success", message, invitationUrl });
+const successState = (message: string): SettingsActionState => ({ status: "success", message });
 
 function readRoute(formData: FormData) {
   const tenant = formData.get("tenant");
@@ -30,7 +28,7 @@ export async function saveTenantConfigurationAction(
     tenantName: formData.get("tenantName"), legalName: formData.get("legalName") || "",
     branchName: formData.get("branchName"), brandName: formData.get("brandName"),
     primaryColor: formData.get("primaryColor"), orderNumberPrefix: formData.get("orderNumberPrefix"),
-    receiptFooter: formData.get("receiptFooter") || "", serviceChargePercent: formData.get("serviceChargePercent"),
+    receiptFooter: formData.get("receiptFooter") || "",
   });
   if (!values.success) return errorState("İşletme ayarlarını kontrol edin.");
 
@@ -41,38 +39,11 @@ export async function saveTenantConfigurationAction(
     target_branch_name: values.data.branchName, target_brand_name: values.data.brandName,
     target_primary_color: values.data.primaryColor, target_order_prefix: values.data.orderNumberPrefix,
     target_receipt_footer: values.data.receiptFooter,
-    target_service_charge_basis_points: Math.round(values.data.serviceChargePercent * 100),
   });
   if (isReadOnlyError(error?.message)) return errorState(readOnlyMessage);
   if (error) return errorState("Ayarlar kaydedilemedi. Yetkinizi ve alanları kontrol edin.");
   revalidatePath(`/app/${route.tenant}/${route.branch}`);
   return successState("İşletme ve şube ayarları kaydedildi.");
-}
-
-export async function createInvitationAction(
-  _state: SettingsActionState,
-  formData: FormData,
-): Promise<SettingsActionState> {
-  const route = readRoute(formData);
-  if (!route) return errorState("Çalışma alanı bilgisi eksik.");
-  const context = await requireWorkspacePermission(route.tenant, route.branch, ["users.manage"]);
-  const values = invitationSchema.safeParse({
-    email: formData.get("email"), roleId: formData.get("roleId"), validHours: formData.get("validHours"),
-  });
-  if (!values.success) return errorState("Davet bilgilerini kontrol edin.");
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.rpc("create_tenant_invitation", {
-    target_tenant_id: context.tenantId, target_branch_id: context.branchId,
-    target_email: values.data.email, target_role_id: values.data.roleId,
-    target_valid_hours: values.data.validHours,
-  });
-  if (error || !data || typeof data !== "object" || !("token" in data)) {
-    return errorState("Davet oluşturulamadı. Rol ve yetkinizi kontrol edin.");
-  }
-  // The address comes from the trusted site setting, never from the request headers (Host / X-Forwarded-Host).
-  const invitationUrl = `${siteUrl}/davet/${String(data.token)}`;
-  revalidatePath(`/app/${route.tenant}/${route.branch}/ayarlar/kullanicilar`);
-  return successState("Davet oluşturuldu. Bağlantıyı güvenli biçimde paylaşın.", invitationUrl);
 }
 
 export async function updateMemberAccessAction(
@@ -121,17 +92,47 @@ export async function setMemberExtrasAction(
   return successState("Ek yetkiler ve mutfak istasyonları güncellendi.");
 }
 
-export async function acceptInvitationAction(
+/** A manager approves (role + branches) or rejects somebody who asked to join with the business code. */
+export async function decideJoinRequestAction(
   _state: SettingsActionState,
   formData: FormData,
 ): Promise<SettingsActionState> {
-  const token = formData.get("token");
-  if (typeof token !== "string" || token.length < 32) return errorState("Davet bağlantısı geçersiz.");
-  await requireAuthenticatedUser(`/davet/${token}`);
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.rpc("accept_tenant_invitation", { target_token: token });
-  if (error || !data || typeof data !== "object" || !("tenantSlug" in data) || !("branchSlug" in data)) {
-    return errorState(invitationAcceptErrorMessage(error?.message));
+  const route = readRoute(formData);
+  if (!route) return errorState("Çalışma alanı bilgisi eksik.");
+  await requireWorkspacePermission(route.tenant, route.branch, ["users.manage"]);
+  const values = joinDecisionSchema.safeParse({
+    requestId: formData.get("requestId"),
+    decision: formData.get("decision"),
+    roleId: formData.get("roleId") || undefined,
+    branchIds: formData.getAll("branchIds"),
+  });
+  if (!values.success) return errorState("Talep bilgilerini kontrol edin.");
+  if (values.data.decision === "approve" && (!values.data.roleId || values.data.branchIds.length === 0)) {
+    return errorState("Onaylamak için bir rol ve en az bir şube seçin.");
   }
-  redirect(`/app/${String(data.tenantSlug)}/${String(data.branchSlug)}/masalar`);
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("decide_join_request", {
+    target_request_id: values.data.requestId,
+    target_decision: values.data.decision,
+    target_role_id: values.data.roleId ?? null,
+    target_branch_ids: values.data.branchIds,
+  });
+  if (error) return errorState(joinDecisionErrorMessage(error.message));
+  revalidatePath(`/app/${route.tenant}/${route.branch}/ayarlar/kullanicilar`);
+  return successState(values.data.decision === "approve" ? "Talep onaylandı. Kullanıcı artık yetkileriyle çalışabilir." : "Talep reddedildi.");
+}
+
+/** The owner renews the business code; the old code stops working at once. */
+export async function rotateJoinCodeAction(
+  _state: SettingsActionState,
+  formData: FormData,
+): Promise<SettingsActionState> {
+  const route = readRoute(formData);
+  if (!route) return errorState("Çalışma alanı bilgisi eksik.");
+  const context = await requireWorkspacePermission(route.tenant, route.branch, ["users.manage"]);
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc("rotate_join_code", { target_tenant_id: context.tenantId });
+  if (error || typeof data !== "string") return errorState("Katılım kodu yenilenemedi. Bu işlem yalnızca işletme düzeyindeki yöneticiler içindir.");
+  revalidatePath(`/app/${route.tenant}/${route.branch}/ayarlar/kullanicilar`);
+  return { status: "success", message: "Yeni katılım kodu oluşturuldu. Eski kod artık çalışmaz.", joinCode: data };
 }

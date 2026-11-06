@@ -16,7 +16,6 @@ describe("authorization catalog", () => {
     expect(permissions).toEqual(
       expect.arrayContaining([
         "payments.create",
-        "payments.refund",
         "cash.open",
         "cash.close",
       ]),

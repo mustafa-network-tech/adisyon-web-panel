@@ -27,7 +27,7 @@ describe("report csv", () => {
     const report = {
       rangeStart: "2026-11-05",
       rangeEnd: "2026-11-05",
-      summary: { orderCount: 1, grossMinor: 12000, discountMinor: 2000, itemDiscountMinor: 0, netMinor: 10000, taxMinor: 1500 },
+      summary: { orderCount: 1, grossMinor: 12000, discountMinor: 2000, itemDiscountMinor: 0, promotionMinor: 0, refundMinor: 0, netMinor: 10000, taxMinor: 1500 },
       payments: { cashMinor: 10000, cardMinor: 0, cashRefundMinor: 0, cardRefundMinor: 0 },
       byDay: [{ date: "2026-11-05", orderCount: 1, netMinor: 10000 }],
       products: [{ name: "Ayran; büyük", quantity: 3, revenueMinor: 12000 }],
@@ -44,7 +44,7 @@ describe("report csv", () => {
     const report = {
       rangeStart: "2026-11-05",
       rangeEnd: "2026-11-05",
-      summary: { orderCount: 1, grossMinor: 12000, discountMinor: 0, itemDiscountMinor: 0, netMinor: -500, taxMinor: 0 },
+      summary: { orderCount: 1, grossMinor: 12000, discountMinor: 0, itemDiscountMinor: 0, promotionMinor: 0, refundMinor: 0, netMinor: -500, taxMinor: 0 },
       payments: { cashMinor: 0, cardMinor: 0, cashRefundMinor: 0, cardRefundMinor: 0 },
       byDay: [],
       products: [{ name: '=HYPERLINK("http://x";"a")', quantity: 1, revenueMinor: 100 }, { name: "+1+1", quantity: 1, revenueMinor: 100 }],

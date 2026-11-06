@@ -7,7 +7,7 @@
 
 begin;
 
-select plan(67);
+select plan(54);
 
 -- ---------------------------------------------------------------------------
 -- Helpers (temporary)
@@ -53,28 +53,6 @@ exception when others then
 end;
 $$;
 
--- create_tenant_invitation; remembers the raw token of a successful invitation.
-create or replace function pg_temp.invite(branch_key text, invite_email text, invite_role uuid)
-returns text
-language plpgsql
-as $$
-declare
-  result jsonb;
-begin
-  result := public.create_tenant_invitation(
-    current_setting('f2.tenant_a')::uuid,
-    current_setting('f2.b_' || branch_key)::uuid,
-    invite_email, invite_role, 72
-  );
-  insert into f2_tokens (email, token) values (invite_email, result ->> 'token');
-  return 'ok';
-exception when others then
-  return sqlstate || ':' || sqlerrm;
-end;
-$$;
-
-create temporary table f2_tokens (email text, token text);
-grant all on f2_tokens to authenticated;
 
 create or replace function pg_temp.act_as(user_number integer)
 returns void
@@ -241,9 +219,6 @@ select is(pg_temp.access('waiter_teras', 'm', pg_temp.role_id('cashier')), '4250
 select is(pg_temp.access('waiter', 't', pg_temp.role_id('waiter')), '42501:branch_assignment_denied', 'delegated manager cannot move a member into a branch he is not in');
 select is(pg_temp.access('waiter', 'm', pg_temp.role_id('cashier')), 'ok', 'delegated manager can still give a member a role within his own permissions');
 select is(pg_temp.access('waiter', 'm', pg_temp.role_id('waiter')), 'ok', 'delegated manager can still change it back');
-select is(pg_temp.invite('m', 'f2-new-waiter@test.local', pg_temp.role_id('waiter')), 'ok', 'delegated manager can still invite a waiter');
-select is(pg_temp.invite('m', 'f2-new-admin@test.local', pg_temp.role_id('tenant_admin')), '42501:tenant_role_assignment_denied', 'delegated manager cannot invite a tenant admin');
-select is(pg_temp.invite('t', 'f2-new-other@test.local', pg_temp.role_id('waiter')), '42501:users_manage_denied', 'delegated Merkez manager cannot invite into Teras');
 
 -- plain manager and waiter: no team management at all
 select pg_temp.act_as(4);
@@ -256,9 +231,6 @@ select pg_temp.act_as(6);
 select is(pg_temp.access('waiter', 'm', pg_temp.role_id('manager')), '42501:role_exceeds_actor_permissions', 'delegated cashier cannot assign the manager role');
 select is(pg_temp.access('waiter', 'm', pg_temp.role_id('kitchen')), '42501:role_exceeds_actor_permissions', 'delegated cashier cannot assign the kitchen role');
 select is(pg_temp.access('waiter', 'm', pg_temp.role_id('waiter')), 'ok', 'a role the member already has is not re-checked (editing keeps working)');
-select is(pg_temp.invite('m', 'f2-up-manager@test.local', pg_temp.role_id('manager')), '42501:role_exceeds_actor_permissions', 'delegated cashier cannot invite with the manager role');
-select is(pg_temp.invite('m', 'f2-up-waiter@test.local', pg_temp.role_id('waiter')), '42501:role_exceeds_actor_permissions', 'delegated cashier cannot invite with a role holding permissions he lacks');
-select is(pg_temp.invite('m', 'f2-same-cashier@test.local', pg_temp.role_id('cashier')), 'ok', 'delegated cashier can invite a cashier');
 
 -- ---------------------------------------------------------------------------
 -- D. Branch isolation inside one business
@@ -267,7 +239,6 @@ select is(pg_temp.invite('m', 'f2-same-cashier@test.local', pg_temp.role_id('cas
 select pg_temp.act_as(8);
 select is(pg_temp.access('waiter', 't', pg_temp.role_id('cashier')), '42501:member_outside_actor_branches', 'Teras manager cannot take over a Merkez member by naming his own branch');
 select is(pg_temp.access('waiter', 'm', pg_temp.role_id('cashier')), '42501:branch_assignment_denied', 'Teras manager cannot edit a Merkez member in Merkez either');
-select is(pg_temp.invite('m', 'f2-x@test.local', pg_temp.role_id('waiter')), '42501:users_manage_denied', 'Teras manager cannot invite into Merkez');
 select is(pg_temp.access('waiter_teras', 't', pg_temp.role_id('cashier')), 'ok', 'Teras manager manages his own branch normally');
 
 -- ---------------------------------------------------------------------------
@@ -279,8 +250,6 @@ select is(pg_temp.access('waiter', 'm', pg_temp.role_id('manager')), 'ok', 'owne
 select is(pg_temp.access('waiter', 'm', pg_temp.role_id('waiter')), 'ok', 'owner can change it back');
 select is(pg_temp.attempt(format($s$select public.set_member_extras(%L, %L, array['reports.history'], '{}'::uuid[])$s$,
   current_setting('f2.tenant_a'), current_setting('f2.m_waiter'))), 'ok', 'owner can grant extra permissions');
-select is(pg_temp.invite('t', 'f2-teras-admin@test.local', pg_temp.role_id('tenant_admin')), 'ok', 'owner can invite a tenant admin');
-select is(pg_temp.invite('m', 'f2-invitee@test.local', pg_temp.role_id('waiter')), 'ok', 'owner can invite a waiter (used for the accept check below)');
 
 -- ---------------------------------------------------------------------------
 -- F. Tenant isolation
@@ -293,21 +262,12 @@ select is((select count(*)::integer from public.roles where tenant_id = current_
 select is((select count(*)::integer from public.role_permissions where tenant_id = current_setting('f2.tenant_a')::uuid), 0, 'tenant B owner reads none of tenant A role permissions');
 
 -- ---------------------------------------------------------------------------
--- G. Invitation acceptance still works
+-- G. (invitations were removed in 0040; join requests are tested in product_rules_0039_0042.test.sql)
 -- ---------------------------------------------------------------------------
 
 select pg_temp.act_as(9);
-select is(pg_temp.attempt($s$select public.accept_tenant_invitation((select token from f2_tokens where email = 'f2-invitee@test.local'))$s$),
-  'ok', 'the invitee accepts the invitation');
 
 reset role;
-
-select is(
-  (select r.code from public.tenant_memberships m
-   join public.membership_roles mr on mr.tenant_id = m.tenant_id and mr.membership_id = m.id
-   join public.roles r on r.tenant_id = mr.tenant_id and r.id = mr.role_id
-   where m.user_id = 'f2000000-0000-4000-8000-000000000009' and m.tenant_id = current_setting('f2.tenant_a')::uuid),
-  'waiter', 'the accepted invitation created the membership with the invited role');
 
 -- ---------------------------------------------------------------------------
 -- H. Audit trail and unchanged role definitions (as the table owner)
@@ -315,12 +275,8 @@ select is(
 
 select is((select count(*)::integer from public.audit_logs where tenant_id = current_setting('f2.tenant_a')::uuid and action = 'tenant.member_access.updated'), 6,
   'every successful role assignment is audited, refused ones are not (6 successes)');
-select is((select count(*)::integer from public.audit_logs where tenant_id = current_setting('f2.tenant_a')::uuid and action = 'tenant.invitation.created'), 4,
-  'every successful invitation is audited (4 successes)');
 select is((select count(*)::integer from public.audit_logs where tenant_id = current_setting('f2.tenant_a')::uuid and action = 'tenant.member_extras.updated'), 4,
   'every extra-permission change is audited (3 delegations + 1)');
-select is((select count(*)::integer from public.audit_logs where tenant_id = current_setting('f2.tenant_a')::uuid and action = 'tenant.invitation.accepted'), 1,
-  'the accepted invitation is audited');
 select is(
   (select count(*)::integer from public.role_permissions rp
    join public.roles r on r.tenant_id = rp.tenant_id and r.id = rp.role_id

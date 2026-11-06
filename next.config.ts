@@ -63,7 +63,7 @@ const nextConfig: NextConfig = {
       },
       {
         // Private areas and the auth callback also say noindex in the HTTP header.
-        source: "/:area(app|mk-admin|auth|davet|qr|offline)/:path*",
+        source: "/:area(app|mk-admin|auth|bekleme|baslangic|qr|offline)/:path*",
         headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
       },
       {

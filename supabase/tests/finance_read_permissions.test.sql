@@ -1,12 +1,12 @@
 -- F1: reading the finance tables needs a finance permission (migration 0035).
 -- Self-contained: builds its own businesses, users and finance rows inside the
 -- transaction (nothing depends on supabase/seed.sql) and rolls everything back.
--- Run with `supabase test db` on a local database only.
+-- 0039: the refund permission is gone, so its role case was removed. Run with `supabase test db` on a local database only.
 -- Prefix f1000000-... marks every id created here.
 
 begin;
 
-select plan(63);
+select plan(58);
 
 -- ---------------------------------------------------------------------------
 -- Helpers (temporary, gone after the rollback)
@@ -135,7 +135,6 @@ select pg_temp.add_member('f1000000-0000-4000-8000-000000000002', (select id fro
 select pg_temp.add_member('f1000000-0000-4000-8000-000000000003', (select id from public.roles where code = 'kitchen' and tenant_id = (select id from public.tenants where name = 'F1 Test Isletme A')), 'f1-merkez');
 select pg_temp.add_member('f1000000-0000-4000-8000-000000000004', (select id from public.roles where code = 'cashier' and tenant_id = (select id from public.tenants where name = 'F1 Test Isletme A')), 'f1-merkez');
 select pg_temp.add_member('f1000000-0000-4000-8000-000000000005', (select id from public.roles where code = 'cashier' and tenant_id = (select id from public.tenants where name = 'F1 Test Isletme A')), 'f1-teras');
-select pg_temp.add_member('f1000000-0000-4000-8000-000000000006', pg_temp.narrow_role('f1_refund_only', 'payments.refund'), 'f1-merkez');
 select pg_temp.add_member('f1000000-0000-4000-8000-000000000007', pg_temp.narrow_role('f1_create_only', 'payments.create'), 'f1-merkez');
 select pg_temp.add_member('f1000000-0000-4000-8000-000000000008', pg_temp.narrow_role('f1_open_only', 'cash.open'), 'f1-merkez');
 select pg_temp.add_member('f1000000-0000-4000-8000-000000000009', pg_temp.narrow_role('f1_reports_only', 'reports.read'), 'f1-merkez');
@@ -224,12 +223,6 @@ select is(pg_temp.seen('payment_refunds'), '0/0/1', 'other business owner reads 
 select is(pg_temp.seen('payment_allocations'), '0/0/1', 'other business owner reads only its own row: payment_allocations');
 select is(pg_temp.seen('cash_movements'), '0/0/1', 'other business owner reads only its own row: cash_movements');
 
-select set_config('request.jwt.claim.sub', 'f1000000-0000-4000-8000-000000000006', true);
-select is(pg_temp.seen('cash_sessions'), '1/0/0', 'payments.refund-only role: cash_sessions');
-select is(pg_temp.seen('payments'), '1/0/0', 'payments.refund-only role: payments');
-select is(pg_temp.seen('payment_refunds'), '1/0/0', 'payments.refund-only role: payment_refunds');
-select is(pg_temp.seen('payment_allocations'), '1/0/0', 'payments.refund-only role: payment_allocations');
-select is(pg_temp.seen('cash_movements'), '0/0/0', 'payments.refund-only role: cash_movements');
 
 select set_config('request.jwt.claim.sub', 'f1000000-0000-4000-8000-000000000007', true);
 select is(pg_temp.seen('cash_sessions'), '1/0/0', 'payments.create-only role: cash_sessions');

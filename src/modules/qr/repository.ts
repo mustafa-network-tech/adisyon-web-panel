@@ -13,7 +13,6 @@ export async function getPublicMenu(token: string): Promise<PublicMenu | null> {
   if (error) throw new Error("Menü okunamadı.");
   const menu = data as PublicMenu | null;
   if (!menu) return null;
-  // Older database versions do not send option groups; treat that as "no options".
   return {
     ...menu,
     categories: menu.categories.map((category) => ({
@@ -35,7 +34,7 @@ export async function getQrAdminSnapshot(
   branchId: string,
 ): Promise<QrAdminSnapshot> {
   const supabase = await createSupabaseServerClient();
-  const [tablesResult, areasResult, settingsResult] = await Promise.all([
+  const [tablesResult, areasResult] = await Promise.all([
     supabase
       .from("restaurant_tables")
       .select("id, label, qr_token, area_id")
@@ -48,15 +47,9 @@ export async function getQrAdminSnapshot(
       .select("id, name")
       .eq("tenant_id", tenantId)
       .eq("branch_id", branchId),
-    supabase
-      .from("branch_qr_settings")
-      .select("ordering_enabled")
-      .eq("tenant_id", tenantId)
-      .eq("branch_id", branchId)
-      .maybeSingle(),
   ]);
 
-  if (tablesResult.error || areasResult.error || settingsResult.error) {
+  if (tablesResult.error || areasResult.error) {
     throw new Error("QR menü verileri okunamadı.");
   }
 
@@ -64,7 +57,6 @@ export async function getQrAdminSnapshot(
     (areasResult.data || []).map((area) => [area.id as string, area.name as string]),
   );
   return {
-    orderingEnabled: Boolean(settingsResult.data?.ordering_enabled),
     tables: ((tablesResult.data || []) as TableRow[]).map((table) => ({
       id: table.id,
       label: table.label,

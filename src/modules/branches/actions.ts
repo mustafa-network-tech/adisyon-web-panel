@@ -45,3 +45,26 @@ export async function createBranchAction(_previous: CrudActionState, formData: F
   // The new branch starts empty: go straight to its halls and tables.
   redirect(`/app/${values.data.tenant}/${payload.branchSlug}/ayarlar/salonlar`);
 }
+
+const reactivateSchema = z.object({ tenant: z.string().min(1).max(80), branch: z.string().min(1).max(80), branchId: z.uuid() });
+
+/** The owner / business manager switches a passive branch back on. The plan's branch limit is enforced in the database. */
+export async function reactivateBranchAction(_previous: CrudActionState, formData: FormData): Promise<CrudActionState> {
+  const values = reactivateSchema.safeParse({ tenant: formData.get("tenant"), branch: formData.get("branch"), branchId: formData.get("branchId") });
+  if (!values.success) return error("Şube bilgisi eksik.");
+  const context = await requireWorkspacePermission(values.data.tenant, values.data.branch, ["settings.manage"]);
+  const supabase = await createSupabaseServerClient();
+  const { error: rpcError } = await supabase.rpc("set_branch_active", {
+    target_tenant_id: context.tenantId,
+    target_branch_id: values.data.branchId,
+    target_active: true,
+  });
+  if (rpcError) {
+    if (isReadOnlyError(rpcError.message)) return error(readOnlyMessage);
+    if (rpcError.message.includes("branch_limit_reached")) return error("Paketinizin şube sınırına ulaştınız. Önce paketinizi yükseltin.");
+    if (rpcError.message.includes("branch_manage_denied")) return error("Şubeyi yeniden açmak için işletme sahibi veya işletme yöneticisi olmalısınız.");
+    return error("Şube yeniden açılamadı. Lütfen tekrar deneyin.");
+  }
+  revalidatePath(`/app/${values.data.tenant}`, "layout");
+  return { status: "success", message: "Şube yeniden açıldı." };
+}

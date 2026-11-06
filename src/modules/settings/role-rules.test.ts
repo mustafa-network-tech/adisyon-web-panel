@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { invitationAcceptErrorMessage, memberAccessErrorMessage, roleAssignmentRules, statusOptionsFor } from "./role-rules";
+import { joinDecisionErrorMessage, joinRequestErrorMessage, joinWaitingMessage, memberAccessErrorMessage, roleAssignmentRules, statusOptionsFor } from "./role-rules";
 
 describe("role assignment rules", () => {
   it("explains database errors in Turkish", () => {
@@ -15,13 +15,13 @@ describe("role assignment rules", () => {
     expect(memberAccessErrorMessage("member_outside_actor_branches")).toMatch(/kendi şubelerinizdeki/);
   });
 
-  it("explains invitation acceptance errors", () => {
-    expect(invitationAcceptErrorMessage("membership_suspended")).toMatch(/askıya alınmış/);
-    expect(invitationAcceptErrorMessage("invitation_inviter_inactive")).toMatch(/artık işletmede aktif değil/);
-    expect(invitationAcceptErrorMessage("invitation_not_available")).toMatch(/geçersiz, süresi dolmuş/);
-    expect(invitationAcceptErrorMessage("invitation_email_mismatch")).toMatch(/başka bir e-posta/);
-    expect(invitationAcceptErrorMessage("something else")).toMatch(/Oturum e-postası/);
-    expect(invitationAcceptErrorMessage(undefined)).toMatch(/Oturum e-postası/);
+  it("explains join request errors", () => {
+    expect(joinRequestErrorMessage("invalid_code")).toMatch(/katılım kodu hatalı/);
+    expect(joinRequestErrorMessage("rate_limited")).toMatch(/Çok fazla/);
+    expect(joinRequestErrorMessage(undefined)).toMatch(/tekrar deneyin/);
+    expect(joinDecisionErrorMessage("join_request_already_decided")).toMatch(/zaten sonuçlandırılmış/);
+    expect(joinDecisionErrorMessage("user_limit_reached")).toMatch(/kullanıcı sınırı/);
+    expect(joinWaitingMessage).toMatch(/yöneticinizin onayını bekleyin/);
   });
 
   it("does not offer reactivation to branch-scope managers", () => {

@@ -5,9 +5,8 @@ export type PublicMenuProduct = {
   name: string;
   description: string | null;
   priceMinor: number;
-  orderable: boolean;
   soldOut: boolean;
-  /** Portion, extras and removals the guest can choose. */
+  /** Portion, extras and removals the waiter can add (shown to the guest for information). */
   optionGroups: OptionGroup[];
 };
 
@@ -23,7 +22,6 @@ export type PublicMenu = {
   theme?: string;
   branchName: string;
   tableLabel: string;
-  orderingEnabled: boolean;
   categories: PublicMenuCategory[];
 };
 
@@ -36,7 +34,6 @@ export type QrTableEntry = {
 };
 
 export type QrAdminSnapshot = {
-  orderingEnabled: boolean;
   tables: Array<{
     id: string;
     label: string;
@@ -48,7 +45,3 @@ export type QrAdminSnapshot = {
 export type QrActionResult =
   | { ok: true; message: string }
   | { ok: false; message: string };
-
-export type CustomerOrderResult =
-  | { ok: true; orderNumber: number }
-  | { ok: false; code: string; message: string };

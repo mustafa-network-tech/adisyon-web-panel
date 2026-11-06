@@ -57,7 +57,6 @@ export default async function OrderPage({
         order={order}
         products={products}
         branding={branding}
-        canDiscount={hasAnyPermission(context.permissions, ["discounts.apply"])}
         canVoid={hasAnyPermission(context.permissions, ["orders.cancel"])}
         tableOperations={dining ? {
           moveTargets: dining.tables

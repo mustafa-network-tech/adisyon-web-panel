@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft, Building2 } from "lucide-react";
 import { requireWorkspacePermission } from "@/lib/auth/access";
 import { contactEmail, whatsappDisplay, whatsappLink } from "@/lib/site";
+import { ReactivateBranchForm } from "@/modules/branches/components/reactivate-branch-form";
 import { BranchForm } from "@/modules/branches/components/branch-form";
 import { getPlanUsage } from "@/modules/plan/repository";
 import { planName } from "@/modules/plan/usage";
@@ -17,9 +18,11 @@ export default async function BranchesSettingsPage({ params }: { params: Promise
   const supabase = await createSupabaseServerClient();
   const [usage, { data }] = await Promise.all([
     getPlanUsage(context.tenantId, context.branchId),
-    supabase.from("branches").select("slug, name, is_active").eq("tenant_id", context.tenantId).order("created_at", { ascending: true }),
+    supabase.from("branches").select("id, slug, name, is_active").eq("tenant_id", context.tenantId).order("created_at", { ascending: true }),
   ]);
-  const branches = (data ?? []).filter((item) => item.is_active) as Array<{ slug: string; name: string; is_active: boolean }>;
+  const all = (data ?? []) as Array<{ id: string; slug: string; name: string; is_active: boolean }>;
+  const branches = all.filter((item) => item.is_active);
+  const passive = all.filter((item) => !item.is_active);
   const limit = usage?.branchLimit ?? 1;
   const full = branches.length >= limit;
 
@@ -43,6 +46,21 @@ export default async function BranchesSettingsPage({ params }: { params: Promise
           </li>
         ))}
       </ul>
+
+      {passive.length > 0 && (
+        <div className="mt-6">
+          <h2 className="text-lg font-black">Pasif şubeler</h2>
+          <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {passive.map((item) => (
+              <li key={item.id} className="rounded-[22px] border border-dashed border-[#cfd8d3] bg-white p-5">
+                <h3 className="text-base font-black text-[#68736e]">{item.name}</h3>
+                <p className="mt-1 text-xs font-semibold text-[#8a948f]">Geçmiş kayıtlar saklanır. Yeniden açmak paketinizin şube sınırına bağlıdır.</p>
+                <ReactivateBranchForm tenant={tenant} branch={branch} branchId={item.id} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="mt-6 max-w-xl rounded-[22px] border border-[#dfe5e1] bg-white p-5 sm:p-6">
         {full ? (

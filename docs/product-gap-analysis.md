@@ -11,9 +11,9 @@ Masa ve sipariş yönetimi, mutfak ekranı/fişi, kasa ve ödeme, raporlama, rol
 | Masa/salon, taşıma, birleştirme | Var |
 | Sipariş, mutfak istasyonları, doğrudan servis ürünleri | Var |
 | Mutfak ekranı (canlı), süre uyarısı | Var |
-| QR menü, QR sipariş, garson çağırma, hesap isteme | Var |
-| Kasa vardiyası, nakit/kart, parçalı ve ürün bazlı ödeme, iade | Var |
-| İndirim (adisyon/ürün), gerekçeli, yetkili | Var |
+| QR menü (yalnızca görüntüleme), garson çağırma, hesap isteme | Var |
+| Kasa vardiyası, nakit/kart, parçalı ve ürün bazlı ödeme | Var |
+| İndirim/promosyon (yalnızca kasada, ödeme sırasında; değiştirilemez denetim kaydı) | Var |
 | Fiş çıktısı (tarayıcı, 58/80 mm) | Var |
 | Satış raporları, CSV | Var |
 | Rol/yetki, şube kapsamı, denetim kaydı | Var |
@@ -25,7 +25,7 @@ Masa ve sipariş yönetimi, mutfak ekranı/fişi, kasa ve ödeme, raporlama, rol
 ### A. Dış bilgi gerektirmeyen, yazılım içinde kapatılabilir
 1. **Ürün seçenekleri:** porsiyon/boy, ekstra, "çıkar", zorunlu seçim grupları. Şu an yalnızca serbest not var.
 2. **Gönderilmiş kalemi iptal/ikram:** gerekçeli, yetkili, yöneticiye bildirimli. Şu an gönderilen miktarın altına inilemiyor.
-3. **Hizmet bedeli (servis ücreti):** ayarda alanı var, toplama yansımıyor. Bahşiş girişi de yok.
+3. ~~Hizmet bedeli~~ Kaldırıldı (fiyatlar KDV dahil, servis ücreti yok).
 4. **Ürün tükendi (86) hızlı anahtarı:** menüyü açmadan satıştan kaldırma.
 5. **Menü toplu içe aktarma (Excel/CSV)** ve örnek menü ile hızlı kurulum.
 6. **Müşteri kaydı ve adres** (paket servisin ön koşulu), isteğe bağlı sadakat.
@@ -45,7 +45,7 @@ Masa ve sipariş yönetimi, mutfak ekranı/fişi, kasa ve ödeme, raporlama, rol
 Rezervasyon, çoklu dil, mobil mağaza uygulaması, yazıcı/mutfak ekranı donanım paketi.
 
 ## Satış açısından not
-Rakipler öne çıkarken en çok "yazarkasa/e-fatura entegrasyonu", "paket servis entegrasyonu" ve "stok-reçete"yi vurguluyor. Bunlar B grubunda. Landing sayfasında bugün güvenle anlatabileceğimiz güçlü yanlar: QR menü + garson çağırma, canlı mutfak ekranı, çok şube ve rol/yetki, personel vardiya/puantaj, denetim kaydı.
+Rakipler öne çıkarken en çok "yazarkasa/e-fatura entegrasyonu", "paket servis entegrasyonu" ve "stok-reçete"yi vurguluyor. Bunlar B grubunda. Landing sayfasında bugün güvenle anlatabileceğimiz güçlü yanlar: QR menü (görüntüleme) + garson çağırma, canlı mutfak ekranı, çok şube ve rol/yetki, personel vardiya/puantaj, denetim kaydı.
 
 ## Alan adı kontrolü (RDAP / DNS)
 - adisyonweb.com: kayıtlı görünmüyor (Verisign RDAP 404, DNS yok)

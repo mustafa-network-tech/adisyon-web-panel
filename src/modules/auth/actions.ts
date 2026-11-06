@@ -7,6 +7,7 @@ import { getSafeReturnPath } from "@/lib/auth/redirects";
 import { siteUrl } from "@/lib/site";
 import { entryQuery, parseEntry, setupLandingPath } from "@/modules/onboarding/entry";
 import { parsePlanParam } from "@/modules/onboarding/plans";
+import { joinRequestErrorMessage } from "@/modules/settings/role-rules";
 import { createBusinessSchema } from "@/modules/settings/validation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { AuthActionState } from "@/modules/auth/state";
@@ -172,6 +173,30 @@ export async function signUpAction(
     status: "success",
     message: "Üyeliğiniz oluşturuldu. E-posta kutunuzdaki doğrulama bağlantısına tıklayın.",
   };
+}
+
+/**
+ * Somebody who already has an account asks to join an existing business with its name and code.
+ * Knowing the code gives NO access: a manager has to approve the request and set role and branches.
+ */
+export async function requestJoinAction(
+  _previousState: AuthActionState,
+  formData: FormData,
+): Promise<AuthActionState> {
+  const name = String(formData.get("businessName") ?? "").trim();
+  const code = String(formData.get("joinCode") ?? "").trim();
+  if (name.length < 2 || name.length > 120 || code.length < 4 || code.length > 40) {
+    return errorState(joinRequestErrorMessage("invalid_code"));
+  }
+  const supabase = await createSupabaseServerClient();
+  const { data: claims } = await supabase.auth.getClaims();
+  if (!claims?.claims?.sub) redirect("/giris?next=%2Fbaslangic");
+
+  const { data, error } = await supabase.rpc("request_join_tenant", { target_name: name, target_code: code });
+  if (error) return errorState(joinRequestErrorMessage(error.message));
+  const status = (data as { status?: string } | null)?.status;
+  if (status !== "pending") return errorState(joinRequestErrorMessage(status));
+  redirect("/bekleme");
 }
 
 export async function createBusinessAction(

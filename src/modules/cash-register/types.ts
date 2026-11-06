@@ -36,31 +36,25 @@ export type CheckoutOrder = {
   staffName: string | null;
   openedAt: string;
   totalMinor: number;
-  /** Adisyon discount already deducted from totalMinor. */
+  /** Order level discount of an OLD bill, already deducted from totalMinor (such discounts no longer exist). */
   discountMinor: number;
   discountReason: string | null;
+  /** Discount + promotion given at the cash desk so far (never money; settles part of the original total). */
+  adjustedMinor: number;
   paidMinor: number;
   outstandingMinor: number;
   items: CheckoutOrderItem[];
-};
-
-export type RecentPayment = {
-  id: string;
-  orderNumber: number;
-  method: PaymentMethod;
-  amountMinor: number;
-  refundedMinor: number;
-  paidAt: string;
 };
 
 export type CheckoutSnapshot = {
   registers: CashRegister[];
   sessions: CashSession[];
   orders: CheckoutOrder[];
-  recentPayments: RecentPayment[];
   cashTotalMinor: number;
   cardTotalMinor: number;
-  refundTotalMinor: number;
+  /** Discounts and promotions given in the open shifts: shown apart, not part of cash or card. */
+  discountTotalMinor: number;
+  promotionTotalMinor: number;
 };
 
 export type FinanceActionResult =

@@ -105,8 +105,8 @@ export function ServiceAlerts({ tenant, branch, branchId, userId, overseesFloor,
       push(readyAlert(ticket.id, await tableLabel(order.table_id), Number(order.order_number)), true);
     }
 
-    if (receivesCalls) {
-      // Calls that arrived while this device was closed or offline.
+    // Calls that arrived while this device was closed, offline or disconnected.
+    function catchUpCalls() {
       void supabase
         .from("waiter_calls")
         .select("id, table_id, kind")
@@ -118,6 +118,8 @@ export function ServiceAlerts({ tenant, branch, branchId, userId, overseesFloor,
           for (const call of data || []) void announceCall(call as { id: string; table_id: string; kind: "waiter" | "bill" }, false);
         });
     }
+    if (receivesCalls) catchUpCalls();
+    let lostConnection = false;
 
     let channel = supabase.channel(`alerts:${branchId}:${userId}`);
     if (receivesCalls) {
@@ -141,7 +143,14 @@ export function ServiceAlerts({ tenant, branch, branchId, userId, overseesFloor,
         push(voidAlert({ id: row.id, tableLabel: row.table_label, mode: row.mode, text: describeVoid({ mode: row.mode, quantity: row.quantity, productName: row.product_name, reason: row.reason, actorName: row.actor_name }) }), true);
       });
     }
-    channel.subscribe();
+    channel.subscribe((status) => {
+      if (status === "SUBSCRIBED" && lostConnection) {
+        lostConnection = false;
+        if (receivesCalls) catchUpCalls();
+      } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+        lostConnection = true;
+      }
+    });
 
     return () => {
       closed = true;

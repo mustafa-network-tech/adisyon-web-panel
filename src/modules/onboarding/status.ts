@@ -1,3 +1,4 @@
+import { subscriptionEnded } from "@/lib/subscription-time";
 /**
  * Setup (onboarding) states. The first seven are stored in tenant_onboarding.status;
  * the last three are derived from the subscription and the trial start time, so
@@ -57,11 +58,11 @@ export type OnboardingState = {
 export type SubscriptionLite = { status: "trial" | "active" | "suspended" | "cancelled"; endsAt: string | null } | null;
 
 export function deriveStatus(state: Pick<OnboardingState, "status" | "trialStartedAt">, subscription: SubscriptionLite, now: Date = new Date()): DerivedStatus {
-  if (subscription?.status === "active" && (!subscription.endsAt || new Date(subscription.endsAt) > now)) {
+  if (subscription?.status === "active" && !subscriptionEnded(subscription.endsAt, now)) {
     return "subscription_active";
   }
   if (state.trialStartedAt) {
-    if (subscription?.status === "trial" && subscription.endsAt && new Date(subscription.endsAt) > now) return "trial_active";
+    if (subscription?.status === "trial" && subscription.endsAt && !subscriptionEnded(subscription.endsAt, now)) return "trial_active";
     return "trial_ended";
   }
   return state.status;

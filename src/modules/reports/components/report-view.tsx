@@ -53,7 +53,7 @@ export function ReportView({ report }: { report: SalesReport }) {
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <Tile label="Net satış" value={formatMoney(summary.netMinor)} hint={`${summary.orderCount} kapanan adisyon`} tone="good" />
         <Tile label="Ortalama adisyon" value={formatMoney(summary.averageMinor)} hint={summary.guestCount ? `${summary.guestCount} kişi` : undefined} />
-        <Tile label="İndirim" value={formatMoney(summary.discountMinor + summary.itemDiscountMinor)} hint={`Adisyon ${formatMoney(summary.discountMinor)} · Ürün ${formatMoney(summary.itemDiscountMinor)}`} tone={summary.discountMinor + summary.itemDiscountMinor > 0 ? "warn" : "default"} />
+        <Tile label="İndirim / promosyon" value={formatMoney(summary.discountMinor + (summary.promotionMinor ?? 0))} hint={`Brüt ${formatMoney(summary.grossMinor)} · indirim ${formatMoney(summary.discountMinor)} · promosyon ${formatMoney(summary.promotionMinor ?? 0)} · iade ${formatMoney(summary.refundMinor ?? 0)}`} tone={summary.discountMinor + (summary.promotionMinor ?? 0) > 0 ? "warn" : "default"} />
         <Tile label="KDV" value={formatMoney(summary.taxMinor)} hint={`KDV hariç ${formatMoney(summary.netMinor - summary.taxMinor)}`} />
         <Tile label="İptal / ikram" value={formatMoney((summary.voidMinor ?? 0) + (summary.compMinor ?? 0))} hint={`${summary.voidCount ?? 0} kayıt · iptal ${formatMoney(summary.voidMinor ?? 0)} · ikram ${formatMoney(summary.compMinor ?? 0)}`} tone={(summary.voidMinor ?? 0) + (summary.compMinor ?? 0) > 0 ? "warn" : "default"} />
       </div>

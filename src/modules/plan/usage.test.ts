@@ -15,8 +15,9 @@ describe("plan usage", () => {
 
   it("counts the days left of a trial", () => {
     const now = new Date("2026-11-05T10:00:00Z");
-    expect(daysLeft("2026-11-12T10:00:00Z", now)).toBe(7);
-    expect(daysLeft("2026-11-05T22:00:00Z", now)).toBe(1);
+    expect(daysLeft("2026-11-12T10:00:00Z", now)).toBe(8); // 5..12 Nov, last day counts
+    expect(daysLeft("2026-11-05T22:00:00Z", now)).toBe(2);
+    expect(daysLeft("2026-11-05T18:00:00Z", now)).toBe(1);
     expect(daysLeft("2026-11-01T00:00:00Z", now)).toBe(0);
     expect(daysLeft(null, now)).toBeNull();
   });

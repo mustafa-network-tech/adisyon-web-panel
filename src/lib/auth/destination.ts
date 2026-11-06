@@ -1,5 +1,6 @@
 import "server-only";
 
+import { subscriptionEnded } from "@/lib/subscription-time";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 /** Where a signed-in user lands by default; null when they have no business. */
@@ -21,7 +22,12 @@ export async function resolveDefaultDestination(userId: string) {
     .limit(1)
     .maybeSingle();
 
-  if (!membership) return null;
+  if (!membership) {
+    // Somebody who asked to join a business and waits for approval sees only the waiting page.
+    const { data: requests } = await supabase.rpc("my_join_requests");
+    const waiting = Array.isArray(requests) && requests.some((item: { status?: string }) => item.status === "pending");
+    return waiting ? "/bekleme" : null;
+  }
 
   const [{ data: tenant }, { data: branch }] = await Promise.all([
     supabase
@@ -59,7 +65,7 @@ export async function resolveDefaultDestination(userId: string) {
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (subscription && subscription.status === "trial" && subscription.ends_at && new Date(subscription.ends_at) <= new Date()) {
+    if (subscription && subscription.status === "trial" && subscriptionEnded(subscription.ends_at)) {
       return `/app/${tenant.slug}/${branch.slug}/paket`;
     }
   }

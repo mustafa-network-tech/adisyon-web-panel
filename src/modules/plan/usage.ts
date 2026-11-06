@@ -1,4 +1,5 @@
 import { contactEmail } from "@/lib/site";
+import { istanbulDay, subscriptionEnded } from "@/lib/subscription-time";
 
 export type PlanUsage = {
   planCode: string | null;
@@ -30,8 +31,11 @@ export function isLimitReached(used: number, limit: number | null) {
 /** Whole days left until `endsAt` (0 when it already ended); null when there is no end date. */
 export function daysLeft(endsAt: string | null, now: Date = new Date()) {
   if (!endsAt) return null;
-  const milliseconds = new Date(endsAt).getTime() - now.getTime();
-  return Math.max(0, Math.ceil(milliseconds / 86_400_000));
+  // counted in Istanbul calendar days: the last day itself still counts as 1 (it works until 23:59:59)
+  if (subscriptionEnded(endsAt, now)) return 0;
+  const end = Date.parse(`${istanbulDay(endsAt)}T00:00:00Z`);
+  const today = Date.parse(`${istanbulDay(now)}T00:00:00Z`);
+  return Math.round((end - today) / 86_400_000) + 1;
 }
 
 export function limitReachedMessage(kind: "table" | "station", limit: number | null) {

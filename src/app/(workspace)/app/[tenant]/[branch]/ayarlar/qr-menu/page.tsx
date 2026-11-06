@@ -52,13 +52,12 @@ export default async function QrMenuSettingsPage({
         <p className="text-xs font-black uppercase tracking-[0.16em] text-[color:var(--c-accent)]">Dijital menü</p>
         <h1 className="mt-2 text-3xl font-black tracking-[-0.04em] sm:text-4xl">QR menü</h1>
         <p className="mt-2 text-sm font-semibold text-[#7a8580]">
-          {context.branchName} için masalara özel QR kodları oluşturun ve müşteri sipariş modunu seçin.
+          {context.branchName} için masalara özel QR menü kodlarını oluşturun ve yazdırın.
         </p>
       </div>
       <QrManager
         tenant={tenant}
         branch={branch}
-        orderingEnabled={snapshot.orderingEnabled}
         tables={tables}
       />
     </section>

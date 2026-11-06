@@ -1,5 +1,6 @@
 import "server-only";
 
+import { subscriptionEnded } from "@/lib/subscription-time";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { PlatformMember, SubscriptionStatus, TenantSummary } from "./types";
 
@@ -112,8 +113,7 @@ export async function getPlatformOverview(
       readOnly:
         Boolean(subscription) &&
         (subscription?.status === "trial" || subscription?.status === "active") &&
-        Boolean(subscription?.ends_at) &&
-        new Date(subscription?.ends_at as string).getTime() < Date.now(),
+        subscriptionEnded(subscription?.ends_at),
     } satisfies PlatformTenantSummary;
   });
 

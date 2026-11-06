@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { grantablePermissionCodes } from "./management-types";
 
 const optionalDateTime = z
   .string()
@@ -14,13 +15,13 @@ export const tenantConfigurationSchema = z.object({
   primaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   orderNumberPrefix: z.string().trim().toUpperCase().regex(/^[A-Z0-9]{1,8}$/),
   receiptFooter: z.string().trim().max(500),
-  serviceChargePercent: z.coerce.number().min(0).max(100),
 });
 
-export const invitationSchema = z.object({
-  email: z.email().max(254).transform((value) => value.toLowerCase()),
-  roleId: z.uuid(),
-  validHours: z.coerce.number().int().min(1).max(168),
+export const joinDecisionSchema = z.object({
+  requestId: z.uuid(),
+  decision: z.enum(["approve", "reject"]),
+  roleId: z.uuid().optional(),
+  branchIds: z.array(z.uuid()).max(100),
 });
 
 export const memberAccessSchema = z.object({
@@ -51,9 +52,7 @@ export const subscriptionSchema = z
 
 export const memberExtrasSchema = z.object({
   membershipId: z.uuid(),
-  permissionCodes: z.array(
-    z.enum(["settings.manage", "catalog.manage", "users.manage", "reports.history"]),
-  ),
+  permissionCodes: z.array(z.enum(grantablePermissionCodes)),
   stationIds: z.array(z.uuid()),
 });
 

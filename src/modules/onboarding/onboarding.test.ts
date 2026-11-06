@@ -41,7 +41,7 @@ describe("status derivation", () => {
   it("is active during the 7 days and ended afterwards", () => {
     const started = { ...base, trialStartedAt: "2027-01-08T12:00:00Z" };
     expect(deriveStatus(started, { status: "trial", endsAt: "2027-01-15T12:00:00Z" }, now)).toBe("trial_active");
-    expect(deriveStatus(started, { status: "trial", endsAt: "2027-01-10T11:00:00Z" }, now)).toBe("trial_ended");
+    expect(deriveStatus(started, { status: "trial", endsAt: "2027-01-09T11:00:00Z" }, now)).toBe("trial_ended");
   });
 
   it("an activated subscription wins", () => {
